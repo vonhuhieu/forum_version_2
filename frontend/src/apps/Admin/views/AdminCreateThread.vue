@@ -1,6 +1,6 @@
 <template>
   <div class="admin-create-thread">
-    <Loading :visible="isSubmitting" />
+    <Loading :visible="isSubmitting || isPageLoading" />
     <div class="card">
       <div class="card-header">{{ pageTitle }}</div>
       <div class="admin-form" style="padding: 2rem;">
@@ -180,6 +180,7 @@ export default {
       postType: 'discussion',
       attachedImages: [],
       isSubmitting: false,
+      isPageLoading: false,
       form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '' }
     }
   },
@@ -206,11 +207,20 @@ export default {
     }
   },
   async mounted() {
-    await this.fetchCategoryGroups()
-    await this.fetchCategories()
-    await this.fetchLabels()
-    if (this.threadId) {
-      await this.fetchThread()
+    this.isPageLoading = true
+    try {
+      await Promise.all([
+        this.fetchCategoryGroups(),
+        this.fetchCategories(),
+        this.fetchLabels()
+      ])
+      if (this.threadId) {
+        await this.fetchThread()
+      }
+    } catch (error) {
+      console.error('Error loading admin page details:', error)
+    } finally {
+      this.isPageLoading = false
     }
     document.addEventListener('click', this.handleClickOutside)
   },
