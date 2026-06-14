@@ -1,6 +1,6 @@
 <template>
   <div class="create-thread-page app-wrapper">
-    <Loading :visible="isUploadLoading || isSubmitting" />
+    <Loading :visible="isUploadLoading || isSubmitting || isPageLoading" />
     <ForumHeader />
     
     <main class="container" style="padding-top: 2rem;">
@@ -142,6 +142,7 @@ export default {
       attachedImages: [],
       isUploadLoading: false,
       isSubmitting: false,
+      isPageLoading: false,
       form: { title: '', content: '', categoryId: '', poll: null, labelId: null }
     }
   },
@@ -189,9 +190,18 @@ export default {
     }
   },
 
-  mounted() {
-    this.fetchCategory()
-    this.fetchLabels()
+  async mounted() {
+    this.isPageLoading = true
+    try {
+      await Promise.all([
+        this.fetchCategory(),
+        this.fetchLabels()
+      ])
+    } catch (error) {
+      console.error('Error loading page details:', error)
+    } finally {
+      this.isPageLoading = false
+    }
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeUnmount() {
