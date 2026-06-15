@@ -33,12 +33,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                if (userRepository.findByUsername(username).isPresent()) {
-                    java.util.List<String> roles = jwtUtils.getRolesFromJwtToken(jwt);
+                var userOpt = userRepository.findByUsername(username);
+                if (userOpt.isPresent()) {
+                    var dbUser = userOpt.get();
+                    java.util.Set<String> dbRoles = dbUser.getRoles();
                     
                     java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
-                    if (roles != null) {
-                        for (String role : roles) {
+                    if (dbRoles != null) {
+                        for (String role : dbRoles) {
                             authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role));
                         }
                     }

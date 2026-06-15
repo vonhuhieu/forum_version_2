@@ -97,7 +97,7 @@
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
                 <div class="left-actions">
-                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn">Báo cáo</a>
+                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn && !isNonOfficial">Báo cáo</a>
                   <a href="#" class="action-link" v-if="canEdit(item)" @click.prevent="startEditing(item)">Sửa</a>
                 </div>
                 <div class="right-actions">
@@ -110,7 +110,7 @@
                     :userReaction="thread.currentUserReaction"
                     @reaction-changed="fetchThread"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -178,7 +178,7 @@
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
                 <div class="left-actions">
-                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn">Báo cáo</a>
+                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn && !isNonOfficial">Báo cáo</a>
                   <a href="#" class="action-link" v-if="canEdit(item)" @click.prevent="startEditing(item)">Sửa</a>
                 </div>
                 <div class="right-actions">
@@ -191,7 +191,7 @@
                     :userReaction="item.currentUserReaction"
                     @reaction-changed="reloadPostsOnly"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -221,7 +221,7 @@
       </div>
 
       <!-- Reply Editor Container -->
-      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn">
+      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial">
         <div class="post-layout">
           <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
              <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
@@ -250,7 +250,7 @@
         </div>
       </div>
 
-      <div v-else class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
+      <div v-else-if="!isLoggedIn" class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
         Bạn phải <router-link to="/login" style="color: #3498db; font-weight: bold;">đăng nhập</router-link> để có thể trả lời bài viết này.
       </div>
 
@@ -299,6 +299,7 @@ import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
+import { isNonOfficialUser } from '@/shared/utils/utils'
 
 export default {
   name: 'ThreadDetail',
@@ -436,8 +437,11 @@ export default {
       const startSeq = (this.currentPage - 1) * this.itemsPerPage + 1;
       return this.posts.map((p, idx) => ({ ...p, isMain: false, seqNumber: startSeq + idx }));
     },
+    isNonOfficial() {
+      return isNonOfficialUser();
+    },
     canShowReactionForMainPost() {
-      if (!this.isLoggedIn || !this.thread || !this.thread.author || !this.currentUser) return false;
+      if (!this.isLoggedIn || !this.thread || !this.thread.author || !this.currentUser || this.isNonOfficial) return false;
       return String(this.thread.author.id) !== String(this.currentUser.id);
     }
   },
@@ -576,7 +580,7 @@ export default {
       }
     },
     canShowReactionForReply(item) {
-      if (!this.isLoggedIn || !item || !item.author || !this.currentUser) return false;
+      if (!this.isLoggedIn || !item || !item.author || !this.currentUser || this.isNonOfficial) return false;
       return String(item.author.id) !== String(this.currentUser.id);
     },
     async reloadPostsOnly() {

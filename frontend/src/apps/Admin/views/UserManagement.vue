@@ -129,8 +129,8 @@ export default {
       keyword: '',
       pageSize: 10,
       currentPage: 1,
-      sortField: '',
-      sortOrder: 'asc',
+      sortField: 'createdAt',
+      sortOrder: 'desc',
       headers: [
         { text: 'Tên đăng nhập', value: 'username', sortable: true, width: '20%' },
         { text: 'Tên hiển thị', value: 'displayName', sortable: true, width: '25%' },
