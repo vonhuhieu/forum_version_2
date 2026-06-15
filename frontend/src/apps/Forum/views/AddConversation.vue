@@ -3,16 +3,12 @@
     <ForumHeader />
     
     <main class="container" style="padding-top: 2rem;">
-      <div class="breadcrumb" style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
-        <router-link :to="{ name: 'Home' }" style="color: #1a507a; text-decoration: none;">Trang chủ</router-link>
-        <span style="margin: 0 5px;">&gt;</span>
-        <span style="color: #666;">Đối thoại</span>
-      </div>
+      <Breadcrumb :items="breadcrumbItems" />
 
       <div class="card">
         <div class="card-header">Bắt đầu đối thoại</div>
         
-        <div class="post-form" style="padding: 2rem;">
+        <div class="post-form" style="padding: 16px;">
           <!-- Người nhận -->
           <div class="form-group" style="margin-bottom: 1.5rem; position: relative;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1a507a;">Người nhận:</label>
@@ -21,17 +17,23 @@
                 <span v-if="!isReadOnly" class="remove-tag" @click.stop="removeRecipient(user)">&times;</span>
                 <span>{{ user.displayName || user.username }}</span>
               </div>
-              <input 
-                v-if="!isReadOnly"
-                ref="searchInput"
-                type="text" 
-                class="recipient-search-input" 
-                v-model="searchQuery" 
-                :placeholder="selectedRecipients.length === 0 ? 'Nhập tên đăng nhập hoặc tên hiển thị để tìm...' : ''"
-                @focus="showDropdown = true"
-                @input="handleSearchInput"
-                @keydown.delete="handleBackspace"
-              />
+              <div v-if="!isReadOnly" class="search-input-wrapper">
+                <span 
+                  v-if="selectedRecipients.length === 0 && !searchQuery" 
+                  class="recipient-placeholder"
+                >
+                  Nhập tên đăng nhập hoặc tên hiển thị để tìm...
+                </span>
+                <input 
+                  ref="searchInput"
+                  type="text" 
+                  class="recipient-search-input" 
+                  v-model="searchQuery" 
+                  @focus="showDropdown = true"
+                  @input="handleSearchInput"
+                  @keydown.delete="handleBackspace"
+                />
+              </div>
             </div>
             
             <!-- Dropdown autocomplete search results -->
@@ -50,7 +52,7 @@
                 </span>
               </div>
             </div>
-            <small style="color: #888; font-size: 0.85rem; margin-top: 4px; display: block;">Tìm kiếm thành viên chính xác để bắt đầu đối thoại.</small>
+            <!-- <small style="color: #888; font-size: 0.85rem; margin-top: 4px; display: block;">Dãn cách tên bằng dấu phẩy(,).</small> -->
           </div>
 
           <!-- Tiêu đề -->
@@ -72,15 +74,18 @@
           </div>
 
           <!-- Actions -->
-          <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #eee; padding-top: 1.5rem;">
-            <button @click="$router.push({ name: 'Home' })" class="btn-cancel">Hủy bỏ</button>
+          <div class="form-actions" style="display: flex; justify-content: center; gap: 10px; border-top: 1px solid #eee; padding-top: 1.5rem;">
             <button @click="handleSubmit" class="btn-post" :disabled="submitting">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px; vertical-align: middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
               Bắt đầu đối thoại
             </button>
+
+            <button @click="$router.push({ name: 'Home' })" class="btn-cancel">Hủy bỏ</button>
           </div>
         </div>
       </div>
+
+      <Breadcrumb :items="breadcrumbItems" />
     </main>
   </div>
 </template>
@@ -90,12 +95,14 @@ import userService from '@/apps/Forum/services/user.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import ForumHeader from '@/shared/components/ForumHeader.vue'
+import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 
 export default {
   name: 'AddConversation',
   components: {
     ForumHeader,
+    Breadcrumb,
     CustomEditor
   },
   data() {
@@ -113,6 +120,14 @@ export default {
         title: '',
         content: ''
       }
+    }
+  },
+  computed: {
+    breadcrumbItems() {
+      return [
+        { title: 'Trang chủ', to: { name: 'Home' } },
+        { title: 'Đối thoại' }
+      ]
     }
   },
   async mounted() {
@@ -310,14 +325,33 @@ export default {
   color: #dc3545;
 }
 
-.recipient-search-input {
-  border: none;
-  background: transparent;
+.search-input-wrapper {
+  display: grid;
   flex: 1;
   min-width: 150px;
+  position: relative;
+}
+
+.recipient-placeholder {
+  grid-area: 1 / 1;
+  color: #888;
+  font-size: 0.95rem;
+  pointer-events: none;
+  align-self: center;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.recipient-search-input {
+  grid-area: 1 / 1;
+  border: none;
+  background: transparent;
+  width: 100%;
   outline: none;
   font-size: 0.95rem;
   color: #333;
+  z-index: 2;
 }
 
 .autocomplete-dropdown {
@@ -419,5 +453,11 @@ export default {
 :deep(.ck-editor__editable) {
   min-height: 350px;
   font-size: 16px;
+}
+
+@media (max-width: 767px) {
+  .btn-post, .btn-cancel {
+    padding: 12px 10px !important;
+  }
 }
 </style>
