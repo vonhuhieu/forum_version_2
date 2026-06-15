@@ -8,9 +8,9 @@
 
       <div class="card">
         <div class="card-header">ĐĂNG BÀI</div>
-        <div class="post-form" style="padding: 2rem;">
-          <div class="form-group" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
-            <div class="custom-select" style="position: relative; width: 200px;">
+        <div class="post-form">
+          <div class="title-row">
+            <div class="custom-select label-select">
               <div 
                 class="select-selected" 
                 @click="labelDropdownOpen = !labelDropdownOpen"
@@ -37,7 +37,7 @@
               </div>
             </div>
             
-            <input v-model="form.title" class="title-input" style="flex: 1;" placeholder="Nhập tiêu đề bài viết..." required>
+            <input v-model="form.title" class="title-input title-field" placeholder="Nhập tiêu đề bài viết..." required>
           </div>
 
           <div class="form-group" style="margin-bottom: 1.5rem;">
@@ -95,9 +95,9 @@
             </div>
           </div>
 
-          <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button @click="$router.push({ name: 'Home' })" class="btn-cancel">Hủy bỏ</button>
+          <div class="form-actions">
             <button @click="handlePost" class="btn-post">Đăng bài</button>
+            <button @click="$router.push({ name: 'Home' })" class="btn-cancel">Hủy bỏ</button>
           </div>
         </div>
       </div>
@@ -323,10 +323,53 @@ export default {
 
 <style scoped>
 .create-thread-page { padding-bottom: 5rem; }
-.title-input { padding: 1rem; font-size: 1.2rem; border: 1px solid #ddd; border-radius: 4px; font-weight: bold; }
+.post-form {
+  padding: 2rem;
+}
+.title-row {
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.label-select {
+  position: relative;
+  width: 200px;
+  flex-shrink: 0;
+}
+.title-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem;
+  font-size: 1.2rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.title-field {
+  flex: 1;
+}
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
 .btn-post { background-color: #3498db; color: white; border: none; padding: 12px 35px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
 .btn-post:hover { background-color: #2980b9; }
 .btn-cancel { background-color: #ecf0f1; color: #333; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .post-form {
+    padding: 1rem;
+  }
+  .title-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .label-select {
+    width: 100%;
+  }
+}
 
 /* Custom Select for Labels */
 .custom-select {
