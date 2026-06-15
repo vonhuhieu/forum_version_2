@@ -59,7 +59,7 @@
               <span class="user-avatar-small" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
                 {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
               </span>
-              <span class="user-greeting fs-18 color-c9d6e0">{{ currentUser.displayName || currentUser.username }}</span>
+              <span class="user-greeting fs-18 color-c9d6e0">{{ truncatedDisplayName }}</span>
               
               <!-- User Dropdown Menu -->
               <div class="user-dropdown" v-show="showUserDropdown">
@@ -166,10 +166,10 @@
                 <div class="notif-footer">
                    <a href="#" class="btn-load-more" :class="{ 'disabled': !hasMoreMail }" @click.prevent="loadMoreMail">Xem thêm</a>
                    <span style="color: #ccc;">·</span>
-                   <a href="#" @click.prevent>Xem tất cả</a>
-                   <span style="color: #ccc;">·</span>
-                   <a href="#" @click.prevent="goToAddConvo">Bắt đầu đối thoại mới</a>
-                </div>
+                    <a href="#" @click.prevent>Xem tất cả</a>
+                    <span style="color: #ccc;">·</span>
+                    <a href="#" @click.prevent="goToAddConvo" v-if="!isNonOfficial">Bắt đầu đối thoại mới</a>
+                 </div>
              </div>
           </div>
 
@@ -288,18 +288,26 @@
       </div>
     </div>
   </header>
+
+  <PendingApprovalBanner v-if="isNonOfficial" />
 </template>
 
 <script>
+import api from '@/shared/services/api.service'
 import webSocketService from '@/shared/services/websocket.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import menuService from '@/apps/Forum/services/menu.service'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { alertSuccess, alertWarning } from '@/shared/utils/swal'
+import { isNonOfficialUser, truncateString } from '@/shared/utils/utils'
+import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 
 export default {
   name: 'ForumHeader',
+  components: {
+    PendingApprovalBanner
+  },
   data() {
     return {
       menus: [],
@@ -326,6 +334,14 @@ export default {
     }
   },
   computed: {
+    isNonOfficial() {
+      return isNonOfficialUser()
+    },
+    truncatedDisplayName() {
+      if (!this.currentUser) return ''
+      const name = this.currentUser.displayName || this.currentUser.username || ''
+      return truncateString(name, 8)
+    },
     filteredConversations() {
       if (this.activeMailTab === 'unread') {
         return this.conversations.filter(c => !c.isRead)
@@ -366,6 +382,7 @@ export default {
     this.checkAuth()
     
     if (this.isLoggedIn && this.currentUser) {
+      this.syncUserProfile()
       this.fetchNotifSummary()
       this.fetchMailSummary()
       this.setupSocket()
@@ -408,6 +425,28 @@ export default {
     window.removeEventListener('resize', this.updateScrollArrows)
   },
   methods: {
+    async syncUserProfile() {
+      if (!this.isLoggedIn || !this.currentUser || !this.currentUser.username) return
+      try {
+        const res = await api.get(`/users/by-name?name=${this.currentUser.username}`)
+        if (res.data && res.data.roles) {
+          const dbRoles = res.data.roles
+          const currentRoles = this.currentUser.roles || []
+          
+          const isRolesChanged = dbRoles.length !== currentRoles.length || 
+                                 !dbRoles.every(r => currentRoles.includes(r))
+          
+          if (isRolesChanged) {
+            const updatedUser = { ...this.currentUser, roles: dbRoles }
+            localStorage.setItem('user', JSON.stringify(updatedUser))
+            this.currentUser = updatedUser
+            window.location.reload()
+          }
+        }
+      } catch (e) {
+        console.error('Lỗi khi đồng bộ vai trò người dùng:', e)
+      }
+    },
     scrollNav(direction) {
       const nav = this.$refs.navLinks
       if (!nav) return

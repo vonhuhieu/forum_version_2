@@ -12,7 +12,7 @@
         <div class="forum-slogan" style="font-weight: bold; color: #1a507a; font-size: 1.1rem;">
           HỢP TÁC XÃ SINH LÝ
         </div>
-        <div v-if="isLoggedIn" class="user-actions">
+        <div v-if="isLoggedIn && !isNonOfficial" class="user-actions">
           <button @click="openPostModal" class="btn-post-thread">Đăng bài...</button>
         </div>
       </div>
@@ -173,6 +173,7 @@ import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import statisticsService from '@/apps/Forum/services/statistics.service'
 import { formatForumDate } from '@/shared/utils/date'
+import { isNonOfficialUser } from '@/shared/utils/utils'
 
 export default {
   name: 'HomeView',
@@ -205,6 +206,9 @@ export default {
     }
   },
   computed: {
+    isNonOfficial() {
+      return isNonOfficialUser()
+    },
     isLoading() {
       return !this.apiDataLoaded || !this.forumHomeLoaded || this.loadingCategories
     },

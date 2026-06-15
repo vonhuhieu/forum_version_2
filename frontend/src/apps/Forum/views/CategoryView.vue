@@ -16,7 +16,7 @@
               <span>{{ category ? category.name : 'Chuyên mục' }}</span>
               <span v-if="category" style="font-size: 0.8rem; font-weight: normal; opacity: 0.8;">{{ category.description }}</span>
             </div>
-            <button v-if="isLoggedIn" class="btn-post-thread" @click="goToCreateThread">Đăng bài...</button>
+            <button v-if="isLoggedIn && !isNonOfficial" class="btn-post-thread" @click="goToCreateThread">Đăng bài...</button>
           </div>
 
           <div class="pagination-wrapper" style="padding: 1rem; border-top: 1px solid #eee;">
@@ -167,6 +167,7 @@ import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
+import { isNonOfficialUser } from '@/shared/utils/utils'
 
 export default {
   name: 'CategoryView',
@@ -217,6 +218,9 @@ export default {
     }
   },
   computed: {
+    isNonOfficial() {
+      return isNonOfficialUser()
+    },
     breadcrumbItems() {
       const items = [{ title: 'Trang chủ', to: { name: 'Home' } }]
       

@@ -13,7 +13,7 @@
         <div class="card" style="margin-bottom: 2rem;">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <span>Mới ra lò - Danh sách bài viết mới nhất</span>
-            <button v-if="isLoggedIn" class="btn-post-thread" @click="openPostModal">Đăng bài...</button>
+            <button v-if="isLoggedIn && !isNonOfficial" class="btn-post-thread" @click="openPostModal">Đăng bài...</button>
           </div>
 
           <div class="pagination-wrapper" style="padding: 1rem; border-top: 1px solid #eee;">
@@ -156,6 +156,7 @@ import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
+import { isNonOfficialUser } from '@/shared/utils/utils'
 
 export default {
   name: 'LatestThreadsView',
@@ -192,6 +193,9 @@ export default {
     }
   },
   computed: {
+    isNonOfficial() {
+      return isNonOfficialUser()
+    },
     breadcrumbItems() {
       return [
         { title: 'Trang chủ', to: { name: 'Home' } },
