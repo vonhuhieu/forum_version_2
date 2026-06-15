@@ -1,5 +1,6 @@
 <template>
   <div class="login-page">
+    <Loading :visible="loading" />
     <div class="card login-card">
       <div class="card-header">ĐĂNG KÝ THÀNH VIÊN</div>
       <form @submit.prevent="handleRegister" class="login-form">
@@ -55,9 +56,13 @@
 
 <script>
 import AuthService from '@/apps/Auth/services/auth.service'
+import Loading from '@/shared/components/Loading.vue'
 
 export default {
   name: 'Register',
+  components: {
+    Loading
+  },
   data() {
     return {
       username: '',
@@ -68,7 +73,8 @@ export default {
       showPassword: false,
       showConfirmPassword: false,
       error: '',
-      success: ''
+      success: '',
+      loading: false
     }
   },
   mounted() {
@@ -108,6 +114,9 @@ export default {
         this.error = 'Mật khẩu xác nhận không khớp'
         return
       }
+      this.loading = true
+      this.error = ''
+      this.success = ''
       try {
         await AuthService.register({
           username: this.username,
@@ -122,6 +131,11 @@ export default {
         }, 2000)
       } catch (err) {
         this.error = err.response?.data?.message || 'Đã có lỗi xảy ra'
+        if (window.grecaptcha) {
+          window.grecaptcha.reset()
+        }
+      } finally {
+        this.loading = false
       }
     }
   }
