@@ -73,6 +73,27 @@
             </div>
           </div>
 
+          <!-- Tùy chọn đối thoại -->
+          <div class="options-row">
+            <div class="options-label"></div>
+            <div class="options-inputs">
+              <label>
+                <input 
+                  type="checkbox" 
+                  v-model="form.allowInvite" 
+                />
+                <span>Cho phép mọi người trong đối thoại mời người khác</span>
+              </label>
+              <label>
+                <input 
+                  type="checkbox" 
+                  v-model="form.locked" 
+                />
+                <span>Khóa đối thoại (không cho phép trả lời)</span>
+              </label>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="form-actions" style="display: flex; justify-content: center; gap: 10px; border-top: 1px solid #eee; padding-top: 1.5rem;">
             <button @click="handleSubmit" class="btn-post" :disabled="submitting">
@@ -118,7 +139,9 @@ export default {
       submitting: false,
       form: {
         title: '',
-        content: ''
+        content: '',
+        allowInvite: false,
+        locked: false
       }
     }
   },
@@ -455,9 +478,68 @@ export default {
   font-size: 16px;
 }
 
+.options-row {
+  display: flex;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.options-label {
+  width: 200px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #ddd;
+  padding: 1.5rem;
+}
+
+.options-inputs {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #fff;
+}
+
+.options-inputs label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: normal;
+  margin: 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.options-inputs input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+
 @media (max-width: 767px) {
   .btn-post, .btn-cancel {
     padding: 12px 10px !important;
+  }
+  .options-row {
+    flex-direction: column;
+  }
+  .options-label {
+    display: none;
+  }
+  .options-inputs {
+    padding: 1rem;
+  }
+  .options-inputs label {
+    align-items: flex-start;
+    line-height: 1.4;
+  }
+  .options-inputs input[type="checkbox"] {
+    margin-top: 3px;
   }
 }
 </style>
