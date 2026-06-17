@@ -35,6 +35,12 @@ public class Conversation {
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConversationMessage> messages = new ArrayList<>();
 
+    @Column(name = "allow_invite")
+    private Boolean allowInvite = false;
+
+    @Column(name = "locked")
+    private Boolean locked = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
