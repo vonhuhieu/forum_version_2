@@ -315,6 +315,9 @@ export default {
     await this.fetchReactionIcons()
     await this.fetchConversation()
     this.subscribeToMessages()
+    if (this.$route.query.page) {
+      this.currentPage = parseInt(this.$route.query.page) || 1
+    }
     if (this.$route.query.messageId) {
       await this.jumpToTargetMessage()
     } else {
@@ -334,6 +337,11 @@ export default {
           if (this.unsubscribeMessages) {
             this.unsubscribeMessages()
           }
+          if (this.$route.query.page) {
+            this.currentPage = parseInt(this.$route.query.page) || 1
+          } else {
+            this.currentPage = 1
+          }
           await this.fetchConversation()
           this.subscribeToMessages()
           if (this.$route.query.messageId) {
@@ -342,6 +350,11 @@ export default {
             this.scrollToBottom()
           }
         }
+      }
+    },
+    '$route.query.page': {
+      handler(newVal) {
+        this.currentPage = parseInt(newVal) || 1
       }
     },
     '$route.query.messageId': {

@@ -15,6 +15,9 @@ public class ConversationDTO {
     private String creatorUsername;
     private String creatorDisplayName;
     private Long firstMessageId;
+    private int replyCount;
+    private int participantCount;
+    private LocalDateTime createdAt;
 
     @JsonProperty("isRead")
     private boolean isRead;

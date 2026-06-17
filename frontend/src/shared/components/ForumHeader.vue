@@ -165,8 +165,8 @@
                 
                 <div class="notif-footer">
                    <a href="#" class="btn-load-more" :class="{ 'disabled': !hasMoreMail }" @click.prevent="loadMoreMail">Xem thêm</a>
-                   <span style="color: #ccc;">·</span>
-                    <a href="#" @click.prevent>Xem tất cả</a>
+                    <span style="color: #ccc;">·</span>
+                    <router-link :to="{ name: 'ConversationList' }">Xem tất cả</router-link>
                     <span style="color: #ccc;">·</span>
                     <a href="#" @click.prevent="goToAddConvo" v-if="!isNonOfficial">Bắt đầu đối thoại mới</a>
                  </div>

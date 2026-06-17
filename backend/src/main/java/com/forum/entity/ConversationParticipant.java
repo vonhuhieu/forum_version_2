@@ -26,4 +26,7 @@ public class ConversationParticipant {
 
     @Column(name = "is_read")
     private boolean isRead = false;
+
+    @Column(name = "is_deleted")
+    private boolean isDeleted = false;
 }
