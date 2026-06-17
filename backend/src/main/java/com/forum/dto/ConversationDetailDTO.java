@@ -14,6 +14,9 @@ public class ConversationDetailDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
+    private Boolean allowInvite;
+    private Boolean locked;
+
     private int participantCount;
     private int replyCount;
     private LocalDateTime lastReplyAt;

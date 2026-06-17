@@ -277,10 +277,13 @@ export default {
         const payload = {
           recipientDisplayNames: recipientDisplayNames,
           title: this.form.title,
-          content: this.form.content
+          content: this.form.content,
+          allowInvite: this.form.allowInvite,
+          locked: this.form.locked
         }
 
         const res = await conversationService.create(payload)
+        this.submitting = false
         if (res.data) {
           await alertSuccess('Bắt đầu cuộc đối thoại thành công')
           const convo = res.data

@@ -419,9 +419,11 @@ export default {
         
         if (this.isEditMode) {
           await threadService.update(this.threadId, payload)
+          this.isSubmitting = false
           await alertSuccess('Cập nhật bài viết thành công')
         } else {
           await threadService.create(payload)
+          this.isSubmitting = false
           await alertSuccess('Đăng bài viết thành công')
         }
         

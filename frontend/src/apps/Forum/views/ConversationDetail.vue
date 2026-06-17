@@ -133,7 +133,7 @@
           </div>
 
           <!-- Reply Editor Container -->
-          <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;">
+          <div v-if="isCreator || !conversation.locked" ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;">
             <div class="post-layout">
               <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
                  <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
@@ -196,7 +196,7 @@
                 </div>
               </div>
               
-              <div class="invite-more-wrapper">
+              <div v-if="isCreator || conversation.allowInvite" class="invite-more-wrapper">
                 <a href="#" class="btn-invite-more" @click.prevent>Mời thêm</a>
               </div>
             </div>
@@ -308,6 +308,10 @@ export default {
     conversationParticipantsForTag() {
       if (!this.conversation?.participants) return []
       return this.conversation.participants.filter(p => String(p.id) !== String(this.currentUser?.id))
+    },
+    isCreator() {
+      if (!this.conversation || !this.conversation.creator || !this.currentUser) return false
+      return this.conversation.creator.username === this.currentUser.username
     }
   },
   async mounted() {
