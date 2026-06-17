@@ -109,6 +109,8 @@ public class ConversationService {
         Conversation conversation = new Conversation();
         conversation.setTitle(createDTO.getTitle().trim());
         conversation.setCreator(sender);
+        conversation.setAllowInvite(createDTO.getAllowInvite() != null && createDTO.getAllowInvite());
+        conversation.setLocked(createDTO.getLocked() != null && createDTO.getLocked());
         conversation = conversationRepository.save(conversation);
 
         // Tạo Participants
@@ -497,6 +499,8 @@ public class ConversationService {
         dto.setCreator(mapUserToDTO(convo.getCreator()));
         dto.setCreatedAt(convo.getCreatedAt());
         dto.setUpdatedAt(convo.getUpdatedAt());
+        dto.setAllowInvite(convo.getAllowInvite() != null && convo.getAllowInvite());
+        dto.setLocked(convo.getLocked() != null && convo.getLocked());
 
         List<UserDTO> participantDTOs = convo.getParticipants().stream()
                 .map(p -> mapUserToDTO(p.getUser()))
@@ -540,6 +544,10 @@ public class ConversationService {
                 .anyMatch(p -> p.getUser().getUsername().equals(currentUsername));
         if (!isParticipant) {
             throw new IllegalArgumentException("Bạn không có quyền tham gia cuộc hội thoại này");
+        }
+
+        if (Boolean.TRUE.equals(convo.getLocked()) && !convo.getCreator().getUsername().equals(currentUsername)) {
+            throw new IllegalArgumentException("Cuộc hội thoại đã bị khóa, bạn không thể phản hồi");
         }
 
         ConversationMessage message = new ConversationMessage();

@@ -19,9 +19,9 @@
     <a class="reactionsBar-link" href="#" @click.prevent="$emit('open-popup')">
       <template v-if="processedReactors.length > 0">
         <template v-for="(reactor, idx) in processedReactors" :key="reactor.id">
-          <bdi :class="{ 'is-me': reactor.isMe }">{{ reactor.displayName }}</bdi><template v-if="idx < processedReactors.length - 1"><template v-if="totalCount > 3">, </template><template v-else><template v-if="idx === processedReactors.length - 2"> và </template><template v-else>, </template></template></template>
+          <bdi :class="{ 'is-me': reactor.isMe }">{{ reactor.displayName }}</bdi><template v-if="idx < processedReactors.length - 1"><template v-if="totalCount > 3">{{ ', ' }}</template><template v-else><template v-if="idx === processedReactors.length - 2">{{ ' và ' }}</template><template v-else>{{ ', ' }}</template></template></template>
         </template>
-        <template v-if="totalCount > 3"> và {{ totalCount - 3 }} người khác</template>
+        <template v-if="totalCount > 3">{{ ' và ' }}{{ totalCount - 3 }}{{ ' người khác' }}</template>
       </template>
       <template v-else>
         {{ totalCount }} người
@@ -152,8 +152,6 @@ export default {
   text-decoration: none;
   margin-left: 8px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
 }
 
 .reactionsBar-link:hover {
