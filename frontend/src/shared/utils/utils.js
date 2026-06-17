@@ -26,3 +26,18 @@ export function truncateString(str, limit = 8) {
   if (str.length <= limit) return str;
   return str.slice(0, limit) + '...';
 }
+
+/**
+ * Kiểm tra xem người dùng hiện tại có vai trò Admin hoặc Super Admin hay không.
+ * @returns {boolean}
+ */
+export function isAdminOrSuperAdmin() {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return false;
+  try {
+    const user = JSON.parse(userStr);
+    return !!(user && user.roles && (user.roles.includes(ROLES.ADMIN) || user.roles.includes(ROLES.SUPER_ADMIN)));
+  } catch (e) {
+    return false;
+  }
+}

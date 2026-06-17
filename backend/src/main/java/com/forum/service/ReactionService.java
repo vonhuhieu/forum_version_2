@@ -45,10 +45,25 @@ public class ReactionService {
         return Optional.empty();
     }
 
+    private boolean isUserAuthorizedForInternalThreads() {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .noneMatch(role -> role.equals(com.forum.utils.Constants.ROLE_NON_OFFICIAL_USER));
+    }
+
     public void reactToThread(Long threadId, Long iconId) {
         User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
         Thread thread = threadRepository.findById(threadId)
                 .orElseThrow(() -> new RuntimeException("Thread not found"));
+
+        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+            throw new RuntimeException("Access denied");
+        }
+
         ReactionIcon icon = reactionIconRepository.findById(iconId)
                 .orElseThrow(() -> new RuntimeException("Reaction icon not found"));
 
@@ -85,6 +100,11 @@ public class ReactionService {
         User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        if (post.getThread() != null && "INTERNAL".equals(post.getThread().getScope()) && !isUserAuthorizedForInternalThreads()) {
+            throw new RuntimeException("Access denied");
+        }
+
         ReactionIcon icon = reactionIconRepository.findById(iconId)
                 .orElseThrow(() -> new RuntimeException("Reaction icon not found"));
 

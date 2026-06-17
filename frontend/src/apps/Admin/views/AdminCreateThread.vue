@@ -79,6 +79,32 @@
           </div>
         </div>
 
+        <div v-if="!isViewMode || form.scope" class="form-group" style="margin-bottom: 1.5rem;">
+          <label>Phạm vi bài đăng:</label>
+          <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+              <input 
+                type="radio" 
+                v-model="form.scope" 
+                value="PUBLIC" 
+                :disabled="isViewMode"
+                style="cursor: pointer; width: 18px; height: 18px;"
+              >
+              Công khai
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+              <input 
+                type="radio" 
+                v-model="form.scope" 
+                value="INTERNAL" 
+                :disabled="isViewMode"
+                style="cursor: pointer; width: 18px; height: 18px;"
+              >
+              Nội bộ
+            </label>
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Nội dung bài viết:</label>
           <div class="editor-wrapper" :class="{ 'disabled-editor': isViewMode }">
@@ -181,7 +207,7 @@ export default {
       attachedImages: [],
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '' }
+      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '', scope: 'PUBLIC' }
     }
   },
 
@@ -333,7 +359,8 @@ export default {
           pinned: thread.pinned || false,
           poll: thread.poll || null,
           labelId: thread.label ? thread.label.id : null,
-          attachedImages: thread.attachedImages || ''
+          attachedImages: thread.attachedImages || '',
+          scope: thread.scope || 'PUBLIC'
         }
         
         if (thread.attachedImages) {
@@ -410,7 +437,8 @@ export default {
           category: { id: this.form.categoryId },
           label: this.form.labelId ? { id: this.form.labelId } : null,
           pinned: this.form.pinned,
-          attachedImages: JSON.stringify(attachedImages)
+          attachedImages: JSON.stringify(attachedImages),
+          scope: this.form.scope
         }
         
         if (this.postType === 'poll' && this.form.poll) {

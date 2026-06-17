@@ -50,6 +50,30 @@
             >
           </div>
 
+          <div v-if="isAdmin" class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1a507a;">Phạm vi bài đăng:</label>
+            <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.scope" 
+                  value="PUBLIC" 
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Công khai
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.scope" 
+                  value="INTERNAL" 
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Nội bộ
+              </label>
+            </div>
+          </div>
+
           <!-- Tabs Thảo luận / Bình chọn -->
           <div class="editor-block">
             <div class="post-type-tabs">
@@ -113,6 +137,7 @@ import categoryService from '@/apps/Forum/services/category.service'
 import labelService from '@/apps/Forum/services/label.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import ForumHeader from '@/shared/components/ForumHeader.vue'
+import { isAdminOrSuperAdmin } from '@/shared/utils/utils'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
@@ -143,7 +168,7 @@ export default {
       isUploadLoading: false,
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', poll: null, labelId: null }
+      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: 'PUBLIC' }
     }
   },
   computed: {
@@ -187,6 +212,9 @@ export default {
     },
     filteredLabels() {
       return this.labels.filter(l => !l.adminOnly)
+    },
+    isAdmin() {
+      return isAdminOrSuperAdmin()
     }
   },
 
@@ -291,7 +319,8 @@ export default {
           content: finalContent,
           category: { id: this.catId },
           label: this.form.labelId ? { id: this.form.labelId } : null,
-          attachedImages: JSON.stringify(attachedImages)
+          attachedImages: JSON.stringify(attachedImages),
+          scope: this.form.scope
         }
         if (this.postType === 'poll' && this.form.poll) {
           payload.poll = this.form.poll

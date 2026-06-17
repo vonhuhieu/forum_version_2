@@ -72,7 +72,23 @@ public class PostService {
         // Cache disabled because comments are paginated at DB level
     }
 
+    private boolean isUserAuthorizedForInternalThreads() {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .noneMatch(role -> role.equals(com.forum.utils.Constants.ROLE_NON_OFFICIAL_USER));
+    }
+
     public ResponseDTO<com.forum.dto.PageResponseDTO<PostDTO>> getPostsByThread(Long threadId, int page, int size) {
+        Thread thread = threadRepository.findById(threadId)
+                .orElseThrow(() -> new RuntimeException("Thread not found"));
+        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+            throw new RuntimeException("Access denied");
+        }
+
         long offset;
         int limit;
         if (page == 0) {
@@ -153,6 +169,10 @@ public class PostService {
 
         Thread thread = threadRepository.findById(postDTO.getThreadId())
                 .orElseThrow(() -> new RuntimeException("Thread not found"));
+
+        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+            throw new RuntimeException("Access denied");
+        }
 
         Post post = postMapper.toEntity(postDTO);
         post.setThread(thread);
