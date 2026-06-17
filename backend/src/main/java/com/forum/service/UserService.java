@@ -36,40 +36,15 @@ public class UserService {
 
     public Page<UserDTO> searchUsers(String keyword, String currentUsername, int page, int size) {
         String trimmedKeyword = keyword != null ? keyword.trim() : "";
-        String cleanKeyword = removeDiacritics(trimmedKeyword);
-
-        List<User> allUsers = userRepository.findAll();
-        List<UserDTO> matchedUsers = new ArrayList<>();
-
-        for (User user : allUsers) {
-            if (currentUsername != null && currentUsername.equalsIgnoreCase(user.getUsername())) {
-                continue;
-            }
-
-            String displayName = user.getDisplayName() != null ? user.getDisplayName() : "";
-            String username = user.getUsername() != null ? user.getUsername() : "";
-
-            String normDisplayName = removeDiacritics(displayName);
-            String normUsername = removeDiacritics(username);
-
-            if (cleanKeyword.isEmpty() || normDisplayName.contains(cleanKeyword) || normUsername.contains(cleanKeyword)) {
-                matchedUsers.add(convertToDTO(user));
-            }
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-        int start = Math.min((int) pageable.getOffset(), matchedUsers.size());
-        int end = Math.min((start + pageable.getPageSize()), matchedUsers.size());
-        List<UserDTO> paginatedList = matchedUsers.subList(start, end);
-        return new PageImpl<>(paginatedList, pageable, matchedUsers.size());
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        Page<User> userPage = userRepository.searchUsersByDisplayName(trimmedKeyword, currentUsername, pageable);
+        return userPage.map(this::convertToDTO);
     }
 
     public Optional<UserDTO> getUserByName(String name) {
         Optional<User> userOpt = userRepository.findByUsername(name);
         if (userOpt.isEmpty()) {
-            userOpt = userRepository.findAll().stream()
-                    .filter(u -> u.getDisplayName() != null && u.getDisplayName().equalsIgnoreCase(name))
-                    .findFirst();
+            userOpt = userRepository.findFirstByDisplayNameIgnoreCase(name);
         }
         return userOpt.map(this::convertToDTO);
     }
@@ -130,7 +105,7 @@ public class UserService {
         User user = new User();
         user.setUsername(username.trim());
         user.setPassword(passwordEncoder.encode(password));
-        user.setDisplayName(displayName != null && !displayName.trim().isEmpty() ? displayName.trim() : null);
+        user.setDisplayName(displayName != null && !displayName.trim().isEmpty() ? displayName.trim() : username.trim());
         user.setEmail(email != null && !email.trim().isEmpty() ? email.trim() : null);
 
         if (roles != null && !roles.isEmpty()) {
@@ -182,7 +157,7 @@ public class UserService {
         List<String> roles = (List<String>) payload.get("roles");
 
         if (displayName != null) {
-            user.setDisplayName(displayName.trim().isEmpty() ? null : displayName.trim());
+            user.setDisplayName(displayName.trim().isEmpty() ? user.getUsername() : displayName.trim());
         }
         if (email != null) {
             user.setEmail(email.trim().isEmpty() ? null : email.trim());

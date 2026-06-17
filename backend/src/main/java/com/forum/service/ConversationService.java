@@ -221,9 +221,10 @@ public class ConversationService {
             dto.setId(c.getId());
             dto.setTitle(c.getTitle());
             dto.setUpdatedAt(c.getCreatedAt());
-            dto.setCreatorAvatar(c.getCreator().getAvatar());
-            dto.setCreatorUsername(c.getCreator().getUsername());
-            dto.setCreatorDisplayName(c.getCreator().getDisplayName());
+            dto.setCreatorAvatar(c.getCreator() != null ? c.getCreator().getAvatar() : null);
+            dto.setCreatorUsername(c.getCreator() != null ? c.getCreator().getUsername() : "deleted_user");
+            dto.setCreatorDisplayName(c.getCreator() != null ? c.getCreator().getDisplayName() : "Người dùng đã xóa");
+
             
             conversationMessageRepository.findFirstByConversationIdOrderByCreatedAtAsc(c.getId())
                     .map(ConversationMessage::getId)
@@ -342,9 +343,10 @@ public class ConversationService {
             dto.setTitle(c.getTitle());
             dto.setCreatedAt(c.getCreatedAt());
             dto.setUpdatedAt(c.getUpdatedAt());
-            dto.setCreatorAvatar(c.getCreator().getAvatar());
-            dto.setCreatorUsername(c.getCreator().getUsername());
-            dto.setCreatorDisplayName(c.getCreator().getDisplayName());
+            dto.setCreatorAvatar(c.getCreator() != null ? c.getCreator().getAvatar() : null);
+            dto.setCreatorUsername(c.getCreator() != null ? c.getCreator().getUsername() : "deleted_user");
+            dto.setCreatorDisplayName(c.getCreator() != null ? c.getCreator().getDisplayName() : "Người dùng đã xóa");
+
 
             if (!c.getMessages().isEmpty()) {
                 dto.setFirstMessageId(c.getMessages().get(0).getId());
@@ -391,7 +393,7 @@ public class ConversationService {
         String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
         List<ConversationParticipant> unreadParticipants = conversationParticipantRepository.findByUserUsername(currentUsername)
-                .stream().filter(p -> !p.isRead()).collect(Collectors.toList());
+                .stream().filter(p -> !p.isRead() && !p.isDeleted()).collect(Collectors.toList());
         
         List<Notification> unreadNotifs = notificationRepository.findByRecipientUsernameAndTypeInOrderByCreatedAtDesc(
             currentUsername, 
