@@ -5,6 +5,7 @@ import com.forum.dto.ConversationDTO;
 import com.forum.dto.ConversationDetailDTO;
 import com.forum.dto.ConversationMessageDTO;
 import com.forum.dto.ResponseDTO;
+import com.forum.dto.PageResponseDTO;
 import com.forum.service.ConversationService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,13 @@ public class ConversationController {
     @GetMapping
     public ResponseEntity<ResponseDTO<List<ConversationDTO>>> getMyConversations() {
         return ResponseEntity.ok(conversationService.getMyConversations());
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<ResponseDTO<PageResponseDTO<ConversationDTO>>> getMyConversationsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(conversationService.getMyConversationsPaged(page, size));
     }
 
     @GetMapping("/unread-count")
