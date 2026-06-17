@@ -185,6 +185,7 @@ export default {
         this.searchResults = []
         return
       }
+      this.showDropdown = true
       clearTimeout(this.searchTimeout)
       this.searchTimeout = setTimeout(() => {
         this.fetchUsers()
@@ -199,7 +200,10 @@ export default {
           size: 10
         })
         if (response.data) {
-          this.searchResults = response.data.content || []
+          const content = response.data.content || []
+          this.searchResults = content.filter(user => 
+            !this.selectedRecipients.some(selected => selected.username === user.username)
+          )
         }
       } catch (error) {
         console.error('Lỗi khi tìm kiếm người nhận:', error)
