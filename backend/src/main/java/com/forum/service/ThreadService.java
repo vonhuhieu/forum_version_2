@@ -44,17 +44,31 @@ public class ThreadService {
 
     public ResponseDTO<List<ThreadDTO>> getAllThreads(Long categoryId, Integer limit) {
         List<Thread> threads;
+        boolean canSeeInternal = isUserAuthorizedForInternalThreads();
         if (categoryId != null) {
             if (limit != null && limit == 1) {
                 // Dành cho các ô tóm tắt "Bài viết cuối", lấy tuyệt đối 1 bài mới phản hồi nhất bỏ qua Ghim
-                threads = threadRepository.findFirstByCategoryIdOrderByLastPostAtDesc(categoryId)
-                        .map(java.util.Collections::singletonList)
-                        .orElse(java.util.Collections.emptyList());
+                if (canSeeInternal) {
+                    threads = threadRepository.findFirstByCategoryIdOrderByLastPostAtDesc(categoryId)
+                            .map(java.util.Collections::singletonList)
+                            .orElse(java.util.Collections.emptyList());
+                } else {
+                    org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(0, 1);
+                    threads = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, p).getContent();
+                }
             } else {
-                threads = threadRepository.findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId);
+                if (canSeeInternal) {
+                    threads = threadRepository.findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId);
+                } else {
+                    threads = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId);
+                }
             }
         } else {
-            threads = threadRepository.findAllByOrderByLastPostAtDesc();
+            if (canSeeInternal) {
+                threads = threadRepository.findAllByOrderByLastPostAtDesc();
+            } else {
+                threads = threadRepository.findAllPublicOrderByLastPostAtDesc();
+            }
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichThreads(dtos);
@@ -64,10 +78,19 @@ public class ThreadService {
     public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(Long categoryId, int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<Thread> threadPage;
+        boolean canSeeInternal = isUserAuthorizedForInternalThreads();
         if (categoryId != null) {
-            threadPage = threadRepository.findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, pageable);
+            if (canSeeInternal) {
+                threadPage = threadRepository.findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, pageable);
+            } else {
+                threadPage = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, pageable);
+            }
         } else {
-            threadPage = threadRepository.findAllByOrderByLastPostAtDesc(pageable);
+            if (canSeeInternal) {
+                threadPage = threadRepository.findAllByOrderByLastPostAtDesc(pageable);
+            } else {
+                threadPage = threadRepository.findAllPublicOrderByLastPostAtDesc(pageable);
+            }
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
         enrichThreads(dtos);
@@ -84,7 +107,15 @@ public class ThreadService {
 
 
     public ResponseDTO<List<ThreadDTO>> getLatestThreads() {
-        List<ThreadDTO> dtos = threadMapper.toDTOList(threadRepository.findTop20ByOrderByLastPostAtDesc());
+        List<Thread> threads;
+        boolean canSeeInternal = isUserAuthorizedForInternalThreads();
+        if (canSeeInternal) {
+            threads = threadRepository.findTop20ByOrderByLastPostAtDesc();
+        } else {
+            org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(0, 20);
+            threads = threadRepository.findAllPublicOrderByLastPostAtDesc(p).getContent();
+        }
+        List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichThreads(dtos);
         return ResponseDTO.success(dtos);
     }
@@ -100,6 +131,10 @@ public class ThreadService {
             baseDto.setReactionSummary(reactionService.getSummaryForThread(id));
             baseDto.setRecentReactors(reactionService.getRecentReactorsForThread(id));
             threadCache.put(id, baseDto);
+        }
+
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(baseDto.getScope()) && !isUserAuthorizedForInternalThreads()) {
+            throw new RuntimeException("Access denied");
         }
 
         ThreadDTO dto = new ThreadDTO();
@@ -119,6 +154,7 @@ public class ThreadService {
         dto.setAttachedImages(baseDto.getAttachedImages());
         dto.setReactionSummary(baseDto.getReactionSummary());
         dto.setRecentReactors(baseDto.getRecentReactors());
+        dto.setScope(baseDto.getScope());
 
         dto.setCurrentUserReaction(reactionService.getCurrentUserReactionForThread(id));
 
@@ -186,8 +222,21 @@ public class ThreadService {
         dto.setRecentReactors(reactionService.getRecentReactorsForThread(dto.getId()));
     }
 
+    private boolean isUserAuthorizedForInternalThreads() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .noneMatch(role -> role.equals(com.forum.utils.Constants.ROLE_NON_OFFICIAL_USER));
+    }
+
     public ResponseDTO<ThreadDTO> createThread(ThreadDTO threadDTO) {
         Thread thread = threadMapper.toEntity(threadDTO);
+        if (thread.getScope() == null || thread.getScope().trim().isEmpty()) {
+            thread.setScope(com.forum.utils.Constants.THREAD_SCOPE_PUBLIC);
+        }
         
         // Lấy username từ SecurityContext
         String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext()
@@ -239,6 +288,9 @@ public class ThreadService {
         return threadRepository.findById(id).map(thread -> {
             thread.setTitle(threadDTO.getTitle());
             thread.setContent(threadDTO.getContent());
+            if (threadDTO.getScope() != null && !threadDTO.getScope().trim().isEmpty()) {
+                thread.setScope(threadDTO.getScope());
+            }
             if (threadDTO.getCategory() != null) {
                 com.forum.entity.Category category = new com.forum.entity.Category();
                 category.setId(threadDTO.getCategory().getId());

@@ -639,6 +639,8 @@ export default {
         }
       } catch (error) {
         console.error('Lỗi khi tải chi tiết bài viết:', error)
+        this.$router.replace({ name: 'Home' })
+        alertError('Bài viết không tồn tại hoặc bạn không có quyền truy cập.')
       }
     },
     async fetchPosts() {

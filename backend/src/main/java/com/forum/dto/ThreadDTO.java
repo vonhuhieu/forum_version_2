@@ -29,4 +29,6 @@ public class ThreadDTO {
     private List<ReactionSummaryDTO> reactionSummary;
     private ReactionIconDTO currentUserReaction;
     private List<UserDTO> recentReactors;
+    
+    private String scope;
 }
