@@ -383,8 +383,8 @@ export default {
         }
       }
       
-      // Match @ followed by non-space characters
-      const match = text.match(/(?:^|\s)@(\S.*?)$/);
+      // Match @ followed by non-space characters (excluding other @ symbols)
+      const match = text.match(/(?:^|\s)@([^@\s][^@]*)$/);
       
       if (match) {
         const query = match[1];
@@ -407,16 +407,62 @@ export default {
       }
     },
     async fetchUsers() {
+      if (!this.editorInstance) return;
+
+      const root = this.editorInstance.model.document.getRoot();
+      const selection = this.editorInstance.model.document.selection;
+      const position = selection.getFirstPosition();
+
+      let textToCheck = '';
+      if (position) {
+        const textRange = this.editorInstance.model.createRange(
+          this.editorInstance.model.createPositionAt(root, 0),
+          position
+        );
+        let textBefore = '';
+        for (const item of textRange.getItems()) {
+          if (item.is('textProxy') || item.is('text')) {
+            textBefore += item.data;
+          }
+        }
+        const lastAtIndex = textBefore.lastIndexOf('@');
+        textToCheck = lastAtIndex === -1 ? textBefore : textBefore.substring(0, lastAtIndex);
+      }
+
+      const taggedSet = new Set();
+      try {
+        const startPosition = this.editorInstance.model.createPositionAt(root, 0);
+        const endPosition = this.editorInstance.model.createPositionAt(root, 'end');
+        const range = this.editorInstance.model.createRange(startPosition, endPosition);
+        for (const item of range.getItems()) {
+          if (item.is('textProxy') || item.is('text')) {
+            if (item.getAttribute('fontColor') === '#2577b1') {
+              const tagText = item.data;
+              if (tagText.startsWith('@')) {
+                const name = tagText.substring(1).trim().toLowerCase();
+                if (name) {
+                  taggedSet.add(name);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error getting tagged users:', err);
+      }
+
       // Nếu có allowedUsers (ví dụ: participants của cuộc đối thoại), filter local thay vì search API
       if (this.allowedUsers !== null) {
         const query = (this.searchQuery || '').toLowerCase().trim()
-        const filtered = query
-          ? this.allowedUsers.filter(u => {
-              const name = (u.displayName || u.username || '').toLowerCase()
-              const uname = (u.username || '').toLowerCase()
-              return name.includes(query) || uname.includes(query)
-            })
-          : this.allowedUsers
+        const filtered = this.allowedUsers.filter(u => {
+          if (this.isUserAlreadyTagged(u, taggedSet, textToCheck)) {
+            return false;
+          }
+          if (!query) return true;
+          const name = (u.displayName || u.username || '').toLowerCase()
+          const uname = (u.username || '').toLowerCase()
+          return name.includes(query) || uname.includes(query)
+        })
         this.filteredUsers = filtered.slice(0, 10)
         this.totalPages = 1
         if (this.activeIndex >= this.filteredUsers.length) {
@@ -435,7 +481,9 @@ export default {
         
         if (response.data) {
           const pageData = response.data
-          this.filteredUsers = pageData.content || []
+          const rawContent = pageData.content || []
+          const filtered = rawContent.filter(u => !this.isUserAlreadyTagged(u, taggedSet, textToCheck))
+          this.filteredUsers = filtered
           this.totalPages = pageData.totalPages || 1
           
           if (this.activeIndex >= this.filteredUsers.length) {
@@ -445,6 +493,29 @@ export default {
       } catch (error) {
         console.error('Error fetching users for mention autocomplete:', error)
       }
+    },
+    escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    },
+    isUserAlreadyTagged(user, taggedSet, textToCheck) {
+      const username = (user.username || '').toLowerCase();
+      const displayName = (user.displayName || '').toLowerCase();
+      
+      if (username && taggedSet.has(username)) return true;
+      if (displayName && taggedSet.has(displayName)) return true;
+      
+      if (textToCheck) {
+        if (username) {
+          const regexU = new RegExp('@' + this.escapeRegExp(username) + '(\\b|\\s|$)', 'i');
+          if (regexU.test(textToCheck)) return true;
+        }
+        if (displayName) {
+          const regexD = new RegExp('@' + this.escapeRegExp(displayName) + '(\\b|\\s|$)', 'i');
+          if (regexD.test(textToCheck)) return true;
+        }
+      }
+      
+      return false;
     },
     updatePopupPosition() {
       this.$nextTick(() => {
@@ -513,7 +584,7 @@ export default {
         }
       }
       
-      const match = text.match(/(?:^|\s)@(\S.*?)$/);
+      const match = text.match(/(?:^|\s)@([^@\s][^@]*)$/);
       if (!match) return;
       
       const mentionText = match[0];
