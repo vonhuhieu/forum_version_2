@@ -29,5 +29,17 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
     java.util.Optional<Thread> findFirstByCategoryIdOrderByLastPostAtDesc(Long categoryId);
     org.springframework.data.domain.Page<Thread> findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(Long categoryId, org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<Thread> findAllByOrderByLastPostAtDesc(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT t FROM Thread t WHERE (t.scope IS NULL OR t.scope <> '" + com.forum.utils.Constants.THREAD_SCOPE_INTERNAL + "') ORDER BY t.lastPostAt DESC")
+    List<Thread> findAllPublicOrderByLastPostAtDesc();
+
+    @Query("SELECT t FROM Thread t WHERE t.category.id = :categoryId AND (t.scope IS NULL OR t.scope <> '" + com.forum.utils.Constants.THREAD_SCOPE_INTERNAL + "') ORDER BY t.pinned DESC, t.lastPostAt DESC")
+    List<Thread> findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(@org.springframework.data.repository.query.Param("categoryId") Long categoryId);
+
+    @Query("SELECT t FROM Thread t WHERE (t.scope IS NULL OR t.scope <> '" + com.forum.utils.Constants.THREAD_SCOPE_INTERNAL + "') ORDER BY t.lastPostAt DESC")
+    org.springframework.data.domain.Page<Thread> findAllPublicOrderByLastPostAtDesc(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT t FROM Thread t WHERE t.category.id = :categoryId AND (t.scope IS NULL OR t.scope <> '" + com.forum.utils.Constants.THREAD_SCOPE_INTERNAL + "') ORDER BY t.pinned DESC, t.lastPostAt DESC")
+    org.springframework.data.domain.Page<Thread> findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(@org.springframework.data.repository.query.Param("categoryId") Long categoryId, org.springframework.data.domain.Pageable pageable);
 }
 

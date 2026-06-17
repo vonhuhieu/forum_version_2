@@ -66,6 +66,9 @@ public class Thread {
     @Column(columnDefinition = "TEXT")
     private String attachedImages; // JSON string of images
 
+    @Column(name = "scope", nullable = false, columnDefinition = "VARCHAR(50) DEFAULT '" + com.forum.utils.Constants.THREAD_SCOPE_PUBLIC + "'")
+    private String scope = com.forum.utils.Constants.THREAD_SCOPE_PUBLIC;
+
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 }
