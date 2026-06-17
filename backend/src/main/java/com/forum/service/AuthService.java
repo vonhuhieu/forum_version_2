@@ -80,6 +80,8 @@ public class AuthService {
         
         if (org.springframework.util.StringUtils.hasText(displayName)) {
             user.setDisplayName(displayName.trim());
+        } else {
+            user.setDisplayName(username);
         }
 
         user.setRoles(Set.of(Constants.ROLE_NON_OFFICIAL_USER));

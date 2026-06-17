@@ -25,8 +25,24 @@ public class ConversationParticipant {
     private User user;
 
     @Column(name = "is_read")
-    private boolean isRead = false;
+    private Boolean isRead = false;
 
     @Column(name = "is_deleted")
-    private boolean isDeleted = false;
+    private Boolean isDeleted = false;
+
+    public boolean isRead() {
+        return isRead != null && isRead;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted != null && isDeleted;
+    }
+
+    public void setRead(boolean read) {
+        this.isRead = read;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.isDeleted = deleted;
+    }
 }
