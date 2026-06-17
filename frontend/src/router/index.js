@@ -17,6 +17,7 @@ import LatestThreadsView from '@/apps/Forum/views/LatestThreadsView.vue'
 import ForgotPassword from '@/apps/Auth/views/ForgotPassword.vue'
 import AddConversation from '@/apps/Forum/views/AddConversation.vue'
 import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
+import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 
 const routes = [
@@ -63,6 +64,12 @@ const routes = [
     path: '/create-thread',
     name: 'CreateThread',
     component: CreateThread,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/conversations',
+    name: 'ConversationList',
+    component: ConversationList,
     meta: { requiresAuth: true }
   },
   {

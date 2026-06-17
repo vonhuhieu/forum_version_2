@@ -6,6 +6,7 @@ import com.forum.dto.ConversationDetailDTO;
 import com.forum.dto.ConversationMessageDTO;
 import com.forum.dto.UserDTO;
 import com.forum.dto.ResponseDTO;
+import com.forum.dto.PageResponseDTO;
 import com.forum.entity.Conversation;
 import com.forum.entity.ConversationMessage;
 import com.forum.entity.ConversationParticipant;
@@ -330,6 +331,62 @@ public class ConversationService {
         return ResponseDTO.success(merged);
     }
 
+    public ResponseDTO<PageResponseDTO<ConversationDTO>> getMyConversationsPaged(int page, int size) {
+        String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Conversation> conversationPage = conversationRepository.findMyConversationsPaged(currentUsername, pageable);
+
+        List<ConversationDTO> dtos = conversationPage.getContent().stream().map(c -> {
+            ConversationDTO dto = new ConversationDTO();
+            dto.setId(c.getId());
+            dto.setTitle(c.getTitle());
+            dto.setCreatedAt(c.getCreatedAt());
+            dto.setUpdatedAt(c.getUpdatedAt());
+            dto.setCreatorAvatar(c.getCreator().getAvatar());
+            dto.setCreatorUsername(c.getCreator().getUsername());
+            dto.setCreatorDisplayName(c.getCreator().getDisplayName());
+
+            if (!c.getMessages().isEmpty()) {
+                dto.setFirstMessageId(c.getMessages().get(0).getId());
+                ConversationMessage lastMsg = c.getMessages().get(c.getMessages().size() - 1);
+                dto.setLastMessageId(lastMsg.getId());
+                dto.setLastMessageSenderUsername(lastMsg.getSender().getUsername());
+                dto.setLastMessageSenderDisplayName(lastMsg.getSender().getDisplayName());
+                dto.setLastMessageSenderAvatar(lastMsg.getSender().getAvatar());
+                // Use last message created time or updatedAt of conversation for last message time
+                dto.setUpdatedAt(lastMsg.getCreatedAt());
+            }
+
+            // Search read status of current user
+            boolean isRead = c.getParticipants().stream()
+                    .filter(p -> p.getUser().getUsername().equals(currentUsername))
+                    .map(ConversationParticipant::isRead)
+                    .findFirst()
+                    .orElse(true);
+            dto.setRead(isRead);
+
+            // Participants
+            List<String> parts = c.getParticipants().stream()
+                    .map(p -> p.getUser().getDisplayName() != null ? p.getUser().getDisplayName() : p.getUser().getUsername())
+                    .collect(Collectors.toList());
+            dto.setParticipants(parts);
+            dto.setParticipantCount(c.getParticipants().size());
+            dto.setReplyCount(c.getMessages().size());
+
+            return dto;
+        }).collect(Collectors.toList());
+
+        PageResponseDTO<ConversationDTO> pageResponse = new PageResponseDTO<>(
+            dtos,
+            conversationPage.getTotalPages(),
+            conversationPage.getTotalElements(),
+            conversationPage.getNumber(),
+            conversationPage.getSize()
+        );
+
+        return ResponseDTO.success(pageResponse);
+    }
+
     public ResponseDTO<Long> getMyUnreadCount() {
         String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
@@ -381,7 +438,13 @@ public class ConversationService {
         // Delete conversation-related notifications for this user
         notificationRepository.deleteAllConversationNotificationsForUser(currentUsername);
 
-        // Optionally, we could also clear any transient read markers, but keep conversation data intact
+        // Mark all conversations for this user as deleted/hidden from their list
+        List<ConversationParticipant> participants = conversationParticipantRepository.findByUserUsername(currentUsername);
+        for (ConversationParticipant p : participants) {
+            p.setDeleted(true);
+            conversationParticipantRepository.save(p);
+        }
+
         return ResponseDTO.success(null);
     }
 
@@ -499,10 +562,16 @@ public class ConversationService {
 
         // Lưu thông báo phản hồi đối thoại cho tất cả người tham gia (trừ sender) và push
         for (ConversationParticipant p : convo.getParticipants()) {
-            // Bỏ qua sender - người gửi không cần nhận notification của chính mình
             if (p.getUser().getId().equals(currentUser.getId())) {
+                p.setRead(true);
+                p.setDeleted(false);
+                conversationParticipantRepository.save(p);
                 continue;
             }
+
+            p.setRead(false);
+            p.setDeleted(false);
+            conversationParticipantRepository.save(p);
 
             Notification notif = new Notification();
             notif.setRecipient(p.getUser());

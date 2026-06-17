@@ -5,6 +5,10 @@ class ConversationService {
     return api.get('/conversations')
   }
 
+  getPaged(params) {
+    return api.get('/conversations/list', { params })
+  }
+
   getUnreadCount() {
     return api.get('/conversations/unread-count')
   }
