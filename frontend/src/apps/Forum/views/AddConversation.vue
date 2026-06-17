@@ -1,6 +1,7 @@
 <template>
   <div class="add-conversation-page app-wrapper">
     <ForumHeader />
+    <Loading :visible="loadingUsers || submitting" />
     
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
@@ -118,13 +119,15 @@ import { alertSuccess, alertError } from '@/shared/utils/swal'
 import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
+import Loading from '@/shared/components/Loading.vue'
 
 export default {
   name: 'AddConversation',
   components: {
     ForumHeader,
     Breadcrumb,
-    CustomEditor
+    CustomEditor,
+    Loading
   },
   data() {
     const toParam = this.$route.query.to || ''
@@ -137,6 +140,7 @@ export default {
       showDropdown: false,
       searchTimeout: null,
       submitting: false,
+      loadingUsers: false,
       form: {
         title: '',
         content: '',
@@ -187,6 +191,7 @@ export default {
       }, 300)
     },
     async fetchUsers() {
+      this.loadingUsers = true
       try {
         const response = await userService.search({
           keyword: this.searchQuery,
@@ -198,6 +203,8 @@ export default {
         }
       } catch (error) {
         console.error('Lỗi khi tìm kiếm người nhận:', error)
+      } finally {
+        this.loadingUsers = false
       }
     },
     selectRecipient(user) {
