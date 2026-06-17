@@ -1282,5 +1282,34 @@ export default {
   .mail-dropdown::before {
     right: 110px !important;
   }
+
+  /* Prevent text wrapping and optimize spacing on mobile */
+  .mail-tabs {
+    padding: 0 8px !important;
+    gap: 8px !important;
+  }
+  .mail-tab-btn {
+    padding: 10px 8px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+  }
+  .mail-tabs-actions {
+    gap: 6px !important;
+  }
+  .btn-mark-all-read, .btn-mark-mail-read-header {
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+  }
+  .btn-clear-mail-header {
+    margin-left: 6px !important;
+  }
+  .notif-footer {
+    padding: 10px 8px !important;
+    gap: 8px !important;
+    font-size: 0.78rem !important;
+  }
+  .notif-footer a, .notif-footer span {
+    white-space: nowrap !important;
+  }
 }
 </style>
