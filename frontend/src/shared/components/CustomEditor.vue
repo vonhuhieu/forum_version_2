@@ -773,6 +773,10 @@ export default {
   line-height: 1.6;
 }
 
+:deep(.ck-toolbar__items) {
+  flex-wrap: wrap !important;
+}
+
 :deep(.ck-content table) {
   width: 100%;
   border-collapse: collapse;

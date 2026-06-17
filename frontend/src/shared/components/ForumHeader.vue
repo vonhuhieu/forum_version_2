@@ -1254,4 +1254,33 @@ export default {
 /* Import mobile responsive styles */
 @import "@/shared/assets/styles/responsive/mobile/header/header_mobile.css";
 @import "@/shared/assets/styles/responsive/tablet/header/header_tablet.css";
+
+/* Dropdown responsive positions */
+@media (max-width: 1024px) {
+  .notif-dropdown, .mail-dropdown {
+    right: -60px !important;
+  }
+  .notif-dropdown::before {
+    right: 72px !important;
+  }
+  .mail-dropdown::before {
+    right: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .notif-dropdown, .mail-dropdown {
+    position: fixed !important;
+    top: 50px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+  }
+  .notif-dropdown::before {
+    right: 62px !important;
+  }
+  .mail-dropdown::before {
+    right: 110px !important;
+  }
+}
 </style>

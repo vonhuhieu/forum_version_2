@@ -76,8 +76,11 @@
                   <div class="avatar-large" :style="{ backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' }">
                     {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
                   </div>
-                  <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
-                  <div class="author-title">{{ getUserRoleText(msg.sender?.roles) }}</div>
+                  <div class="author-info-mobile-block">
+                    <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
+                    <div class="author-title">{{ getUserRoleText(msg.sender?.roles) }}</div>
+                  </div>
+                  <span class="message-userArrow"></span>
                 </div>
 
                 <div class="post-main">
@@ -671,6 +674,32 @@ export default {
   align-items: center;
   border-right: 1px solid #e0e0e0;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* Speech bubble arrow indicator for message cells */
+.message-userArrow {
+  position: absolute;
+  top: 20px;
+  right: -1px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-left-width: 0;
+  border-right-color: #e0e0e0;
+  z-index: 2;
+}
+
+.message-userArrow::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 1px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-left-width: 0;
+  border-right-color: #ffffff;
 }
 
 .avatar-large {
@@ -684,6 +713,13 @@ export default {
   justify-content: center;
   font-size: 2.5rem;
   margin-bottom: 10px;
+}
+
+.author-info-mobile-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .author-name-large {
@@ -924,5 +960,150 @@ export default {
   padding: 0 15px 10px 15px;
   margin-top: -5px;
   display: flex;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .convo-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .convo-sidebar {
+    width: 100%;
+    order: -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .sidebar-card {
+    margin-top: 0 !important;
+  }
+  .convo-main {
+    width: 100%;
+  }
+  .reply-box-wrapper .post-layout {
+    flex-direction: column;
+  }
+  .reply-box-wrapper .post-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 15px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .reply-box-wrapper .avatar-large {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Center top action pagination */
+  .pagination-wrapper-left {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+  
+  /* Center bottom pagination bar */
+  .pagination-wrapper {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  /* Make post layout column-stacked */
+  .post-layout {
+    flex-direction: column !important;
+  }
+
+  /* Style post-sidebar to be horizontal banner on top */
+  .post-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 12px 15px !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+    background-color: #f5f5f5 !important;
+  }
+
+  /* Adjust avatar size on mobile */
+  .avatar-large {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 0 !important;
+    margin-right: 12px !important;
+  }
+
+  .author-info-mobile-block {
+    align-items: flex-start !important;
+    text-align: left !important;
+    width: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .author-name-large {
+    text-align: left !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .author-title {
+    text-align: left !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Speech bubble arrow positioned pointing upwards on mobile */
+  .message-userArrow {
+    top: auto !important;
+    right: auto !important;
+    bottom: -1px !important;
+    left: 24px !important;
+    border: 10px solid transparent !important;
+    border-top-width: 0 !important;
+    border-bottom-color: #e0e0e0 !important;
+  }
+
+  .message-userArrow::after {
+    border: 10px solid transparent !important;
+    border-top-width: 0 !important;
+    border-bottom-color: #ffffff !important;
+    top: 1px !important;
+    left: -10px !important;
+  }
+
+  /* Convo Layout on Mobile */
+  .convo-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .convo-sidebar {
+    width: 100%;
+    order: -1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+
+  .sidebar-card {
+    margin-top: 0 !important;
+    width: 100%;
+  }
+
+  .convo-main {
+    width: 100%;
+  }
 }
 </style>
