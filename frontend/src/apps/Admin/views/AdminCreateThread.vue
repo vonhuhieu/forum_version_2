@@ -86,7 +86,7 @@
               <input 
                 type="radio" 
                 v-model="form.scope" 
-                value="PUBLIC" 
+                :value="THREAD_SCOPES.PUBLIC" 
                 :disabled="isViewMode"
                 style="cursor: pointer; width: 18px; height: 18px;"
               >
@@ -96,7 +96,7 @@
               <input 
                 type="radio" 
                 v-model="form.scope" 
-                value="INTERNAL" 
+                :value="THREAD_SCOPES.INTERNAL" 
                 :disabled="isViewMode"
                 style="cursor: pointer; width: 18px; height: 18px;"
               >
@@ -182,6 +182,7 @@ import AdminService from '@/apps/Admin/services/admin.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import labelService from '@/apps/Forum/services/label.service'
 import threadService from '@/apps/Forum/services/thread.service'
+import { THREAD_SCOPES } from '@/shared/utils/utils'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import PollForm from '@/shared/components/PollForm.vue'
@@ -197,6 +198,7 @@ export default {
   },
   data() {
     return {
+      THREAD_SCOPES,
       categories: [],
       categoryGroups: [],
       labels: [],
@@ -207,7 +209,7 @@ export default {
       attachedImages: [],
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '', scope: 'PUBLIC' }
+      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '', scope: THREAD_SCOPES.PUBLIC }
     }
   },
 
@@ -360,7 +362,7 @@ export default {
           poll: thread.poll || null,
           labelId: thread.label ? thread.label.id : null,
           attachedImages: thread.attachedImages || '',
-          scope: thread.scope || 'PUBLIC'
+          scope: thread.scope || THREAD_SCOPES.PUBLIC
         }
         
         if (thread.attachedImages) {

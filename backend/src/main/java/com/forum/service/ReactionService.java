@@ -60,7 +60,7 @@ public class ReactionService {
         Thread thread = threadRepository.findById(threadId)
                 .orElseThrow(() -> new RuntimeException("Thread not found"));
 
-        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
         }
 
@@ -101,7 +101,7 @@ public class ReactionService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        if (post.getThread() != null && "INTERNAL".equals(post.getThread().getScope()) && !isUserAuthorizedForInternalThreads()) {
+        if (post.getThread() != null && com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(post.getThread().getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
         }
 

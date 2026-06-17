@@ -133,7 +133,7 @@ public class ThreadService {
             threadCache.put(id, baseDto);
         }
 
-        if ("INTERNAL".equals(baseDto.getScope()) && !isUserAuthorizedForInternalThreads()) {
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(baseDto.getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
         }
 
@@ -235,7 +235,7 @@ public class ThreadService {
     public ResponseDTO<ThreadDTO> createThread(ThreadDTO threadDTO) {
         Thread thread = threadMapper.toEntity(threadDTO);
         if (thread.getScope() == null || thread.getScope().trim().isEmpty()) {
-            thread.setScope("PUBLIC");
+            thread.setScope(com.forum.utils.Constants.THREAD_SCOPE_PUBLIC);
         }
         
         // Lấy username từ SecurityContext

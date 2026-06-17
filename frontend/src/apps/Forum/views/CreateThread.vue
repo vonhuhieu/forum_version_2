@@ -57,7 +57,7 @@
                 <input 
                   type="radio" 
                   v-model="form.scope" 
-                  value="PUBLIC" 
+                  :value="THREAD_SCOPES.PUBLIC" 
                   style="cursor: pointer; width: 18px; height: 18px;"
                 >
                 Công khai
@@ -66,7 +66,7 @@
                 <input 
                   type="radio" 
                   v-model="form.scope" 
-                  value="INTERNAL" 
+                  :value="THREAD_SCOPES.INTERNAL" 
                   style="cursor: pointer; width: 18px; height: 18px;"
                 >
                 Nội bộ
@@ -137,7 +137,7 @@ import categoryService from '@/apps/Forum/services/category.service'
 import labelService from '@/apps/Forum/services/label.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import ForumHeader from '@/shared/components/ForumHeader.vue'
-import { isAdminOrSuperAdmin } from '@/shared/utils/utils'
+import { isAdminOrSuperAdmin, THREAD_SCOPES } from '@/shared/utils/utils'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
@@ -156,6 +156,7 @@ export default {
   },
   data() {
     return {
+      THREAD_SCOPES,
       catId: this.$route.query.catId,
       category: null,
       categoryGroup: null,
@@ -168,7 +169,7 @@ export default {
       isUploadLoading: false,
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: 'PUBLIC' }
+      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: THREAD_SCOPES.PUBLIC }
     }
   },
   computed: {

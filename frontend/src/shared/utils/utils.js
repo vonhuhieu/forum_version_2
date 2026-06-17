@@ -41,3 +41,8 @@ export function isAdminOrSuperAdmin() {
     return false;
   }
 }
+
+export const THREAD_SCOPES = {
+  PUBLIC: 'PUBLIC',
+  INTERNAL: 'INTERNAL'
+};

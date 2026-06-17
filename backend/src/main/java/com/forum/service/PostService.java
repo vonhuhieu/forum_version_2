@@ -85,7 +85,7 @@ public class PostService {
     public ResponseDTO<com.forum.dto.PageResponseDTO<PostDTO>> getPostsByThread(Long threadId, int page, int size) {
         Thread thread = threadRepository.findById(threadId)
                 .orElseThrow(() -> new RuntimeException("Thread not found"));
-        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
         }
 
@@ -170,7 +170,7 @@ public class PostService {
         Thread thread = threadRepository.findById(postDTO.getThreadId())
                 .orElseThrow(() -> new RuntimeException("Thread not found"));
 
-        if ("INTERNAL".equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(thread.getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
         }
 
