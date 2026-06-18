@@ -1,7 +1,6 @@
 <template>
-  <div class="app-wrapper">
+  <div>
     <Loading :visible="isLoading" />
-    <ForumHeader @logout="checkAuth" />
 
     <main class="container">
       <div class="banner-box" style="margin-top: 1rem;">
@@ -166,7 +165,6 @@
 </template>
 
 <script>
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import ForumHome from '@/shared/components/ForumHome.vue'
 import Loading from '@/shared/components/Loading.vue'
 import threadService from '@/apps/Forum/services/thread.service'
@@ -178,7 +176,6 @@ import { isNonOfficialUser } from '@/shared/utils/utils'
 export default {
   name: 'HomeView',
   components: {
-    ForumHeader,
     ForumHome,
     Loading
   },

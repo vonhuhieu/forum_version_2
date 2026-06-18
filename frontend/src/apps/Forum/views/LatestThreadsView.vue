@@ -1,7 +1,5 @@
 <template>
-  <div class="latest-threads-page app-wrapper">
-    <ForumHeader />
-
+  <div>
     <main class="container" style="padding-top: 2rem;">
       <div v-if="loading" style="text-align: center; padding: 3rem;">Đang tải...</div>
       
@@ -152,7 +150,6 @@
 <script>
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
@@ -161,7 +158,6 @@ import { isNonOfficialUser } from '@/shared/utils/utils'
 export default {
   name: 'LatestThreadsView',
   components: {
-    ForumHeader,
     Breadcrumb,
     ForumPagination
   },
