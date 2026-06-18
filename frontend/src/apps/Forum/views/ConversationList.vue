@@ -1,7 +1,5 @@
 <template>
-  <div class="conversations-page app-wrapper">
-    <ForumHeader />
-
+  <div>
     <main class="container" style="padding-top: 2rem;">
       <div v-if="loading" style="text-align: center; padding: 3rem;">Đang tải...</div>
       
@@ -128,7 +126,6 @@
 
 <script>
 import conversationService from '@/apps/Forum/services/conversation.service'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
@@ -136,7 +133,6 @@ import { formatForumDate } from '@/shared/utils/date'
 export default {
   name: 'ConversationList',
   components: {
-    ForumHeader,
     Breadcrumb,
     ForumPagination
   },

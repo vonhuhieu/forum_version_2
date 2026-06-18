@@ -1,7 +1,6 @@
 <template>
-  <div class="create-thread-page app-wrapper">
+  <div>
     <Loading :visible="isUploadLoading || isSubmitting || isPageLoading" />
-    <ForumHeader />
     
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
@@ -136,7 +135,6 @@ import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import labelService from '@/apps/Forum/services/label.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import { isAdminOrSuperAdmin, THREAD_SCOPES } from '@/shared/utils/utils'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
@@ -147,7 +145,6 @@ import Loading from '@/shared/components/Loading.vue'
 export default {
   name: 'CreateThread',
   components: {
-    ForumHeader,
     CustomEditor,
     Breadcrumb,
     ImageUploaderPanel,

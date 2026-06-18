@@ -1,7 +1,5 @@
 <template>
-  <div class="thread-detail-page app-wrapper" v-if="!loading && thread">
-    <ForumHeader />
-
+  <div v-if="!loading && thread">
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
 
@@ -286,7 +284,6 @@ import threadService from '@/apps/Forum/services/thread.service'
 import postService from '@/apps/Forum/services/post.service'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import categoryService from '@/apps/Forum/services/category.service'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import PollDisplay from '@/shared/components/PollDisplay.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
@@ -304,7 +301,6 @@ import { isNonOfficialUser } from '@/shared/utils/utils'
 export default {
   name: 'ThreadDetail',
   components: {
-    ForumHeader,
     Breadcrumb,
     PollDisplay,
     CustomEditor,
