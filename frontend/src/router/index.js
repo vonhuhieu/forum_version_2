@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import ForumLayout from '@/shared/components/ForumLayout.vue'
 import HomeView from '@/apps/Forum/views/HomeView.vue'
 import AdminLayout from '@/apps/Admin/views/AdminLayout.vue'
 import MenuConfig from '@/apps/Admin/views/MenuConfig.vue'
@@ -23,24 +24,54 @@ import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: HomeView,
-    alias: '/trang-chu'
-  },
-  {
-    path: '/latest',
-    name: 'LatestThreads',
-    component: LatestThreadsView
-  },
-  {
-    path: '/category/:id',
-    name: 'CategoryDetail',
-    component: CategoryView
-  },
-  {
-    path: '/thread/:id',
-    name: 'ThreadDetail',
-    component: ThreadDetail
+    component: ForumLayout,
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: HomeView,
+        alias: 'trang-chu'
+      },
+      {
+        path: 'latest',
+        name: 'LatestThreads',
+        component: LatestThreadsView
+      },
+      {
+        path: 'category/:id',
+        name: 'CategoryDetail',
+        component: CategoryView
+      },
+      {
+        path: 'thread/:id',
+        name: 'ThreadDetail',
+        component: ThreadDetail
+      },
+      {
+        path: 'create-thread',
+        name: 'CreateThread',
+        component: CreateThread,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'conversations',
+        name: 'ConversationList',
+        component: ConversationList,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'conversations/add',
+        name: 'AddConversation',
+        component: AddConversation,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'conversations/:id',
+        name: 'ConversationDetail',
+        component: ConversationDetail,
+        meta: { requiresAuth: true }
+      }
+    ]
   },
   {
     path: '/login',
@@ -59,30 +90,6 @@ const routes = [
     name: 'ForgotPassword',
     component: ForgotPassword,
     meta: { guestOnly: true }
-  },
-  {
-    path: '/create-thread',
-    name: 'CreateThread',
-    component: CreateThread,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/conversations',
-    name: 'ConversationList',
-    component: ConversationList,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/conversations/add',
-    name: 'AddConversation',
-    component: AddConversation,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/conversations/:id',
-    name: 'ConversationDetail',
-    component: ConversationDetail,
-    meta: { requiresAuth: true }
   },
   {
     path: '/admin',

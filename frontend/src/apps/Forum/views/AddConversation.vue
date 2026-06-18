@@ -1,6 +1,5 @@
 <template>
-  <div class="add-conversation-page app-wrapper">
-    <ForumHeader />
+  <div>
     <Loading :visible="loadingUsers || submitting" />
     
     <main class="container" style="padding-top: 2rem;">
@@ -116,7 +115,6 @@
 import userService from '@/apps/Forum/services/user.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Loading from '@/shared/components/Loading.vue'
@@ -124,7 +122,6 @@ import Loading from '@/shared/components/Loading.vue'
 export default {
   name: 'AddConversation',
   components: {
-    ForumHeader,
     Breadcrumb,
     CustomEditor,
     Loading

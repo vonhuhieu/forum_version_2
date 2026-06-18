@@ -1,7 +1,5 @@
 <template>
-  <div class="convo-detail-page app-wrapper" v-if="!loading && conversation">
-    <ForumHeader />
-
+  <div v-if="!loading && conversation">
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
 
@@ -228,7 +226,6 @@
 <script>
 import webSocketService from '@/shared/services/websocket.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
-import ForumHeader from '@/shared/components/ForumHeader.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import { formatForumDate } from '@/shared/utils/date'
@@ -242,7 +239,6 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 export default {
   name: 'ConversationDetail',
   components: {
-    ForumHeader,
     Breadcrumb,
     CustomEditor,
     ReactionButton,
