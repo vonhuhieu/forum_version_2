@@ -43,6 +43,15 @@
         </div>
       </div>
 
+      <!-- Top Locked Banner -->
+      <div class="locked-banner" v-if="thread.locked">
+        <svg class="locked-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d35400" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Bài này đã bị khóa.</span>
+      </div>
+
       <!-- Unified Content Loop (Main Post & Replies) -->
       <template v-for="item in paginatedItems" :key="item.id">
         
@@ -108,7 +117,7 @@
                     :userReaction="thread.currentUserReaction"
                     @reaction-changed="fetchThread"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -189,7 +198,7 @@
                     :userReaction="item.currentUserReaction"
                     @reaction-changed="reloadPostsOnly"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -219,7 +228,7 @@
       </div>
 
       <!-- Reply Editor Container -->
-      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial">
+      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
         <div class="post-layout">
           <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
              <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
@@ -248,8 +257,17 @@
         </div>
       </div>
 
-      <div v-else-if="!isLoggedIn" class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
+      <div v-else-if="!isLoggedIn && !thread.locked" class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
         Bạn phải <router-link to="/login" style="color: #3498db; font-weight: bold;">đăng nhập</router-link> để có thể trả lời bài viết này.
+      </div>
+
+      <!-- Bottom Locked Banner -->
+      <div class="locked-banner locked-banner-bottom" v-if="thread.locked" style="margin-top: 16px; margin-bottom: 16px">
+        <svg class="locked-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d35400" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Bài này đã bị khóa.</span>
       </div>
 
       <Breadcrumb :items="breadcrumbItems" />
@@ -1740,5 +1758,27 @@ export default {
     top: 1px !important;
     left: -10px !important;
   }
+}
+
+.locked-banner {
+  display: flex;
+  align-items: center;
+  background-color: #fff8ee;
+  border-left: 3px solid #e67e22;
+  padding: 10px 15px;
+  border-radius: 4px;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+.locked-banner-bottom {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+.locked-icon-svg {
+  flex-shrink: 0;
+  margin-right: 10px;
 }
 </style>

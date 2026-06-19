@@ -79,29 +79,57 @@
           </div>
         </div>
 
-        <div v-if="!isViewMode || form.scope" class="form-group" style="margin-bottom: 1.5rem;">
-          <label>Phạm vi bài đăng:</label>
-          <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
-              <input 
-                type="radio" 
-                v-model="form.scope" 
-                :value="THREAD_SCOPES.PUBLIC" 
-                :disabled="isViewMode"
-                style="cursor: pointer; width: 18px; height: 18px;"
-              >
-              Công khai
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
-              <input 
-                type="radio" 
-                v-model="form.scope" 
-                :value="THREAD_SCOPES.INTERNAL" 
-                :disabled="isViewMode"
-                style="cursor: pointer; width: 18px; height: 18px;"
-              >
-              Nội bộ
-            </label>
+        <div style="display: flex; gap: 3rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <div v-if="!isViewMode || form.scope" class="form-group" style="margin-bottom: 0;">
+            <label>Phạm vi bài đăng:</label>
+            <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.scope" 
+                  :value="THREAD_SCOPES.PUBLIC" 
+                  :disabled="isViewMode"
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Công khai
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.scope" 
+                  :value="THREAD_SCOPES.INTERNAL" 
+                  :disabled="isViewMode"
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Nội bộ
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Khóa bình luận:</label>
+            <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.locked" 
+                  :value="true" 
+                  :disabled="isViewMode"
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Có
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                <input 
+                  type="radio" 
+                  v-model="form.locked" 
+                  :value="false" 
+                  :disabled="isViewMode"
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Không
+              </label>
+            </div>
           </div>
         </div>
 
@@ -209,7 +237,7 @@ export default {
       attachedImages: [],
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '', scope: THREAD_SCOPES.PUBLIC }
+      form: { title: '', content: '', categoryId: '', pinned: false, poll: null, labelId: null, attachedImages: '', scope: THREAD_SCOPES.PUBLIC, locked: false }
     }
   },
 
@@ -362,7 +390,8 @@ export default {
           poll: thread.poll || null,
           labelId: thread.label ? thread.label.id : null,
           attachedImages: thread.attachedImages || '',
-          scope: thread.scope || THREAD_SCOPES.PUBLIC
+          scope: thread.scope || THREAD_SCOPES.PUBLIC,
+          locked: thread.locked || false
         }
         
         if (thread.attachedImages) {
@@ -440,7 +469,8 @@ export default {
           label: this.form.labelId ? { id: this.form.labelId } : null,
           pinned: this.form.pinned,
           attachedImages: JSON.stringify(attachedImages),
-          scope: this.form.scope
+          scope: this.form.scope,
+          locked: this.form.locked
         }
         
         if (this.postType === 'poll' && this.form.poll) {
