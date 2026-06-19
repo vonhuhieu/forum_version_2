@@ -97,6 +97,17 @@
                 </label>
               </div>
             </div>
+
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end; padding-bottom: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; color: #1a507a;">
+                <input 
+                  type="checkbox" 
+                  v-model="form.pinned" 
+                  style="cursor: pointer; width: 18px; height: 18px;"
+                >
+                Ghim bài viết lên đầu
+              </label>
+            </div>
           </div>
 
           <!-- Tabs Thảo luận / Bình chọn -->
@@ -192,7 +203,7 @@ export default {
       isUploadLoading: false,
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: THREAD_SCOPES.PUBLIC, locked: false }
+      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: THREAD_SCOPES.PUBLIC, locked: false, pinned: false }
     }
   },
   computed: {
@@ -345,7 +356,8 @@ export default {
           label: this.form.labelId ? { id: this.form.labelId } : null,
           attachedImages: JSON.stringify(attachedImages),
           scope: this.form.scope,
-          locked: this.form.locked
+          locked: this.form.locked,
+          pinned: this.form.pinned
         }
         if (this.postType === 'poll' && this.form.poll) {
           payload.poll = this.form.poll

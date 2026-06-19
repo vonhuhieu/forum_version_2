@@ -54,7 +54,7 @@ public class ThreadService {
                             .orElse(java.util.Collections.emptyList());
                 } else {
                     org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(0, 1);
-                    threads = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, p).getContent();
+                    threads = threadRepository.findFirstPublicByCategoryIdOrderByLastPostAtDesc(categoryId, p);
                 }
             } else {
                 if (canSeeInternal) {
