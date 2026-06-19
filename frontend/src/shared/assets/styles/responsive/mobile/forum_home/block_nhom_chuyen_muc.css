@@ -101,7 +101,7 @@
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    flex: 1 !important;
+    flex: 0 1 auto !important;
     display: block !important;
     min-width: 0 !important;
     max-width: 100% !important;

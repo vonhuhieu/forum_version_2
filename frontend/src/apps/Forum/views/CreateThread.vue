@@ -49,27 +49,53 @@
             >
           </div>
 
-          <div v-if="isAdmin" class="form-group" style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1a507a;">Phạm vi bài đăng:</label>
-            <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
-                <input 
-                  type="radio" 
-                  v-model="form.scope" 
-                  :value="THREAD_SCOPES.PUBLIC" 
-                  style="cursor: pointer; width: 18px; height: 18px;"
-                >
-                Công khai
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
-                <input 
-                  type="radio" 
-                  v-model="form.scope" 
-                  :value="THREAD_SCOPES.INTERNAL" 
-                  style="cursor: pointer; width: 18px; height: 18px;"
-                >
-                Nội bộ
-              </label>
+          <div v-if="isAdmin" style="display: flex; gap: 3rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1a507a;">Phạm vi bài đăng:</label>
+              <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                  <input 
+                    type="radio" 
+                    v-model="form.scope" 
+                    :value="THREAD_SCOPES.PUBLIC" 
+                    style="cursor: pointer; width: 18px; height: 18px;"
+                  >
+                  Công khai
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                  <input 
+                    type="radio" 
+                    v-model="form.scope" 
+                    :value="THREAD_SCOPES.INTERNAL" 
+                    style="cursor: pointer; width: 18px; height: 18px;"
+                  >
+                  Nội bộ
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1a507a;">Khóa bình luận:</label>
+              <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.5rem 0;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                  <input 
+                    type="radio" 
+                    v-model="form.locked" 
+                    :value="true" 
+                    style="cursor: pointer; width: 18px; height: 18px;"
+                  >
+                  Có
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; color: #333;">
+                  <input 
+                    type="radio" 
+                    v-model="form.locked" 
+                    :value="false" 
+                    style="cursor: pointer; width: 18px; height: 18px;"
+                  >
+                  Không
+                </label>
+              </div>
             </div>
           </div>
 
@@ -166,7 +192,7 @@ export default {
       isUploadLoading: false,
       isSubmitting: false,
       isPageLoading: false,
-      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: THREAD_SCOPES.PUBLIC }
+      form: { title: '', content: '', categoryId: '', poll: null, labelId: null, scope: THREAD_SCOPES.PUBLIC, locked: false }
     }
   },
   computed: {
@@ -318,7 +344,8 @@ export default {
           category: { id: this.catId },
           label: this.form.labelId ? { id: this.form.labelId } : null,
           attachedImages: JSON.stringify(attachedImages),
-          scope: this.form.scope
+          scope: this.form.scope,
+          locked: this.form.locked
         }
         if (this.postType === 'poll' && this.form.poll) {
           payload.poll = this.form.poll

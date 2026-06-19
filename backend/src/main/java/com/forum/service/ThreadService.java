@@ -155,6 +155,7 @@ public class ThreadService {
         dto.setReactionSummary(baseDto.getReactionSummary());
         dto.setRecentReactors(baseDto.getRecentReactors());
         dto.setScope(baseDto.getScope());
+        dto.setLocked(baseDto.isLocked());
 
         dto.setCurrentUserReaction(reactionService.getCurrentUserReactionForThread(id));
 
@@ -307,6 +308,7 @@ public class ThreadService {
             
             
             thread.setPinned(threadDTO.isPinned());
+            thread.setLocked(threadDTO.isLocked());
             thread.setAttachedImages(threadDTO.getAttachedImages());
 
             // Xử lý cập nhật Poll

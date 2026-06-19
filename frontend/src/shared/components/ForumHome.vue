@@ -23,6 +23,9 @@
               <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" class="thread-title">
                 {{ thread.title }}
               </router-link>
+              <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-lock" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
             </div>
             <div class="thread-meta desktop-only">
               <span class="author-name white-space-nowrap">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
@@ -150,6 +153,9 @@
                     {{ lastThreadByCat[cat.id].label.name }}
                   </span>
                   <span class="title-txt home-last-thread-title-txt">{{ lastThreadByCat[cat.id].title }}</span>
+                  <span v-if="lastThreadByCat[cat.id].locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  </span>
                 </router-link>
                 <div class="last-thread-meta home-last-thread-meta display-flex-on-tablet-and-pc">
                   <span class="last-post-time">{{ formatDate(lastThreadByCat[cat.id].lastPostAt || lastThreadByCat[cat.id].createdAt) }}</span>
@@ -185,6 +191,9 @@
                     {{ thread.label.name }}
                   </span>
                   <span class="lt-title-text">{{ thread.title }}</span>
+                  <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  </span>
                 </router-link>
               </div>
               <div class="lt-meta">
@@ -528,7 +537,7 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .last-thread-title:hover .title-txt {
