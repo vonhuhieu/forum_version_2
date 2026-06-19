@@ -19,6 +19,7 @@ public class ThreadDTO {
     private int replyCount;
     private boolean pinned;
     private boolean active = true;
+    private boolean locked;
     private PollDTO poll;
     private String attachedImages;
     private Long lastPostId;

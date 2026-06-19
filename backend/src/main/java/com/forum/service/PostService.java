@@ -174,6 +174,10 @@ public class PostService {
             throw new RuntimeException("Access denied");
         }
 
+        if (thread.isLocked()) {
+            throw new RuntimeException("Thread is locked for replies");
+        }
+
         Post post = postMapper.toEntity(postDTO);
         post.setThread(thread);
 
