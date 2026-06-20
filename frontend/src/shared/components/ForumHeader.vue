@@ -253,9 +253,29 @@
              </div>
           </div>
 
-          <div class="btn-search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span class="search-text color-c9d6e0">Tìm kiếm</span>
+          <!-- Search Dropdown Container -->
+          <div class="search-container" :class="{ 'active': showSearchDropdown }" ref="searchContainer">
+            <div class="btn-search" @click.stop="toggleSearchDropdown">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <span class="search-text color-c9d6e0">Tìm kiếm</span>
+            </div>
+            
+            <!-- Search Dropdown Popup -->
+            <div class="search-dropdown" v-show="showSearchDropdown" @click.stop>
+              <div class="search-input-wrapper">
+                <input 
+                  type="text" 
+                  v-model="searchQuery" 
+                  placeholder="Tìm kiếm..." 
+                  @keyup.enter="triggerSearch" 
+                  ref="headerSearchInput"
+                  class="search-input"
+                />
+                <button class="btn-search-submit" @click="triggerSearch" aria-label="Tìm kiếm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -290,6 +310,7 @@
   </header>
 
   <PendingApprovalBanner v-if="isNonOfficial" />
+  <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
 </template>
 
 <script>
@@ -302,11 +323,13 @@ import { formatForumDate } from '@/shared/utils/date'
 import { alertSuccess, alertWarning } from '@/shared/utils/swal'
 import { isNonOfficialUser, truncateString } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
+import SearchModal from '@/shared/components/SearchModal.vue'
 
 export default {
   name: 'ForumHeader',
   components: {
-    PendingApprovalBanner
+    PendingApprovalBanner,
+    SearchModal
   },
   data() {
     return {
@@ -330,7 +353,10 @@ export default {
       notifLimitAll: 10,
       notifLimitUnread: 10,
       canScrollLeft: false,
-      canScrollRight: false
+      canScrollRight: false,
+      showSearchDropdown: false,
+      showSearchModal: false,
+      searchQuery: ''
     }
   },
   computed: {
@@ -729,6 +755,10 @@ export default {
       if (mailContainer && !mailContainer.contains(e.target)) {
         this.showMailDropdown = false
       }
+      const searchContainer = this.$refs.searchContainer
+      if (searchContainer && !searchContainer.contains(e.target)) {
+        this.showSearchDropdown = false
+      }
     },
     
     getReactionIconUrl(code) {
@@ -791,6 +821,24 @@ export default {
       }
       
       this.$router.push(routeTarget)
+    },
+    toggleSearchDropdown() {
+      this.showSearchDropdown = !this.showSearchDropdown
+      this.showNotifDropdown = false
+      this.showUserDropdown = false
+      this.showMailDropdown = false
+      if (this.showSearchDropdown) {
+        this.$nextTick(() => {
+          if (this.$refs.headerSearchInput) {
+            this.$refs.headerSearchInput.focus()
+          }
+        })
+      }
+    },
+    triggerSearch() {
+      if (!this.searchQuery.trim()) return
+      this.showSearchDropdown = false
+      this.showSearchModal = true
     }
   }
 }
@@ -1310,6 +1358,85 @@ export default {
   }
   .notif-footer a, .notif-footer span {
     white-space: nowrap !important;
+  }
+}
+
+/* Search feature styles */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 280px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.search-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 25px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #fff;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: #fdfdfd;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.88rem;
+  background: transparent;
+  color: #333;
+  width: 100%;
+}
+
+.btn-search-submit {
+  background: none;
+  border: none;
+  color: #1a507a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  outline: none;
+  transition: color 0.2s;
+}
+
+.btn-search-submit:hover {
+  color: #236395;
+}
+
+@media (max-width: 767px) {
+  .search-dropdown {
+    position: fixed !important;
+    top: 50px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+  }
+  .search-dropdown::before {
+    right: 20px !important;
   }
 }
 </style>
