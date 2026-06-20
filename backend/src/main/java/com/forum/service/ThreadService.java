@@ -11,6 +11,8 @@ import com.forum.repository.NotificationRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
 import com.forum.repository.ThreadSubscriptionRepository;
+import com.forum.elasticsearch.repository.SearchDocumentRepository;
+import com.forum.elasticsearch.document.SearchDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +35,26 @@ public class ThreadService {
     private final NotificationService notificationService;
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
     private final ThreadViewIncrementer threadViewIncrementer;
+    private final SearchDocumentRepository searchDocumentRepository;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private SearchDocument mapThreadToSearchDocument(Thread thread) {
+        SearchDocument doc = new SearchDocument();
+        doc.setId("thread_" + thread.getId());
+        doc.setOriginalId(thread.getId());
+        doc.setType("thread");
+        doc.setThreadId(thread.getId());
+        doc.setThreadTitle(thread.getTitle());
+        doc.setContent(thread.getContent());
+        doc.setCategoryName(thread.getCategory() != null ? thread.getCategory().getName() : null);
+        doc.setCategoryId(thread.getCategory() != null ? thread.getCategory().getId() : null);
+        doc.setAuthorName(thread.getAuthor() != null ? (thread.getAuthor().getDisplayName() != null ? thread.getAuthor().getDisplayName() : thread.getAuthor().getUsername()) : "Ẩn danh");
+        doc.setCreatedAt(thread.getCreatedAt() != null ? thread.getCreatedAt() : java.time.LocalDateTime.now());
+        doc.setScope(thread.getScope());
+        doc.setActive(thread.isActive());
+        return doc;
+    }
 
     public void evictCache(Long id) {
         if (id != null) {
@@ -260,6 +280,12 @@ public class ThreadService {
         
         Thread saved = threadRepository.save(thread);
         
+        try {
+            searchDocumentRepository.save(mapThreadToSearchDocument(saved));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
         // Gửi thông báo tag/mention cho bài đăng gốc bất đồng bộ sau khi transaction commit thành công
         try {
             if (saved.getAuthor() != null) {
@@ -365,6 +391,26 @@ public class ThreadService {
 
             Thread saved = threadRepository.save(thread);
             evictCache(id);
+            try {
+                searchDocumentRepository.save(mapThreadToSearchDocument(saved));
+                List<SearchDocument> posts = searchDocumentRepository.findByThreadId(saved.getId());
+                boolean updatedAny = false;
+                for (SearchDocument doc : posts) {
+                    if ("post".equals(doc.getType())) {
+                        doc.setThreadTitle(saved.getTitle());
+                        doc.setScope(saved.getScope());
+                        doc.setActive(saved.isActive());
+                        doc.setCategoryName(saved.getCategory() != null ? saved.getCategory().getName() : null);
+                        doc.setCategoryId(saved.getCategory() != null ? saved.getCategory().getId() : null);
+                        updatedAny = true;
+                    }
+                }
+                if (updatedAny) {
+                    searchDocumentRepository.saveAll(posts);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             return ResponseDTO.success(threadMapper.toDTO(saved));
         }).orElseThrow(() -> new RuntimeException("Thread not found"));
     }
@@ -396,6 +442,13 @@ public class ThreadService {
             
             // 6. Finally delete the thread
             threadRepository.delete(thread);
+
+            try {
+                searchDocumentRepository.deleteById("thread_" + id);
+                searchDocumentRepository.deleteByThreadId(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         return ResponseDTO.success(null);
     }
