@@ -6,13 +6,18 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponseInterceptor;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.HttpEntityWrapper;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.RestClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.elasticsearch.RestClientBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,42 +27,45 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class ElasticsearchConfig {
 
+    @Value("${spring.elasticsearch.username:}")
+    private String esUsername;
+
+    @Value("${spring.elasticsearch.password:}")
+    private String esPassword;
+
     @Bean
     public RestClientBuilderCustomizer restClientBuilderCustomizer() {
-        System.out.println("====== ElasticsearchConfig: Registering RestClientBuilderCustomizer ======");
-
         return new RestClientBuilderCustomizer() {
 
             @Override
             public void customize(RestClientBuilder builder) {
-                // Do NOT call builder.setHttpClientConfigCallback() here!
-                // That would override Spring Boot's default callback which sets up Basic Auth credentials.
+                // intentionally empty — do NOT call setHttpClientConfigCallback here
             }
 
             @Override
             public void customize(HttpAsyncClientBuilder builder) {
-                // This method is called WITHIN the existing HttpClientConfigCallback,
-                // so Basic Auth credentials from spring.elasticsearch.username/password are preserved.
-                System.out.println("====== ElasticsearchConfig: Customizing HttpAsyncClientBuilder (credentials preserved) ======");
+                // 1. Set up Basic Auth credentials if provided
+                if (esUsername != null && !esUsername.isEmpty()) {
+                    CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                    credentialsProvider.setCredentials(AuthScope.ANY,
+                            new UsernamePasswordCredentials(esUsername, esPassword));
+                    builder.setDefaultCredentialsProvider(credentialsProvider);
+                    System.out.println("====== ES-CONFIG: Basic Auth configured for user [" + esUsername + "] ======");
+                } else {
+                    System.out.println("====== ES-CONFIG: No credentials configured (local mode) ======");
+                }
 
-                // ===== REQUEST INTERCEPTOR: Clean outgoing headers =====
+                // 2. Request interceptor — clean vendor-specific headers
                 builder.addInterceptorFirst((HttpRequestInterceptor) (request, context) -> {
-                    String uri = request.getRequestLine().getUri();
-                    String method = request.getRequestLine().getMethod();
-                    System.out.println("====== ES-REQ: " + method + " " + uri + " ======");
-
-                    // 1. Clean Request Headers
                     cleanRequestHeader(request, "Content-Type");
                     cleanRequestHeader(request, "Accept");
 
-                    // 2. Clean HttpEntity Content-Type if present
                     if (request instanceof HttpEntityEnclosingRequest entityRequest) {
                         HttpEntity entity = entityRequest.getEntity();
                         if (entity != null && entity.getContentType() != null) {
                             String value = entity.getContentType().getValue();
                             String newValue = cleanValue(value);
                             if (!value.equals(newValue)) {
-                                System.out.println("====== ES-REQ: Cleaned Entity CT: [" + value + "] -> [" + newValue + "] ======");
                                 entityRequest.setEntity(new HttpEntityWrapper(entity) {
                                     @Override
                                     public Header getContentType() {
@@ -69,19 +77,16 @@ public class ElasticsearchConfig {
                     }
                 });
 
-                // ===== RESPONSE INTERCEPTOR: Log error responses =====
+                // 3. Response interceptor — log errors for debugging
                 builder.addInterceptorLast((HttpResponseInterceptor) (response, context) -> {
                     int statusCode = response.getStatusLine().getStatusCode();
-                    String reason = response.getStatusLine().getReasonPhrase();
-                    System.out.println("====== ES-RESP: Status " + statusCode + " " + reason + " ======");
-
                     if (statusCode >= 400) {
+                        String reason = response.getStatusLine().getReasonPhrase();
+                        System.out.println("====== ES-RESP: " + statusCode + " " + reason + " ======");
                         HttpEntity entity = response.getEntity();
                         if (entity != null) {
                             byte[] content = EntityUtils.toByteArray(entity);
-                            String body = new String(content, StandardCharsets.UTF_8);
-                            System.out.println("====== ES-RESP: Error Body: " + body + " ======");
-
+                            System.out.println("====== ES-RESP: Body: " + new String(content, StandardCharsets.UTF_8) + " ======");
                             String ct = entity.getContentType() != null ? entity.getContentType().getValue() : "application/json";
                             response.setEntity(new ByteArrayEntity(content, ContentType.parse(ct)));
                         }
@@ -98,15 +103,12 @@ public class ElasticsearchConfig {
             String newValue = cleanValue(value);
             if (!value.equals(newValue)) {
                 request.setHeader(headerName, newValue);
-                System.out.println("====== ES-REQ: Cleaned " + headerName + ": [" + value + "] -> [" + newValue + "] ======");
             }
         }
     }
 
     private static String cleanValue(String value) {
-        if (value == null) {
-            return null;
-        }
+        if (value == null) return null;
         return value
             .replace("application/vnd.elasticsearch+json", "application/json")
             .replace("application/vnd.elasticsearch+x-ndjson", "application/x-ndjson")
