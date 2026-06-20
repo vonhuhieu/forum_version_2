@@ -77,19 +77,12 @@ public class ElasticsearchConfig {
                     }
                 });
 
-                // 3. Response interceptor — log errors for debugging
+                // 3. Response interceptor — log errors for debugging (avoid reading entity to prevent blocking I/O reactor thread)
                 builder.addInterceptorLast((HttpResponseInterceptor) (response, context) -> {
                     int statusCode = response.getStatusLine().getStatusCode();
                     if (statusCode >= 400) {
                         String reason = response.getStatusLine().getReasonPhrase();
                         System.out.println("====== ES-RESP: " + statusCode + " " + reason + " ======");
-                        HttpEntity entity = response.getEntity();
-                        if (entity != null) {
-                            byte[] content = EntityUtils.toByteArray(entity);
-                            System.out.println("====== ES-RESP: Body: " + new String(content, StandardCharsets.UTF_8) + " ======");
-                            String ct = entity.getContentType() != null ? entity.getContentType().getValue() : "application/json";
-                            response.setEntity(new ByteArrayEntity(content, ContentType.parse(ct)));
-                        }
                     }
                 });
             }
