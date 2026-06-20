@@ -13,7 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.opensearch.data.client.osc.NativeQuery;
+import org.opensearch.client.opensearch._types.FieldValue;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -73,7 +74,7 @@ public class SearchService {
                                     .bool(bInner -> bInner
                                             .should(s1 -> s1
                                                     .bool(b1 -> b1
-                                                            .must(m1 -> m1.term(t -> t.field("type").value("thread")))
+                                                            .must(m1 -> m1.term(t -> t.field("type").value(FieldValue.of("thread"))))
                                                             .must(m2 -> m2.multiMatch(mm -> mm
                                                                     .query(trimmedKeyword)
                                                                     .fields("threadTitle^3.0", "content^1.0")
@@ -82,7 +83,7 @@ public class SearchService {
                                             )
                                             .should(s2 -> s2
                                                     .bool(b2 -> b2
-                                                            .must(m1 -> m1.term(t -> t.field("type").value("post")))
+                                                            .must(m1 -> m1.term(t -> t.field("type").value(FieldValue.of("post"))))
                                                             .must(m2 -> m2.multiMatch(mm -> mm
                                                                     .query(trimmedKeyword)
                                                                     .fields("content")
@@ -94,14 +95,14 @@ public class SearchService {
                             ).filter(f -> f
                                     .term(t -> t
                                             .field("active")
-                                            .value(true)
+                                            .value(FieldValue.of(true))
                                     )
                             );
                             if (!canSeeInternal) {
                                 b.mustNot(mn -> mn
                                         .term(t -> t
                                                 .field("scope")
-                                                .value("INTERNAL")
+                                                .value(FieldValue.of("INTERNAL"))
                                         )
                                 );
                             }
