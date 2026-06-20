@@ -77,8 +77,11 @@ public class ElasticsearchConfig {
                     }
                 });
 
-                // 3. Response interceptor — log errors for debugging (avoid reading entity to prevent blocking I/O reactor thread)
+                // 3. Response interceptor — add X-Elastic-Product: Elasticsearch header if missing, and log error status
                 builder.addInterceptorLast((HttpResponseInterceptor) (response, context) -> {
+                    if (!response.containsHeader("X-Elastic-Product")) {
+                        response.addHeader("X-Elastic-Product", "Elasticsearch");
+                    }
                     int statusCode = response.getStatusLine().getStatusCode();
                     if (statusCode >= 400) {
                         String reason = response.getStatusLine().getReasonPhrase();
