@@ -5,11 +5,18 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpResponseInterceptor;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.HttpEntityWrapper;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.util.EntityUtils;
 import org.springframework.boot.autoconfigure.elasticsearch.RestClientBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class ElasticsearchConfig {
@@ -19,16 +26,14 @@ public class ElasticsearchConfig {
         System.out.println("====== ElasticsearchConfig: Registering RestClientBuilderCustomizer ======");
         return builder -> builder.setHttpClientConfigCallback(httpClientBuilder -> {
             System.out.println("====== ElasticsearchConfig: Setting HttpClientConfigCallback ======");
+
+            // ===== REQUEST INTERCEPTOR: Clean outgoing headers =====
             httpClientBuilder.addInterceptorFirst((HttpRequestInterceptor) (request, context) -> {
                 String uri = request.getRequestLine().getUri();
-                System.out.println("====== ElasticsearchConfig: Intercepting request to URI: " + uri + " ======");
+                String method = request.getRequestLine().getMethod();
+                System.out.println("====== ES-REQ: " + method + " " + uri + " ======");
 
-                // Log all original headers
-                for (Header h : request.getAllHeaders()) {
-                    System.out.println("====== ElasticsearchConfig: Original Header: " + h.getName() + " = " + h.getValue() + " ======");
-                }
-
-                // 1. Clean Request Headers (Accept, Content-Type, etc.)
+                // 1. Clean Request Headers
                 cleanRequestHeader(request, "Content-Type");
                 cleanRequestHeader(request, "Accept");
 
@@ -41,7 +46,7 @@ public class ElasticsearchConfig {
                         String value = contentType.getValue();
                         String newValue = cleanValue(value);
                         if (!value.equals(newValue)) {
-                            System.out.println("====== ElasticsearchConfig: Cleaned Entity Content-Type from [" + value + "] to [" + newValue + "] ======");
+                            System.out.println("====== ES-REQ: Cleaned Entity CT: [" + value + "] -> [" + newValue + "] ======");
                             entityRequest.setEntity(new HttpEntityWrapper(entity) {
                                 @Override
                                 public Header getContentType() {
@@ -52,6 +57,34 @@ public class ElasticsearchConfig {
                     }
                 }
             });
+
+            // ===== RESPONSE INTERCEPTOR: Log error responses =====
+            httpClientBuilder.addInterceptorLast((HttpResponseInterceptor) (response, context) -> {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String reason = response.getStatusLine().getReasonPhrase();
+                System.out.println("====== ES-RESP: Status " + statusCode + " " + reason + " ======");
+
+                // Log response headers
+                for (Header h : response.getAllHeaders()) {
+                    System.out.println("====== ES-RESP: Header: " + h.getName() + " = " + h.getValue() + " ======");
+                }
+
+                // For error responses, log the body (buffer it so the client can still read it)
+                if (statusCode >= 400) {
+                    HttpEntity entity = response.getEntity();
+                    if (entity != null) {
+                        byte[] content = EntityUtils.toByteArray(entity);
+                        String body = new String(content, StandardCharsets.UTF_8);
+                        System.out.println("====== ES-RESP: Error Body: " + body + " ======");
+
+                        // Replace entity with buffered version so the client can still consume it
+                        String ct = entity.getContentType() != null ? entity.getContentType().getValue() : "application/json";
+                        ByteArrayEntity bufferedEntity = new ByteArrayEntity(content, ContentType.parse(ct));
+                        response.setEntity(bufferedEntity);
+                    }
+                }
+            });
+
             return httpClientBuilder;
         });
     }
@@ -63,7 +96,7 @@ public class ElasticsearchConfig {
             String newValue = cleanValue(value);
             if (!value.equals(newValue)) {
                 request.setHeader(headerName, newValue);
-                System.out.println("====== ElasticsearchConfig: Cleaned Request Header " + headerName + " from [" + value + "] to [" + newValue + "] ======");
+                System.out.println("====== ES-REQ: Cleaned " + headerName + ": [" + value + "] -> [" + newValue + "] ======");
             }
         }
     }
@@ -78,4 +111,3 @@ public class ElasticsearchConfig {
             .replaceAll(";\\s*compatible-with=\\d+", "");
     }
 }
-
