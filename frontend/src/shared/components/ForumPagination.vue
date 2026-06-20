@@ -193,7 +193,10 @@ export default {
         this.jumpPageInput = this.currentPage;
       }
     },
-    closeJump() {
+    closeJump(event) {
+      if (event && event.target && event.target.closest('.jump-wrapper')) {
+        return;
+      }
       this.activeJumpIndex = null;
     },
     stepJump(step) {
@@ -451,25 +454,6 @@ export default {
     align-items: center;
     gap: 4px;
     justify-content: center;
-  }
-  
-  .pagination-mobile .jump-dropdown {
-    top: 100%;
-    bottom: auto;
-    margin-top: 8px;
-    margin-bottom: 0;
-  }
-  
-  .pagination-mobile .jump-dropdown::before {
-    top: auto;
-    bottom: 100%;
-    border-color: transparent transparent #b7cde1 transparent;
-  }
-  
-  .pagination-mobile .jump-dropdown::after {
-    top: auto;
-    bottom: 100%;
-    border-color: transparent transparent white transparent;
   }
 }
 </style>

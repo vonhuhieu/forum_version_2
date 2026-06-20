@@ -7,7 +7,7 @@
         <div class="thread-title-full">
           <h1>
             <span v-if="thread.label" class="label-tag" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">{{ thread.label.name }}</span>
-            {{ thread.title }}
+            <span v-html="renderHighlightedTitle(thread.title)"></span>
           </h1>
         </div>
         <div class="thread-meta-bar">
@@ -99,7 +99,7 @@
                   <button class="btn-cancel-edit" @click="cancelEditing">Hủy</button>
                 </div>
               </div>
-              <div v-else class="content-body ql-editor" v-html="thread.content" @click="handleContentClick"></div>
+              <div v-else class="content-body ql-editor" v-html="renderHighlightedContent(thread.content, 'main_thread_entry')" @click="handleContentClick"></div>
               
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
@@ -180,7 +180,7 @@
                   <button class="btn-cancel-edit" @click="cancelEditing">Hủy</button>
                 </div>
               </div>
-              <div v-else class="content-body ql-editor" v-html="formatPostContent(item.content)" @click="handleContentClick"></div>
+              <div v-else class="content-body ql-editor" v-html="renderHighlightedContent(item.content, item.id)" @click="handleContentClick"></div>
               
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
@@ -1115,6 +1115,76 @@ export default {
           }
         });
       }, 150);
+    },
+    escapeHtml(unsafe) {
+      if (!unsafe) return '';
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    },
+    highlightText(text, keyword) {
+      if (!text) return ''
+      if (!keyword || !keyword.trim()) return text
+      const escaped = keyword.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+      const regex = new RegExp(`(${escaped})`, 'gi')
+      return text.replace(regex, '<mark class="search-highlight">$1</mark>')
+    },
+    highlightHtmlContent(htmlStr, keyword) {
+      if (!htmlStr || !keyword || !keyword.trim()) return htmlStr;
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${htmlStr}</div>`, 'text/html');
+        const container = doc.body.firstElementChild;
+        
+        const escapedKeyword = keyword.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+        
+        const highlightNode = (node) => {
+          if (node.nodeType === 3) { // TEXT_NODE
+            const text = node.nodeValue;
+            if (regex.test(text)) {
+              const tempSpan = document.createElement('span');
+              tempSpan.innerHTML = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+              
+              const parent = node.parentNode;
+              if (parent) {
+                while (tempSpan.firstChild) {
+                  parent.insertBefore(tempSpan.firstChild, node);
+                }
+                parent.removeChild(node);
+              }
+            }
+          } else if (node.nodeType === 1) { // ELEMENT_NODE
+            const children = Array.from(node.childNodes);
+            children.forEach(child => highlightNode(child));
+          }
+        };
+        
+        highlightNode(container);
+        return container.innerHTML;
+      } catch (e) {
+        console.error('Error highlighting HTML content:', e);
+        return htmlStr;
+      }
+    },
+    renderHighlightedTitle(title) {
+      const keyword = this.$route.query.highlight;
+      const escapedTitle = this.escapeHtml(title || '');
+      if (!keyword) return escapedTitle;
+      return this.highlightText(escapedTitle, keyword);
+    },
+    renderHighlightedContent(content, itemId) {
+      const processed = this.formatPostContent(content);
+      const keyword = this.$route.query.highlight;
+      const targetPostId = this.$route.query.postId;
+      
+      if (!keyword || String(itemId) !== String(targetPostId)) {
+        return processed;
+      }
+      return this.highlightHtmlContent(processed, keyword);
     }
   }
 }
@@ -1780,5 +1850,13 @@ export default {
 .locked-icon-svg {
   flex-shrink: 0;
   margin-right: 10px;
+}
+
+:deep(.search-highlight) {
+  background-color: #fef08a !important;
+  color: #000 !important;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 </style>
