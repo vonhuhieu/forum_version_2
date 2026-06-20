@@ -46,11 +46,28 @@ public class OpenSearchConfig {
 
         RestClientBuilder builder = RestClient.builder(hosts);
 
+        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        boolean hasCredentials = false;
+
         if (username != null && !username.trim().isEmpty()) {
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(AuthScope.ANY,
                     new UsernamePasswordCredentials(username, password));
-            
+            hasCredentials = true;
+        }
+
+        for (String u : uriList) {
+            URI uri = URI.create(u.trim());
+            String userInfo = uri.getUserInfo();
+            if (userInfo != null && userInfo.contains(":")) {
+                String[] creds = userInfo.split(":", 2);
+                credentialsProvider.setCredentials(AuthScope.ANY,
+                        new UsernamePasswordCredentials(creds[0], creds[1]));
+                hasCredentials = true;
+                break;
+            }
+        }
+
+        if (hasCredentials) {
             builder.setHttpClientConfigCallback(httpClientBuilder -> 
                 httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
             );
