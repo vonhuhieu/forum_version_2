@@ -52,11 +52,23 @@ public class UserController {
     }
 
     @GetMapping("/admin")
-    public ResponseEntity<ResponseDTO<List<UserDTO>>> getAdminUsers() {
+    public ResponseEntity<ResponseDTO<?>> getAdminUsers(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) String role) {
         try {
             String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            List<UserDTO> result = userService.getAdminUsers(currentUsername);
-            return ResponseEntity.ok(ResponseDTO.success(result));
+            if (page != null && size != null) {
+                com.forum.dto.PageResponseDTO<UserDTO> result = userService.getAdminUsersPaged(
+                        currentUsername, keyword, role, sortBy, sortOrder, page, size);
+                return ResponseEntity.ok(ResponseDTO.success(result));
+            } else {
+                List<UserDTO> result = userService.getAdminUsers(currentUsername);
+                return ResponseEntity.ok(ResponseDTO.success(result));
+            }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
         }
