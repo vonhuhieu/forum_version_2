@@ -23,5 +23,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("currentUsername") String currentUsername,
             org.springframework.data.domain.Pageable pageable);
 
+    @Query("SELECT u FROM User u WHERE u.id <> :currentUserId " +
+           "AND (:isSuperAdmin = true OR NOT EXISTS (SELECT 1 FROM u.roles r WHERE r = 'ROLE_ADMIN' OR r = 'ROLE_SUPER_ADMIN')) " +
+           "AND (:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "AND (:roleFilter IS NULL OR :roleFilter MEMBER OF u.roles)")
+    org.springframework.data.domain.Page<User> findAdminUsersPaged(
+            @Param("currentUserId") Long currentUserId,
+            @Param("isSuperAdmin") boolean isSuperAdmin,
+            @Param("keyword") String keyword,
+            @Param("roleFilter") String roleFilter,
+            org.springframework.data.domain.Pageable pageable);
+
     Optional<User> findFirstByDisplayNameIgnoreCase(String displayName);
 }

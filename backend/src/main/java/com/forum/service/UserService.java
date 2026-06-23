@@ -83,6 +83,44 @@ public class UserService {
         return result;
     }
 
+    public com.forum.dto.PageResponseDTO<UserDTO> getAdminUsersPaged(
+            String currentUsername, String keyword, String roleFilter, String sortBy, String sortOrder, int page, int size) {
+        
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        boolean isSuperAdmin = currentUser.getRoles().contains(Constants.ROLE_SUPER_ADMIN);
+
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            org.springframework.data.domain.Sort.Direction direction = 
+                "desc".equalsIgnoreCase(sortOrder) ? org.springframework.data.domain.Sort.Direction.DESC : org.springframework.data.domain.Sort.Direction.ASC;
+            sort = org.springframework.data.domain.Sort.by(direction, sortBy);
+        } else {
+            sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        }
+
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        
+        String trimmedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        String trimmedRole = (roleFilter != null && !roleFilter.trim().isEmpty()) ? roleFilter.trim() : null;
+
+        org.springframework.data.domain.Page<User> userPage = userRepository.findAdminUsersPaged(
+                currentUser.getId(), isSuperAdmin, trimmedKeyword, trimmedRole, pageable);
+
+        List<UserDTO> dtos = userPage.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        return new com.forum.dto.PageResponseDTO<>(
+                dtos,
+                userPage.getTotalPages(),
+                userPage.getTotalElements(),
+                userPage.getNumber(),
+                userPage.getSize()
+        );
+    }
+
     @Transactional
     public UserDTO adminCreateUser(Map<String, Object> payload, String currentUsername) {
         String username = (String) payload.get("username");
