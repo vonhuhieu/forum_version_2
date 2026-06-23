@@ -115,7 +115,8 @@
                     type="thread"
                     :allIcons="reactionIconsList"
                     :userReaction="thread.currentUserReaction"
-                    @reaction-changed="fetchThread"
+                    @reaction-updated="updateLocalReaction(true, thread.id, $event)"
+                    @reaction-failed="fetchThread"
                   />
                   <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
@@ -196,7 +197,8 @@
                     type="post"
                     :allIcons="reactionIconsList"
                     :userReaction="item.currentUserReaction"
-                    @reaction-changed="reloadPostsOnly"
+                    @reaction-updated="updateLocalReaction(false, item.id, $event)"
+                    @reaction-failed="reloadPostsOnly"
                   />
                   <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
@@ -599,6 +601,74 @@ export default {
     },
     async reloadPostsOnly() {
       await this.fetchPosts();
+    },
+    updateLocalReaction(isMainPost, targetId, newIcon) {
+      let target = null;
+      if (isMainPost) {
+        target = this.thread;
+      } else {
+        target = this.posts.find(p => String(p.id) === String(targetId));
+      }
+      if (!target) return;
+
+      const oldReaction = target.currentUserReaction;
+      target.currentUserReaction = newIcon;
+
+      if (!target.reactionSummary) {
+        target.reactionSummary = [];
+      }
+
+      // 1. Decrement old reaction
+      if (oldReaction) {
+        const prevIndex = target.reactionSummary.findIndex(
+          s => s.reactionIcon.id === oldReaction.id
+        );
+        if (prevIndex !== -1) {
+          target.reactionSummary[prevIndex].count--;
+          if (target.reactionSummary[prevIndex].count <= 0) {
+            target.reactionSummary.splice(prevIndex, 1);
+          }
+        }
+      }
+
+      // 2. Increment new reaction
+      if (newIcon) {
+        const newIndex = target.reactionSummary.findIndex(
+          s => s.reactionIcon.id === newIcon.id
+        );
+        if (newIndex !== -1) {
+          target.reactionSummary[newIndex].count++;
+        } else {
+          target.reactionSummary.push({
+            reactionIcon: newIcon,
+            count: 1,
+            latestTime: new Date().toISOString()
+          });
+        }
+      }
+
+      // Sort summary by count descending
+      target.reactionSummary.sort((a, b) => b.count - a.count);
+
+      // 3. Handle recentReactors
+      if (!target.recentReactors) {
+        target.recentReactors = [];
+      }
+      target.recentReactors = target.recentReactors.filter(
+        u => u.username !== this.currentUser?.username
+      );
+      if (newIcon) {
+        const userDTO = {
+          id: this.currentUser?.id,
+          username: this.currentUser?.username,
+          displayName: this.currentUser?.displayName,
+          avatar: this.currentUser?.avatar
+        };
+        target.recentReactors.unshift(userDTO);
+        if (target.recentReactors.length > 3) {
+          target.recentReactors = target.recentReactors.slice(0, 3);
+        }
+      }
     },
     async fetchFollowStatus() {
       if (!this.isLoggedIn) return;
