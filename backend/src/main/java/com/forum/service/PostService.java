@@ -217,6 +217,7 @@ public class PostService {
         thread.setReplyCount(thread.getReplyCount() + 1);
         thread.setLastPostAt(saved.getCreatedAt());
         Thread updatedThread = threadRepository.save(thread);
+        com.forum.service.ThreadService.clearListCache();
 
         // Auto-subscribe the commenting user if not the thread owner
         boolean autoFollowed = false;
@@ -356,6 +357,7 @@ public class PostService {
         post.setAttachedImages(postDTO.getAttachedImages());
 
         Post saved = postRepository.save(post);
+        com.forum.service.ThreadService.clearListCache();
         if (saved.getThread() != null) {
             evictCache(saved.getThread().getId());
         }
