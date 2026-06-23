@@ -102,7 +102,8 @@
                         type="message"
                         :allIcons="reactionIconsList"
                         :userReaction="msg.currentUserReaction"
-                        @reaction-changed="fetchConversation(true)"
+                        @reaction-updated="updateLocalMessageReaction(msg.id, $event)"
+                        @reaction-failed="fetchConversation(true)"
                       />
                       <a href="#" class="action-link reply-link" @click.prevent="quoteMessage(msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh', msg.content, msg.id)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
@@ -422,6 +423,70 @@ export default {
     canShowReactionForMessage(msg) {
       if (!this.currentUser || !msg || !msg.sender) return false;
       return String(msg.sender.id) !== String(this.currentUser.id);
+    },
+    updateLocalMessageReaction(messageId, newIcon) {
+      if (!this.conversation || !this.conversation.messages) return;
+      const msg = this.conversation.messages.find(m => String(m.id) === String(messageId));
+      if (!msg) return;
+
+      const oldReaction = msg.currentUserReaction;
+      msg.currentUserReaction = newIcon;
+
+      if (!msg.reactionSummary) {
+        msg.reactionSummary = [];
+      }
+
+      // 1. Decrement old reaction
+      if (oldReaction) {
+        const prevIndex = msg.reactionSummary.findIndex(
+          s => s.reactionIcon.id === oldReaction.id
+        );
+        if (prevIndex !== -1) {
+          msg.reactionSummary[prevIndex].count--;
+          if (msg.reactionSummary[prevIndex].count <= 0) {
+            msg.reactionSummary.splice(prevIndex, 1);
+          }
+        }
+      }
+
+      // 2. Increment new reaction
+      if (newIcon) {
+        const newIndex = msg.reactionSummary.findIndex(
+          s => s.reactionIcon.id === newIcon.id
+        );
+        if (newIndex !== -1) {
+          msg.reactionSummary[newIndex].count++;
+        } else {
+          msg.reactionSummary.push({
+            reactionIcon: newIcon,
+            count: 1,
+            latestTime: new Date().toISOString()
+          });
+        }
+      }
+
+      // Sort summary by count descending
+      msg.reactionSummary.sort((a, b) => b.count - a.count);
+
+      // 3. Handle recentReactors
+      if (!msg.recentReactors) {
+        msg.recentReactors = [];
+      }
+      msg.recentReactors = msg.recentReactors.filter(
+        u => u.username !== this.currentUser?.username
+      );
+      if (newIcon) {
+        const userDTO = {
+          id: this.currentUser?.id,
+          username: this.currentUser?.username,
+          displayName: this.currentUser?.displayName,
+          avatar: this.currentUser?.avatar
+        };
+        msg.recentReactors.unshift(userDTO);
+        if (msg.recentReactors.length > 3) {
+          msg.recentReactors = msg.recentReactors.slice(0, 3);
+        }
+      }
     },
     openReactionPopup(orderNumber, targetId, summary) {
       this.reactionPopupData = {
