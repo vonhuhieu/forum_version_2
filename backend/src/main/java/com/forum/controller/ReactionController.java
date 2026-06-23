@@ -15,25 +15,31 @@ public class ReactionController {
 
     @PostMapping("/threads/{id}")
     public ResponseEntity<ResponseDTO<Void>> reactToThread(@PathVariable Long id, @RequestParam Long iconId) {
-        reactionService.reactToThread(id, iconId);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        boolean canSeeInternal = reactionService.isUserAuthorizedForInternalThreads();
+        reactionService.reactToThreadAsync(username, id, iconId, canSeeInternal);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
     @DeleteMapping("/threads/{id}")
     public ResponseEntity<ResponseDTO<Void>> removeReactionFromThread(@PathVariable Long id) {
-        reactionService.removeReactionFromThread(id);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.removeReactionFromThreadAsync(username, id);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
     @PostMapping("/posts/{id}")
     public ResponseEntity<ResponseDTO<Void>> reactToPost(@PathVariable Long id, @RequestParam Long iconId) {
-        reactionService.reactToPost(id, iconId);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        boolean canSeeInternal = reactionService.isUserAuthorizedForInternalThreads();
+        reactionService.reactToPostAsync(username, id, iconId, canSeeInternal);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<ResponseDTO<Void>> removeReactionFromPost(@PathVariable Long id) {
-        reactionService.removeReactionFromPost(id);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.removeReactionFromPostAsync(username, id);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
@@ -59,13 +65,15 @@ public class ReactionController {
 
     @PostMapping("/messages/{id}")
     public ResponseEntity<ResponseDTO<Void>> reactToMessage(@PathVariable Long id, @RequestParam Long iconId) {
-        reactionService.reactToMessage(id, iconId);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.reactToMessageAsync(username, id, iconId);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
     @DeleteMapping("/messages/{id}")
     public ResponseEntity<ResponseDTO<Void>> removeReactionFromMessage(@PathVariable Long id) {
-        reactionService.removeReactionFromMessage(id);
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.removeReactionFromMessageAsync(username, id);
         return ResponseEntity.ok(ResponseDTO.success(null));
     }
 
