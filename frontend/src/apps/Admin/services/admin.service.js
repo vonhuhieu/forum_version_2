@@ -72,8 +72,8 @@ class AdminService {
   }
 
   // Admin Users
-  getAdminUsers() {
-    return api.get('/users/admin')
+  getAdminUsers(params) {
+    return api.get('/users/admin', { params })
   }
   createAdminUser(data) {
     return api.post('/users/admin', data)
