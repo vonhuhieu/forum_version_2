@@ -6,7 +6,7 @@
       addButtonLabel="Đăng bài mới"
       :headers="headers"
       :items="displayThreads"
-      :totalItems="filteredThreads.length"
+      :totalItems="totalElements"
       v-model:pageSize="pageSize"
       v-model:currentPage="currentPage"
       :loading="loading"
@@ -70,6 +70,7 @@ export default {
   data() {
     return {
       threads: [],
+      totalElements: 0,
       categoryGroups: [],
       loading: false,
       filter: { groupId: '', categoryId: '', keyword: '' },
@@ -87,39 +88,6 @@ export default {
     }
   },
   computed: {
-    filteredThreads() {
-      let result = this.threads
-      
-      if (this.filter.keyword) {
-        const k = this.filter.keyword.trim().toLowerCase()
-        result = result.filter(t => 
-          (t.title && t.title.toLowerCase().includes(k)) ||
-          (t.author && ((t.author.username && t.author.username.toLowerCase().includes(k)) || (t.author.displayName && t.author.displayName.toLowerCase().includes(k)))) ||
-          (t.category && t.category.name && t.category.name.toLowerCase().includes(k))
-        )
-      }
-      
-      if (this.sortField) {
-        result = [...result].sort((a, b) => {
-          let valA = this.getNestedValue(a, this.sortField)
-          let valB = this.getNestedValue(b, this.sortField)
-          
-          if (typeof valA === 'string') valA = valA.toLowerCase()
-          if (typeof valB === 'string') valB = valB.toLowerCase()
-
-          if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1
-          if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1
-          return 0
-        })
-      }
-      
-      if (this.filter.groupId && !this.filter.categoryId) {
-        const groupCatIds = this.filteredCategories.map(c => c.id)
-        result = result.filter(t => t.category && groupCatIds.includes(t.category.id))
-      }
-      
-      return result
-    },
     allCategories() {
       if (!this.categoryGroups) return []
       const cats = []
@@ -143,9 +111,16 @@ export default {
       return this.formatCategoriesHierarchy(catsToFormat);
     },
     displayThreads() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredThreads.slice(start, end)
+      return this.threads
+    }
+  },
+  watch: {
+    currentPage() {
+      this.fetchThreads()
+    },
+    pageSize() {
+      this.currentPage = 1
+      this.fetchThreads()
     }
   },
   mounted() {
@@ -163,6 +138,7 @@ export default {
     },
     onGroupChange() {
       this.filter.categoryId = ''
+      this.currentPage = 1
       this.fetchThreads()
     },
     formatCategoriesHierarchy(flatCategories) {
@@ -204,20 +180,30 @@ export default {
     },
     async fetchThreads() {
       this.loading = true
-      const params = {}
+      const params = {
+        page: this.currentPage - 1,
+        size: this.pageSize,
+        keyword: this.filter.keyword,
+        sortBy: this.sortField,
+        sortOrder: this.sortOrder
+      }
       if (this.filter.categoryId) params.categoryId = this.filter.categoryId
+      
       const response = await threadService.getAll(params)
-      this.threads = response.data
+      this.threads = response.data.content
+      this.totalElements = response.data.totalElements
       this.loading = false
-      this.currentPage = 1 // Reset to first page on fetch
     },
     handleSearch(keyword) {
       this.filter.keyword = keyword
       this.currentPage = 1
+      this.fetchThreads()
     },
     handleSort({ field, order }) {
       this.sortField = field
       this.sortOrder = order
+      this.currentPage = 1
+      this.fetchThreads()
     },
     getNestedValue(obj, path) {
       if (!path) return ''
