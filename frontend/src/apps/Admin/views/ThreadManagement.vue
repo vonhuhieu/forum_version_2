@@ -6,7 +6,7 @@
       addButtonLabel="Đăng bài mới"
       :headers="headers"
       :items="displayThreads"
-      :totalItems="filteredThreads.length"
+      :totalItems="totalElements"
       v-model:pageSize="pageSize"
       v-model:currentPage="currentPage"
       :loading="loading"
@@ -32,9 +32,14 @@
 
       <template #item-title="{ item }">
         <div class="title-cell-wrapper">
-          <span v-if="item.pinned" class="badge-pinned">GHIM</span>
           <span v-if="item.label" class="label-tag" :style="{ backgroundColor: item.label.colorCode, color: item.label.textColor, borderColor: item.label.borderColor || 'transparent' }">{{ item.label.name }}</span>
           <strong class="thread-title-text">{{ item.title }}</strong>
+          <span v-if="item.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
+          </span>
+          <span v-if="item.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-lock" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </span>
         </div>
       </template>
 
@@ -65,6 +70,7 @@ export default {
   data() {
     return {
       threads: [],
+      totalElements: 0,
       categoryGroups: [],
       loading: false,
       filter: { groupId: '', categoryId: '', keyword: '' },
@@ -82,39 +88,6 @@ export default {
     }
   },
   computed: {
-    filteredThreads() {
-      let result = this.threads
-      
-      if (this.filter.keyword) {
-        const k = this.filter.keyword.trim().toLowerCase()
-        result = result.filter(t => 
-          (t.title && t.title.toLowerCase().includes(k)) ||
-          (t.author && ((t.author.username && t.author.username.toLowerCase().includes(k)) || (t.author.displayName && t.author.displayName.toLowerCase().includes(k)))) ||
-          (t.category && t.category.name && t.category.name.toLowerCase().includes(k))
-        )
-      }
-      
-      if (this.sortField) {
-        result = [...result].sort((a, b) => {
-          let valA = this.getNestedValue(a, this.sortField)
-          let valB = this.getNestedValue(b, this.sortField)
-          
-          if (typeof valA === 'string') valA = valA.toLowerCase()
-          if (typeof valB === 'string') valB = valB.toLowerCase()
-
-          if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1
-          if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1
-          return 0
-        })
-      }
-      
-      if (this.filter.groupId && !this.filter.categoryId) {
-        const groupCatIds = this.filteredCategories.map(c => c.id)
-        result = result.filter(t => t.category && groupCatIds.includes(t.category.id))
-      }
-      
-      return result
-    },
     allCategories() {
       if (!this.categoryGroups) return []
       const cats = []
@@ -138,9 +111,16 @@ export default {
       return this.formatCategoriesHierarchy(catsToFormat);
     },
     displayThreads() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredThreads.slice(start, end)
+      return this.threads
+    }
+  },
+  watch: {
+    currentPage() {
+      this.fetchThreads()
+    },
+    pageSize() {
+      this.currentPage = 1
+      this.fetchThreads()
     }
   },
   mounted() {
@@ -158,6 +138,7 @@ export default {
     },
     onGroupChange() {
       this.filter.categoryId = ''
+      this.currentPage = 1
       this.fetchThreads()
     },
     formatCategoriesHierarchy(flatCategories) {
@@ -199,20 +180,30 @@ export default {
     },
     async fetchThreads() {
       this.loading = true
-      const params = {}
+      const params = {
+        page: this.currentPage - 1,
+        size: this.pageSize,
+        keyword: this.filter.keyword,
+        sortBy: this.sortField,
+        sortOrder: this.sortOrder
+      }
       if (this.filter.categoryId) params.categoryId = this.filter.categoryId
+      
       const response = await threadService.getAll(params)
-      this.threads = response.data
+      this.threads = response.data.content
+      this.totalElements = response.data.totalElements
       this.loading = false
-      this.currentPage = 1 // Reset to first page on fetch
     },
     handleSearch(keyword) {
       this.filter.keyword = keyword
       this.currentPage = 1
+      this.fetchThreads()
     },
     handleSort({ field, order }) {
       this.sortField = field
       this.sortOrder = order
+      this.currentPage = 1
+      this.fetchThreads()
     },
     getNestedValue(obj, path) {
       if (!path) return ''

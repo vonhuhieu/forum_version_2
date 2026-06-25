@@ -7,7 +7,7 @@
         <div class="thread-title-full">
           <h1>
             <span v-if="thread.label" class="label-tag" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">{{ thread.label.name }}</span>
-            {{ thread.title }}
+            <span v-html="renderHighlightedTitle(thread.title)"></span>
           </h1>
         </div>
         <div class="thread-meta-bar">
@@ -41,6 +41,15 @@
             {{ isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}
           </button>
         </div>
+      </div>
+
+      <!-- Top Locked Banner -->
+      <div class="locked-banner" v-if="thread.locked">
+        <svg class="locked-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d35400" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Bài này đã bị khóa.</span>
       </div>
 
       <!-- Unified Content Loop (Main Post & Replies) -->
@@ -90,7 +99,7 @@
                   <button class="btn-cancel-edit" @click="cancelEditing">Hủy</button>
                 </div>
               </div>
-              <div v-else class="content-body ql-editor" v-html="thread.content" @click="handleContentClick"></div>
+              <div v-else class="content-body ql-editor" v-html="renderHighlightedContent(thread.content, 'main_thread_entry')" @click="handleContentClick"></div>
               
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
@@ -106,9 +115,10 @@
                     type="thread"
                     :allIcons="reactionIconsList"
                     :userReaction="thread.currentUserReaction"
-                    @reaction-changed="fetchThread"
+                    @reaction-updated="updateLocalReaction(true, thread.id, $event)"
+                    @reaction-failed="fetchThread"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh', thread.content, 'main_thread_entry')" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -171,7 +181,7 @@
                   <button class="btn-cancel-edit" @click="cancelEditing">Hủy</button>
                 </div>
               </div>
-              <div v-else class="content-body ql-editor" v-html="formatPostContent(item.content)" @click="handleContentClick"></div>
+              <div v-else class="content-body ql-editor" v-html="renderHighlightedContent(item.content, item.id)" @click="handleContentClick"></div>
               
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
@@ -187,9 +197,10 @@
                     type="post"
                     :allIcons="reactionIconsList"
                     :userReaction="item.currentUserReaction"
-                    @reaction-changed="reloadPostsOnly"
+                    @reaction-updated="updateLocalReaction(false, item.id, $event)"
+                    @reaction-failed="reloadPostsOnly"
                   />
-                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial">
+                  <a href="#" class="action-link reply-link" @click.prevent="quotePost(item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh', item.content, item.id)" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     Trả lời
                   </a>
@@ -219,7 +230,7 @@
       </div>
 
       <!-- Reply Editor Container -->
-      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial">
+      <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
         <div class="post-layout">
           <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
              <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
@@ -248,8 +259,17 @@
         </div>
       </div>
 
-      <div v-else-if="!isLoggedIn" class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
+      <div v-else-if="!isLoggedIn && !thread.locked" class="card" style="margin-top: 2rem; padding: 2rem; text-align: center; background: #f8f9fa; border: 1px dashed #bbb;">
         Bạn phải <router-link to="/login" style="color: #3498db; font-weight: bold;">đăng nhập</router-link> để có thể trả lời bài viết này.
+      </div>
+
+      <!-- Bottom Locked Banner -->
+      <div class="locked-banner locked-banner-bottom" v-if="thread.locked" style="margin-top: 16px; margin-bottom: 16px">
+        <svg class="locked-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d35400" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Bài này đã bị khóa.</span>
       </div>
 
       <Breadcrumb :items="breadcrumbItems" />
@@ -581,6 +601,74 @@ export default {
     },
     async reloadPostsOnly() {
       await this.fetchPosts();
+    },
+    updateLocalReaction(isMainPost, targetId, newIcon) {
+      let target = null;
+      if (isMainPost) {
+        target = this.thread;
+      } else {
+        target = this.posts.find(p => String(p.id) === String(targetId));
+      }
+      if (!target) return;
+
+      const oldReaction = target.currentUserReaction;
+      target.currentUserReaction = newIcon;
+
+      if (!target.reactionSummary) {
+        target.reactionSummary = [];
+      }
+
+      // 1. Decrement old reaction
+      if (oldReaction) {
+        const prevIndex = target.reactionSummary.findIndex(
+          s => s.reactionIcon.id === oldReaction.id
+        );
+        if (prevIndex !== -1) {
+          target.reactionSummary[prevIndex].count--;
+          if (target.reactionSummary[prevIndex].count <= 0) {
+            target.reactionSummary.splice(prevIndex, 1);
+          }
+        }
+      }
+
+      // 2. Increment new reaction
+      if (newIcon) {
+        const newIndex = target.reactionSummary.findIndex(
+          s => s.reactionIcon.id === newIcon.id
+        );
+        if (newIndex !== -1) {
+          target.reactionSummary[newIndex].count++;
+        } else {
+          target.reactionSummary.push({
+            reactionIcon: newIcon,
+            count: 1,
+            latestTime: new Date().toISOString()
+          });
+        }
+      }
+
+      // Sort summary by count descending
+      target.reactionSummary.sort((a, b) => b.count - a.count);
+
+      // 3. Handle recentReactors
+      if (!target.recentReactors) {
+        target.recentReactors = [];
+      }
+      target.recentReactors = target.recentReactors.filter(
+        u => u.username !== this.currentUser?.username
+      );
+      if (newIcon) {
+        const userDTO = {
+          id: this.currentUser?.id,
+          username: this.currentUser?.username,
+          displayName: this.currentUser?.displayName,
+          avatar: this.currentUser?.avatar
+        };
+        target.recentReactors.unshift(userDTO);
+        if (target.recentReactors.length > 3) {
+          target.recentReactors = target.recentReactors.slice(0, 3);
+        }
+      }
     },
     async fetchFollowStatus() {
       if (!this.isLoggedIn) return;
@@ -1097,6 +1185,76 @@ export default {
           }
         });
       }, 150);
+    },
+    escapeHtml(unsafe) {
+      if (!unsafe) return '';
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    },
+    highlightText(text, keyword) {
+      if (!text) return ''
+      if (!keyword || !keyword.trim()) return text
+      const escaped = keyword.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+      const regex = new RegExp(`(${escaped})`, 'gi')
+      return text.replace(regex, '<mark class="search-highlight">$1</mark>')
+    },
+    highlightHtmlContent(htmlStr, keyword) {
+      if (!htmlStr || !keyword || !keyword.trim()) return htmlStr;
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${htmlStr}</div>`, 'text/html');
+        const container = doc.body.firstElementChild;
+        
+        const escapedKeyword = keyword.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+        
+        const highlightNode = (node) => {
+          if (node.nodeType === 3) { // TEXT_NODE
+            const text = node.nodeValue;
+            if (regex.test(text)) {
+              const tempSpan = document.createElement('span');
+              tempSpan.innerHTML = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+              
+              const parent = node.parentNode;
+              if (parent) {
+                while (tempSpan.firstChild) {
+                  parent.insertBefore(tempSpan.firstChild, node);
+                }
+                parent.removeChild(node);
+              }
+            }
+          } else if (node.nodeType === 1) { // ELEMENT_NODE
+            const children = Array.from(node.childNodes);
+            children.forEach(child => highlightNode(child));
+          }
+        };
+        
+        highlightNode(container);
+        return container.innerHTML;
+      } catch (e) {
+        console.error('Error highlighting HTML content:', e);
+        return htmlStr;
+      }
+    },
+    renderHighlightedTitle(title) {
+      const keyword = this.$route.query.highlight;
+      const escapedTitle = this.escapeHtml(title || '');
+      if (!keyword) return escapedTitle;
+      return this.highlightText(escapedTitle, keyword);
+    },
+    renderHighlightedContent(content, itemId) {
+      const processed = this.formatPostContent(content);
+      const keyword = this.$route.query.highlight;
+      const targetPostId = this.$route.query.postId;
+      
+      if (!keyword || String(itemId) !== String(targetPostId)) {
+        return processed;
+      }
+      return this.highlightHtmlContent(processed, keyword);
     }
   }
 }
@@ -1740,5 +1898,35 @@ export default {
     top: 1px !important;
     left: -10px !important;
   }
+}
+
+.locked-banner {
+  display: flex;
+  align-items: center;
+  background-color: #fff8ee;
+  border-left: 3px solid #e67e22;
+  padding: 10px 15px;
+  border-radius: 4px;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+.locked-banner-bottom {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+.locked-icon-svg {
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+:deep(.search-highlight) {
+  background-color: #fef08a !important;
+  color: #000 !important;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 </style>

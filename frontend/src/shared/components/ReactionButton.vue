@@ -149,10 +149,12 @@ export default {
 
       if (this.isReacted) {
         // Already reacted -> Toggle OFF (Remove reaction)
+        this.$emit('reaction-updated', null)
         await this.removeReaction()
       } else {
         // Not reacted -> Toggle ON (Assign the first default reaction)
         if (this.defaultReaction) {
+          this.$emit('reaction-updated', this.defaultReaction)
           await this.submitReaction(this.defaultReaction.id)
         }
       }
@@ -162,25 +164,26 @@ export default {
       clearTimeout(this.hoverTimeout)
       clearTimeout(this.leaveTimeout)
       
+      this.$emit('reaction-updated', icon)
       await this.submitReaction(icon.id)
     },
     async submitReaction(iconId) {
       try {
         await reactionService.addReaction(this.type, this.targetId, iconId)
-        this.$emit('reaction-changed')
       } catch (error) {
         console.error('Lỗi khi gửi reaction:', error)
         const msg = error.response?.data?.message || 'Lỗi khi cập nhật cảm xúc'
         toastError(msg)
+        this.$emit('reaction-failed')
       }
     },
     async removeReaction() {
       try {
         await reactionService.removeReaction(this.type, this.targetId)
-        this.$emit('reaction-changed')
       } catch (error) {
         console.error('Lỗi khi xóa reaction:', error)
         toastError('Không thể xóa cảm xúc')
+        this.$emit('reaction-failed')
       }
     }
   }

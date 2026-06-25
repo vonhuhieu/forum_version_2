@@ -6,7 +6,7 @@
       addButtonLabel="Thêm thành viên mới"
       :headers="headers"
       :items="displayUsers"
-      :totalItems="filteredUsers.length"
+      :totalItems="totalElements"
       v-model:pageSize="pageSize"
       v-model:currentPage="currentPage"
       :loading="loading"
@@ -125,6 +125,7 @@ export default {
   data() {
     return {
       users: [],
+      totalElements: 0,
       loading: false,
       keyword: '',
       pageSize: 10,
@@ -189,47 +190,21 @@ export default {
         ]
       }
     },
-    filteredUsers() {
-      let result = this.users
-      
-      if (this.selectedRoleFilter) {
-        result = result.filter(u => u.roles && u.roles.includes(this.selectedRoleFilter))
-      }
-      
-      if (this.keyword) {
-        const k = this.keyword.trim().toLowerCase()
-        result = result.filter(u => 
-          (u.username && u.username.toLowerCase().includes(k)) ||
-          (u.displayName && u.displayName.toLowerCase().includes(k)) ||
-          (u.email && u.email.toLowerCase().includes(k))
-        )
-      }
-      
-      if (this.sortField) {
-        result = [...result].sort((a, b) => {
-          let valA = a[this.sortField] || ''
-          let valB = b[this.sortField] || ''
-          
-          if (typeof valA === 'string') valA = valA.toLowerCase()
-          if (typeof valB === 'string') valB = valB.toLowerCase()
-
-          if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1
-          if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1
-          return 0
-        })
-      }
-      
-      return result
-    },
     displayUsers() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredUsers.slice(start, end)
+      return this.users
     }
   },
   watch: {
     selectedRoleFilter() {
       this.currentPage = 1
+      this.fetchUsers()
+    },
+    currentPage() {
+      this.fetchUsers()
+    },
+    pageSize() {
+      this.currentPage = 1
+      this.fetchUsers()
     }
   },
   created() {
@@ -251,8 +226,22 @@ export default {
     async fetchUsers() {
       this.loading = true
       try {
-        const response = await AdminService.getAdminUsers()
-        this.users = response.data
+        const params = {
+          page: this.currentPage - 1,
+          size: this.pageSize,
+          keyword: this.keyword,
+          sortBy: this.sortField,
+          sortOrder: this.sortOrder,
+          role: this.selectedRoleFilter
+        }
+        const response = await AdminService.getAdminUsers(params)
+        if (response.data && response.data.content) {
+          this.users = response.data.content
+          this.totalElements = response.data.totalElements
+        } else {
+          this.users = response.data
+          this.totalElements = response.data.length
+        }
       } catch (error) {
         console.error('Lỗi khi tải danh sách thành viên:', error)
         toastError('Không thể tải danh sách thành viên')
@@ -263,10 +252,13 @@ export default {
     handleSearch(keyword) {
       this.keyword = keyword
       this.currentPage = 1
+      this.fetchUsers()
     },
     handleSort({ field, order }) {
       this.sortField = field
       this.sortOrder = order
+      this.currentPage = 1
+      this.fetchUsers()
     },
     openAddModal() {
       this.isEdit = false

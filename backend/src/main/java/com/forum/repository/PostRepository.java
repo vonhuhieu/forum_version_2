@@ -28,10 +28,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @org.springframework.data.jpa.repository.Query("DELETE FROM Post p WHERE p.thread.id = :threadId")
     void deleteByThreadId(@org.springframework.data.repository.query.Param("threadId") Long threadId);
 
-    @org.springframework.data.jpa.repository.Query(value = 
-        "SELECT p.* FROM posts p " +
-        "INNER JOIN (SELECT MAX(p2.id) AS max_id FROM posts p2 WHERE p2.thread_id IN :threadIds GROUP BY p2.thread_id) m " +
-        "ON p.id = m.max_id", 
-        nativeQuery = true)
-    List<Post> findLatestPostsForThreadIds(@org.springframework.data.repository.query.Param("threadIds") List<Long> threadIds);
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT p.thread.id, p.id, p.createdAt, u.id, u.username, u.displayName, u.email, u.avatar " +
+        "FROM Post p " +
+        "LEFT JOIN p.author u " +
+        "WHERE p.id IN (SELECT MAX(p2.id) FROM Post p2 WHERE p2.thread.id IN :threadIds GROUP BY p2.thread.id)"
+    )
+    List<Object[]> findLatestPostFieldsForThreadIds(@org.springframework.data.repository.query.Param("threadIds") List<Long> threadIds);
 }

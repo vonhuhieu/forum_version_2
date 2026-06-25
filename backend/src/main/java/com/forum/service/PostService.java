@@ -11,6 +11,8 @@ import com.forum.repository.PostRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
 import com.forum.repository.ThreadSubscriptionRepository;
+import com.forum.elasticsearch.repository.SearchDocumentRepository;
+import com.forum.elasticsearch.document.SearchDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,24 @@ public class PostService {
     private final NotificationService notificationService;
     private final ReactionService reactionService;
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
+    private final SearchDocumentRepository searchDocumentRepository;
+
+    private SearchDocument mapPostToSearchDocument(Post post) {
+        SearchDocument doc = new SearchDocument();
+        doc.setId("post_" + post.getId());
+        doc.setOriginalId(post.getId());
+        doc.setType("post");
+        doc.setThreadId(post.getThread() != null ? post.getThread().getId() : null);
+        doc.setThreadTitle(post.getThread() != null ? post.getThread().getTitle() : null);
+        doc.setContent(post.getContent());
+        doc.setCategoryName((post.getThread() != null && post.getThread().getCategory() != null) ? post.getThread().getCategory().getName() : null);
+        doc.setCategoryId((post.getThread() != null && post.getThread().getCategory() != null) ? post.getThread().getCategory().getId() : null);
+        doc.setAuthorName(post.getAuthor() != null ? (post.getAuthor().getDisplayName() != null ? post.getAuthor().getDisplayName() : post.getAuthor().getUsername()) : "Ẩn danh");
+        doc.setCreatedAt(post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now());
+        doc.setScope(post.getThread() != null ? post.getThread().getScope() : com.forum.utils.Constants.THREAD_SCOPE_PUBLIC);
+        doc.setActive(post.getThread() != null ? post.getThread().isActive() : true);
+        return doc;
+    }
 
     public static class OffsetLimitPageable implements org.springframework.data.domain.Pageable {
         private final int limit;
@@ -174,6 +194,10 @@ public class PostService {
             throw new RuntimeException("Access denied");
         }
 
+        if (thread.isLocked()) {
+            throw new RuntimeException("Thread is locked for replies");
+        }
+
         Post post = postMapper.toEntity(postDTO);
         post.setThread(thread);
 
@@ -182,12 +206,18 @@ public class PostService {
         userRepository.findByUsername(username).ifPresent(post::setAuthor);
 
         Post saved = postRepository.save(post);
+        try {
+            searchDocumentRepository.save(mapPostToSearchDocument(saved));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         evictCache(postDTO.getThreadId());
 
         // Update thread statistics
         thread.setReplyCount(thread.getReplyCount() + 1);
         thread.setLastPostAt(saved.getCreatedAt());
         Thread updatedThread = threadRepository.save(thread);
+        com.forum.service.ThreadService.clearListCache();
 
         // Auto-subscribe the commenting user if not the thread owner
         boolean autoFollowed = false;
@@ -327,8 +357,14 @@ public class PostService {
         post.setAttachedImages(postDTO.getAttachedImages());
 
         Post saved = postRepository.save(post);
+        com.forum.service.ThreadService.clearListCache();
         if (saved.getThread() != null) {
             evictCache(saved.getThread().getId());
+        }
+        try {
+            searchDocumentRepository.save(mapPostToSearchDocument(saved));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         PostDTO resultDto = postMapper.toDTO(saved);
         enrichPost(resultDto);

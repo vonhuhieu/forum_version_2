@@ -14,30 +14,25 @@
       
       <!-- Icon Vector -->
       <div class="reaction-img-container">
-        <img :src="getReactionUrl(icon.icon)" class="reaction-img" />
+        <ReactionIcon :code="icon.icon" :color="icon.color" size="38px" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import ReactionIcon from './ReactionIcon.vue'
+
 export default {
   name: 'ReactionSelector',
+  components: {
+    ReactionIcon
+  },
   props: {
     icons: {
       type: Array,
       required: true,
       default: () => []
-    }
-  },
-  methods: {
-    getReactionUrl(code) {
-      if (!code) return ''
-      try {
-        return require(`@/assets/reactions/${code}.svg`)
-      } catch (e) {
-        return ''
-      }
     }
   }
 }

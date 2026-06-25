@@ -11,6 +11,8 @@ import com.forum.repository.NotificationRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
 import com.forum.repository.ThreadSubscriptionRepository;
+import com.forum.elasticsearch.repository.SearchDocumentRepository;
+import com.forum.elasticsearch.document.SearchDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +35,31 @@ public class ThreadService {
     private final NotificationService notificationService;
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
     private final ThreadViewIncrementer threadViewIncrementer;
+    private final SearchDocumentRepository searchDocumentRepository;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void clearListCache() {
+        threadListCache.clear();
+    }
+
+    private SearchDocument mapThreadToSearchDocument(Thread thread) {
+        SearchDocument doc = new SearchDocument();
+        doc.setId("thread_" + thread.getId());
+        doc.setOriginalId(thread.getId());
+        doc.setType("thread");
+        doc.setThreadId(thread.getId());
+        doc.setThreadTitle(thread.getTitle());
+        doc.setContent(thread.getContent());
+        doc.setCategoryName(thread.getCategory() != null ? thread.getCategory().getName() : null);
+        doc.setCategoryId(thread.getCategory() != null ? thread.getCategory().getId() : null);
+        doc.setAuthorName(thread.getAuthor() != null ? (thread.getAuthor().getDisplayName() != null ? thread.getAuthor().getDisplayName() : thread.getAuthor().getUsername()) : "Ẩn danh");
+        doc.setCreatedAt(thread.getCreatedAt() != null ? thread.getCreatedAt() : java.time.LocalDateTime.now());
+        doc.setScope(thread.getScope());
+        doc.setActive(thread.isActive());
+        return doc;
+    }
 
     public void evictCache(Long id) {
         if (id != null) {
@@ -43,8 +68,17 @@ public class ThreadService {
     }
 
     public ResponseDTO<List<ThreadDTO>> getAllThreads(Long categoryId, Integer limit) {
-        List<Thread> threads;
         boolean canSeeInternal = isUserAuthorizedForInternalThreads();
+        String cacheKey = (categoryId != null ? categoryId.toString() : "null") + "_" + 
+                           (limit != null ? limit.toString() : "null") + "_" + 
+                           canSeeInternal;
+        
+        List<ThreadDTO> cached = threadListCache.get(cacheKey);
+        if (cached != null) {
+            return ResponseDTO.success(cached);
+        }
+
+        List<Thread> threads;
         if (categoryId != null) {
             if (limit != null && limit == 1) {
                 // Dành cho các ô tóm tắt "Bài viết cuối", lấy tuyệt đối 1 bài mới phản hồi nhất bỏ qua Ghim
@@ -54,7 +88,7 @@ public class ThreadService {
                             .orElse(java.util.Collections.emptyList());
                 } else {
                     org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(0, 1);
-                    threads = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, p).getContent();
+                    threads = threadRepository.findFirstPublicByCategoryIdOrderByLastPostAtDesc(categoryId, p);
                 }
             } else {
                 if (canSeeInternal) {
@@ -72,26 +106,43 @@ public class ThreadService {
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichThreads(dtos);
+        threadListCache.put(cacheKey, dtos);
         return ResponseDTO.success(dtos);
     }
 
-    public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(Long categoryId, int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<Thread> threadPage;
-        boolean canSeeInternal = isUserAuthorizedForInternalThreads();
-        if (categoryId != null) {
-            if (canSeeInternal) {
-                threadPage = threadRepository.findAllByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, pageable);
-            } else {
-                threadPage = threadRepository.findAllPublicByCategoryIdOrderByPinnedDescLastPostAtDesc(categoryId, pageable);
+    public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
+            Long categoryId, String keyword, String sortBy, String sortOrder, int page, int size) {
+        
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            org.springframework.data.domain.Sort.Direction direction = 
+                "desc".equalsIgnoreCase(sortOrder) ? org.springframework.data.domain.Sort.Direction.DESC : org.springframework.data.domain.Sort.Direction.ASC;
+            
+            String property = sortBy;
+            if ("author.username".equals(sortBy)) {
+                property = "author.username";
+            } else if ("category.name".equals(sortBy)) {
+                property = "category.name";
             }
+            sort = org.springframework.data.domain.Sort.by(direction, property);
         } else {
-            if (canSeeInternal) {
-                threadPage = threadRepository.findAllByOrderByLastPostAtDesc(pageable);
-            } else {
-                threadPage = threadRepository.findAllPublicOrderByLastPostAtDesc(pageable);
-            }
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Order.desc("pinned"),
+                org.springframework.data.domain.Sort.Order.desc("lastPostAt")
+            );
         }
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        boolean canSeeInternal = isUserAuthorizedForInternalThreads();
+        
+        String searchPattern = "%";
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            searchPattern = "%" + keyword.trim().toLowerCase() + "%";
+        }
+        
+        org.springframework.data.domain.Page<Thread> threadPage = threadRepository.searchThreads(
+            canSeeInternal, categoryId, searchPattern, pageable);
+            
         List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
         enrichThreads(dtos);
         
@@ -107,8 +158,14 @@ public class ThreadService {
 
 
     public ResponseDTO<List<ThreadDTO>> getLatestThreads() {
-        List<Thread> threads;
         boolean canSeeInternal = isUserAuthorizedForInternalThreads();
+        String cacheKey = "latest_" + canSeeInternal;
+        List<ThreadDTO> cached = threadListCache.get(cacheKey);
+        if (cached != null) {
+            return ResponseDTO.success(cached);
+        }
+
+        List<Thread> threads;
         if (canSeeInternal) {
             threads = threadRepository.findTop20ByOrderByLastPostAtDesc();
         } else {
@@ -117,6 +174,7 @@ public class ThreadService {
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichThreads(dtos);
+        threadListCache.put(cacheKey, dtos);
         return ResponseDTO.success(dtos);
     }
 
@@ -155,6 +213,7 @@ public class ThreadService {
         dto.setReactionSummary(baseDto.getReactionSummary());
         dto.setRecentReactors(baseDto.getRecentReactors());
         dto.setScope(baseDto.getScope());
+        dto.setLocked(baseDto.isLocked());
 
         dto.setCurrentUserReaction(reactionService.getCurrentUserReactionForThread(id));
 
@@ -171,23 +230,23 @@ public class ThreadService {
                 
         if (threadIds.isEmpty()) return;
         
-        List<Post> latestPosts = postRepository.findLatestPostsForThreadIds(threadIds);
-        java.util.Map<Long, Post> threadIdToPostMap = latestPosts.stream()
-                .collect(java.util.stream.Collectors.toMap(p -> p.getThread().getId(), p -> p, (p1, p2) -> p1));
+        List<Object[]> latestPosts = postRepository.findLatestPostFieldsForThreadIds(threadIds);
+        java.util.Map<Long, Object[]> threadIdToPostMap = latestPosts.stream()
+                .collect(java.util.stream.Collectors.toMap(row -> (Long) row[0], row -> row, (p1, p2) -> p1));
                 
         for (ThreadDTO dto : dtos) {
-            Post post = threadIdToPostMap.get(dto.getId());
-            if (post != null) {
-                dto.setLastPostId(post.getId());
-                dto.setLastPostAt(post.getCreatedAt());
+            Object[] row = threadIdToPostMap.get(dto.getId());
+            if (row != null) {
+                dto.setLastPostId((Long) row[1]);
+                dto.setLastPostAt((java.time.LocalDateTime) row[2]);
                 
-                if (post.getAuthor() != null) {
+                if (row[3] != null) {
                     com.forum.dto.UserDTO userDTO = new com.forum.dto.UserDTO();
-                    userDTO.setId(post.getAuthor().getId());
-                    userDTO.setUsername(post.getAuthor().getUsername());
-                    userDTO.setDisplayName(post.getAuthor().getDisplayName());
-                    userDTO.setEmail(post.getAuthor().getEmail());
-                    userDTO.setAvatar(post.getAuthor().getAvatar());
+                    userDTO.setId((Long) row[3]);
+                    userDTO.setUsername((String) row[4]);
+                    userDTO.setDisplayName((String) row[5]);
+                    userDTO.setEmail((String) row[6]);
+                    userDTO.setAvatar((String) row[7]);
                     dto.setLastPostAuthor(userDTO);
                 }
             }
@@ -195,8 +254,15 @@ public class ThreadService {
             dto.setContent(null);
             dto.setPoll(null);
             dto.setAttachedImages(null);
+            if (dto.getCategory() != null) {
+                dto.getCategory().setSubCategories(null);
+            }
+            if (dto.getAuthor() != null) {
+                dto.getAuthor().setRoles(null);
+            }
         }
     }
+
 
     private void enrichThread(ThreadDTO dto) {
         if (dto == null || dto.getId() == null) return;
@@ -258,6 +324,13 @@ public class ThreadService {
         }
         
         Thread saved = threadRepository.save(thread);
+        clearListCache();
+        
+        try {
+            searchDocumentRepository.save(mapThreadToSearchDocument(saved));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         
         // Gửi thông báo tag/mention cho bài đăng gốc bất đồng bộ sau khi transaction commit thành công
         try {
@@ -307,6 +380,7 @@ public class ThreadService {
             
             
             thread.setPinned(threadDTO.isPinned());
+            thread.setLocked(threadDTO.isLocked());
             thread.setAttachedImages(threadDTO.getAttachedImages());
 
             // Xử lý cập nhật Poll
@@ -363,6 +437,27 @@ public class ThreadService {
 
             Thread saved = threadRepository.save(thread);
             evictCache(id);
+            clearListCache();
+            try {
+                searchDocumentRepository.save(mapThreadToSearchDocument(saved));
+                List<SearchDocument> posts = searchDocumentRepository.findByThreadId(saved.getId());
+                boolean updatedAny = false;
+                for (SearchDocument doc : posts) {
+                    if ("post".equals(doc.getType())) {
+                        doc.setThreadTitle(saved.getTitle());
+                        doc.setScope(saved.getScope());
+                        doc.setActive(saved.isActive());
+                        doc.setCategoryName(saved.getCategory() != null ? saved.getCategory().getName() : null);
+                        doc.setCategoryId(saved.getCategory() != null ? saved.getCategory().getId() : null);
+                        updatedAny = true;
+                    }
+                }
+                if (updatedAny) {
+                    searchDocumentRepository.saveAll(posts);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             return ResponseDTO.success(threadMapper.toDTO(saved));
         }).orElseThrow(() -> new RuntimeException("Thread not found"));
     }
@@ -394,6 +489,14 @@ public class ThreadService {
             
             // 6. Finally delete the thread
             threadRepository.delete(thread);
+            clearListCache();
+
+            try {
+                searchDocumentRepository.deleteById("thread_" + id);
+                searchDocumentRepository.deleteByThreadId(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         return ResponseDTO.success(null);
     }
@@ -403,6 +506,7 @@ public class ThreadService {
             thread.setPinned(!thread.isPinned());
             Thread saved = threadRepository.save(thread);
             evictCache(id);
+            clearListCache();
             return ResponseDTO.success(threadMapper.toDTO(saved));
         }).orElseThrow(() -> new RuntimeException("Thread not found"));
     }

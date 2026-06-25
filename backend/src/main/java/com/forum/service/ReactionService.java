@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class ReactionService {
         return Optional.empty();
     }
 
-    private boolean isUserAuthorizedForInternalThreads() {
+    public boolean isUserAuthorizedForInternalThreads() {
         org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             return false;
@@ -96,6 +97,60 @@ public class ReactionService {
         }
     }
 
+    @Async
+    @Transactional
+    public void reactToThreadAsync(String username, Long threadId, Long iconId, boolean canSeeInternal) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
+        Thread thread = threadRepository.findById(threadId).orElse(null);
+        if (thread == null) return;
+
+        if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(thread.getScope()) && !canSeeInternal) {
+            return;
+        }
+
+        ReactionIcon icon = reactionIconRepository.findById(iconId).orElse(null);
+        if (icon == null) return;
+
+        if (thread.getAuthor() != null && thread.getAuthor().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndThreadId(currentUser.getId(), threadId);
+        if (existing.isPresent()) {
+            Reaction reaction = existing.get();
+            reaction.setReactionIcon(icon);
+            reactionRepository.save(reaction);
+        } else {
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(currentUser);
+            newReaction.setThread(thread);
+            newReaction.setReactionIcon(icon);
+            reactionRepository.save(newReaction);
+        }
+
+        threadService.evictCache(threadId);
+
+        try {
+            notificationService.sendReactionNotification(currentUser, thread.getAuthor(), thread, null, icon);
+        } catch (Exception e) {
+            // Don't block
+        }
+    }
+
+    @Async
+    @Transactional
+    public void removeReactionFromThreadAsync(String username, Long threadId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
+        reactionRepository.deleteByUserIdAndThreadId(currentUser.getId(), threadId);
+        threadService.evictCache(threadId);
+    }
+
     public void reactToPost(Long postId, Long iconId) {
         User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
         Post post = postRepository.findById(postId)
@@ -137,6 +192,66 @@ public class ReactionService {
         } catch (Exception e) {
             // Don't block
         }
+    }
+
+    @Async
+    @Transactional
+    public void reactToPostAsync(String username, Long postId, Long iconId, boolean canSeeInternal) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null) return;
+
+        if (post.getThread() != null && com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(post.getThread().getScope()) && !canSeeInternal) {
+            return;
+        }
+
+        ReactionIcon icon = reactionIconRepository.findById(iconId).orElse(null);
+        if (icon == null) return;
+
+        if (post.getAuthor() != null && post.getAuthor().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndPostId(currentUser.getId(), postId);
+        if (existing.isPresent()) {
+            Reaction reaction = existing.get();
+            reaction.setReactionIcon(icon);
+            reactionRepository.save(reaction);
+        } else {
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(currentUser);
+            newReaction.setPost(post);
+            newReaction.setReactionIcon(icon);
+            reactionRepository.save(newReaction);
+        }
+
+        if (post.getThread() != null) {
+            postService.evictCache(post.getThread().getId());
+        }
+
+        try {
+            notificationService.sendReactionNotification(currentUser, post.getAuthor(), post.getThread(), post, icon);
+        } catch (Exception e) {
+            // Don't block
+        }
+    }
+
+    @Async
+    @Transactional
+    public void removeReactionFromPostAsync(String username, Long postId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
+        postRepository.findById(postId).ifPresent(post -> {
+            if (post.getThread() != null) {
+                postService.evictCache(post.getThread().getId());
+            }
+        });
+        reactionRepository.deleteByUserIdAndPostId(currentUser.getId(), postId);
     }
 
     public void removeReactionFromThread(Long threadId) {
@@ -356,6 +471,53 @@ public class ReactionService {
 
     public void removeReactionFromMessage(Long messageId) {
         User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
+        reactionRepository.deleteByUserIdAndConversationMessageId(currentUser.getId(), messageId);
+    }
+
+    @Async
+    @Transactional
+    public void reactToMessageAsync(String username, Long messageId, Long iconId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
+        ConversationMessage message = conversationMessageRepository.findById(messageId).orElse(null);
+        if (message == null) return;
+
+        ReactionIcon icon = reactionIconRepository.findById(iconId).orElse(null);
+        if (icon == null) return;
+
+        if (message.getSender() != null && message.getSender().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndConversationMessageId(currentUser.getId(), messageId);
+        if (existing.isPresent()) {
+            Reaction reaction = existing.get();
+            reaction.setReactionIcon(icon);
+            reactionRepository.save(reaction);
+        } else {
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(currentUser);
+            newReaction.setConversationMessage(message);
+            newReaction.setReactionIcon(icon);
+            reactionRepository.save(newReaction);
+        }
+
+        try {
+            notificationService.sendConversationReactionNotification(currentUser.getId(), message.getSender().getId(), message.getConversation().getId(), message.getId(), icon.getId());
+        } catch (Exception e) {
+            // Don't block
+        }
+    }
+
+    @Async
+    @Transactional
+    public void removeReactionFromMessageAsync(String username, Long messageId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+
         reactionRepository.deleteByUserIdAndConversationMessageId(currentUser.getId(), messageId);
     }
 
