@@ -507,4 +507,28 @@ export default {
   cursor: pointer;
   outline: none;
 }
+
+@media (max-width: 767px) {
+  .poll-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .poll-label {
+    width: 100%;
+    min-width: 0;
+    background: transparent;
+    border-right: none;
+    padding: 12px 12px 4px 12px;
+  }
+
+  .poll-field {
+    padding: 4px 12px 12px 12px;
+  }
+
+  .expiry-control {
+    margin-left: 0;
+    margin-top: 6px;
+  }
+}
 </style>
