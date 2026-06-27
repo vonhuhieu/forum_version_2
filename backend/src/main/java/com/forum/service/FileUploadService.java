@@ -3,6 +3,7 @@ package com.forum.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,6 +38,12 @@ import java.util.stream.Stream;
 @Service
 public class FileUploadService {
 
+    @Value("${app.upload.provider:local}")
+    private String uploadProvider;
+
+    @Value("${app.upload.local-dir:uploads}")
+    private String localDir;
+
     @Autowired
     private Cloudinary cloudinary;
 
@@ -54,15 +61,49 @@ public class FileUploadService {
     }
 
     /**
-     * Upload a single file to Cloudinary.
-     * @return map with keys: url (absolute HTTPS), name, type
+     * Upload a single file. Supports both Local and Cloudinary providers.
+     * @return map with keys: url (absolute or relative URL), name, type
      */
     public Map<String, String> uploadFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             return null;
         }
 
+        String originalFilename = file.getOriginalFilename();
         String mimeType = file.getContentType();
+
+        // 1. Local File Storage Provider
+        if ("local".equalsIgnoreCase(uploadProvider)) {
+            // Create local uploads directory if it does not exist
+            java.nio.file.Path uploadPath = java.nio.file.Paths.get(localDir);
+            if (!java.nio.file.Files.exists(uploadPath)) {
+                java.nio.file.Files.createDirectories(uploadPath);
+            }
+
+            // Extract original file extension
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            // Generate unique, safe filename using UUID
+            String uniqueFilename = java.util.UUID.randomUUID().toString() + extension;
+            java.nio.file.Path targetPath = uploadPath.resolve(uniqueFilename);
+
+            // Copy file content to destination path
+            java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            // Return relative path matching Frontend expectations (/uploads/...)
+            String fileUrl = "/uploads/" + uniqueFilename;
+
+            Map<String, String> data = new HashMap<>();
+            data.put("url", fileUrl);
+            data.put("name", originalFilename);
+            data.put("type", mimeType);
+            return data;
+        }
+
+        // 2. Cloudinary Provider (Fallback)
         String resourceType = resolveResourceType(mimeType);
 
         Map<String, Object> uploadOptions = new HashMap<>();
@@ -73,7 +114,6 @@ public class FileUploadService {
         // by generating a unique public_id that explicitly ends with the file extension.
         // This ensures Cloudinary stores the file with the extension and delivery URLs do not return 404.
         if ("raw".equals(resourceType)) {
-            String originalFilename = file.getOriginalFilename();
             if (originalFilename == null) {
                 originalFilename = "file";
             }
@@ -115,7 +155,7 @@ public class FileUploadService {
 
         Map<String, String> data = new HashMap<>();
         data.put("url",  secureUrl);
-        data.put("name", file.getOriginalFilename());
+        data.put("name", originalFilename);
         data.put("type", mimeType);
 
         return data;
