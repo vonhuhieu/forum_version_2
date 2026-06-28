@@ -3,6 +3,9 @@ package com.forum.service;
 import com.forum.dto.UserDTO;
 import com.forum.entity.User;
 import com.forum.repository.UserRepository;
+import com.forum.repository.ThreadRepository;
+import com.forum.repository.PostRepository;
+import com.forum.repository.ReactionRepository;
 import com.forum.utils.Constants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +33,9 @@ import org.springframework.mail.SimpleMailMessage;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ThreadRepository threadRepository;
+    private final PostRepository postRepository;
+    private final ReactionRepository reactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final JavaMailSender mailSender;
@@ -46,7 +52,26 @@ public class UserService {
         if (userOpt.isEmpty()) {
             userOpt = userRepository.findFirstByDisplayNameIgnoreCase(name);
         }
-        return userOpt.map(this::convertToDTO);
+        return userOpt.map(user -> {
+            UserDTO dto = convertToDTO(user);
+            enrichUserStats(dto);
+            return dto;
+        });
+    }
+
+    private void enrichUserStats(UserDTO dto) {
+        if (dto == null || dto.getId() == null) return;
+        Long userId = dto.getId();
+        long threadCount = threadRepository.countByAuthorId(userId);
+        long postCountInDb = postRepository.countByAuthorId(userId);
+        long totalPosts = threadCount + postCountInDb;
+        
+        long interactionPoints = reactionRepository.countReactionsReceivedByUserId(userId);
+        long trophyPoints = Math.round(totalPosts * 0.1 + interactionPoints * 0.2);
+        
+        dto.setPostCount(totalPosts);
+        dto.setInteractionPoints(interactionPoints);
+        dto.setTrophyPoints(trophyPoints);
     }
 
     public List<UserDTO> getAdminUsers(String currentUsername) {

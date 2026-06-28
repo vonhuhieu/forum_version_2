@@ -12,4 +12,7 @@ public class UserDTO {
     private String avatar;
     private LocalDateTime createdAt;
     private java.util.Set<String> roles;
+    private Long postCount;
+    private Long interactionPoints;
+    private Long trophyPoints;
 }

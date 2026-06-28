@@ -35,4 +35,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         "WHERE p.id IN (SELECT MAX(p2.id) FROM Post p2 WHERE p2.thread.id IN :threadIds GROUP BY p2.thread.id)"
     )
     List<Object[]> findLatestPostFieldsForThreadIds(@org.springframework.data.repository.query.Param("threadIds") List<Long> threadIds);
+
+    long countByAuthorId(Long authorId);
 }
