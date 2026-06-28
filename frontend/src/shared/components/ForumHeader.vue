@@ -408,10 +408,14 @@ export default {
     this.checkAuth()
     
     if (this.isLoggedIn && this.currentUser) {
-      this.syncUserProfile()
-      this.fetchNotifSummary()
-      this.fetchMailSummary()
-      this.setupSocket()
+      try {
+        this.syncUserProfile()
+        this.fetchNotifSummary()
+        this.fetchMailSummary()
+        this.setupSocket()
+      } catch (error) {
+        console.error('Lỗi khi thiết lập thông tin người dùng đăng nhập:', error)
+      }
     }
     
     document.addEventListener('click', this.handleClickOutside)
