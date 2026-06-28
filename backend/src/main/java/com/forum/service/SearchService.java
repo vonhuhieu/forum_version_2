@@ -172,7 +172,13 @@ public class SearchService {
     @Transactional(readOnly = true)
     public ResponseDTO<Void> reindexAll() {
         try {
-            searchDocumentRepository.deleteAll();
+            // Xóa và tạo lại index để cập nhật chính xác mapping (tránh lỗi stop words trên production do sai mapping)
+            org.springframework.data.elasticsearch.core.IndexOperations indexOps = elasticsearchOperations.indexOps(SearchDocument.class);
+            if (indexOps.exists()) {
+                indexOps.delete();
+            }
+            indexOps.create();
+            indexOps.putMapping(indexOps.createMapping(SearchDocument.class));
 
             List<Thread> threads = threadRepository.findAll();
             List<SearchDocument> batch = new ArrayList<>();
