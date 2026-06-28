@@ -110,7 +110,6 @@
 
                   <!-- Double Column Links -->
                   <div class="xamvn-links-grid">
-                    <a href="#" class="xamvn-link-item" @click.prevent="viewYourContent">Nội dung của bạn</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Điểm tương tác nhận được</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>
