@@ -74,6 +74,8 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
 
     @Query("SELECT t.category.id, COUNT(t), COALESCE(SUM(t.replyCount + 1), 0) FROM Thread t GROUP BY t.category.id")
     List<Object[]> getCategoryStats();
+
+    long countByAuthorId(Long authorId);
 }
 
 

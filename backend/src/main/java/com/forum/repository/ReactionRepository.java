@@ -69,4 +69,10 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     org.springframework.data.domain.Page<Reaction> findByConversationMessageId(Long messageId, org.springframework.data.domain.Pageable pageable);
 
     org.springframework.data.domain.Page<Reaction> findByConversationMessageIdAndReactionIconId(Long messageId, Long iconId, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(r) FROM Reaction r " +
+           "LEFT JOIN r.thread t " +
+           "LEFT JOIN r.post p " +
+           "WHERE (t.author.id = :userId AND p.id IS NULL) OR (p.author.id = :userId)")
+    long countReactionsReceivedByUserId(@Param("userId") Long userId);
 }
