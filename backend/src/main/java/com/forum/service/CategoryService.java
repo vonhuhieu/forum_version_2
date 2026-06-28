@@ -20,7 +20,7 @@ public class CategoryService {
     private final CategoryMapper categoryMapper;
     private final com.forum.repository.ThreadRepository threadRepository;
 
-    private void enrichCategoryDTOs(List<CategoryDTO> dtos) {
+    public void enrichCategoryDTOs(List<CategoryDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) return;
         List<Object[]> stats = threadRepository.getCategoryStats();
         java.util.Map<Long, Long[]> statsMap = new java.util.HashMap<>();
