@@ -25,8 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.SimpleMailMessage;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +36,7 @@ public class UserService {
     private final ReactionRepository reactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
-    private final JavaMailSender mailSender;
+    private final EmailService emailService;
 
     public Page<UserDTO> searchUsers(String keyword, String currentUsername, int page, int size) {
         String trimmedKeyword = keyword != null ? keyword.trim() : "";
@@ -255,12 +253,12 @@ public class UserService {
             boolean isOfficial = newRoles.contains(Constants.ROLE_USER);
 
             if (wasNonOfficial && isOfficial) {
-                sendEmail(userEmail, 
-                    "Tài khoản của bạn đã được phê duyệt", 
+                emailService.sendEmailAsync(userEmail,
+                    "Tài khoản của bạn đã được phê duyệt",
                     "Tài khoản của bạn đã được quản trị viên phê duyệt. Hãy tải lại trang hoặc đăng nhập lại để cập nhật sự thay đổi.");
             } else if (wasOfficial && isNonOfficial) {
-                sendEmail(userEmail, 
-                    "Thay đổi trạng thái tài khoản", 
+                emailService.sendEmailAsync(userEmail,
+                    "Thay đổi trạng thái tài khoản",
                     "Tài khoản của bạn đã bị tước quyền thành viên. Hãy liên lạc quản trị viên để biết thêm thông tin chi tiết!");
             }
         }
@@ -364,18 +362,5 @@ public class UserService {
         String result = pattern.matcher(nfdNormalizedString).replaceAll("");
         result = result.replace('đ', 'd').replace('Đ', 'D');
         return result.toLowerCase();
-    }
-
-    private void sendEmail(String to, String subject, String content) {
-        System.out.println("Gửi email tới: " + to + " | Tiêu đề: " + subject + " | Nội dung: " + content);
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(content);
-            mailSender.send(message);
-        } catch (Exception e) {
-            System.out.println("Lỗi gửi email: " + e.getMessage());
-        }
     }
 }
