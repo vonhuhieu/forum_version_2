@@ -235,6 +235,14 @@ export default {
   display: none;
 }
 
+.account-sidebar-wrapper {
+  display: contents;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 992px) {
   .account-sidebar-root {
     width: 100%;
@@ -313,6 +321,7 @@ export default {
 
   /* Account Sidebar Wrapper in Mobile (drawer behavior) */
   .account-sidebar-wrapper {
+    display: block;
     position: fixed;
     top: 0;
     left: 0;
@@ -328,6 +337,7 @@ export default {
   }
 
   .sidebar-backdrop {
+    display: block;
     position: absolute;
     top: 0;
     left: 0;
