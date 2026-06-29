@@ -61,9 +61,78 @@
               </span>
               <span class="user-greeting fs-18 color-c9d6e0">{{ truncatedDisplayName }}</span>
               
-              <!-- User Dropdown Menu -->
-              <div class="user-dropdown" v-show="showUserDropdown">
-                <button @click.stop="handleLogout" class="user-dropdown-item">Thoát</button>
+              <!-- User Dropdown Menu (XenForo style) -->
+              <div class="user-dropdown xamvn-dropdown" v-show="showUserDropdown" @click.stop>
+                <!-- Tab headers -->
+                <div class="xamvn-dropdown-tabs">
+                  <button 
+                    class="xamvn-tab-btn" 
+                    :class="{ 'active': activeUserTab === 'account' }" 
+                    @click="activeUserTab = 'account'"
+                  >
+                    Tài khoản của bạn
+                  </button>
+                  <button 
+                    class="xamvn-tab-btn" 
+                    :class="{ 'active': activeUserTab === 'bookmarks' }" 
+                    @click="activeUserTab = 'bookmarks'"
+                  >
+                    Dấu trang
+                  </button>
+                </div>
+
+                <!-- Tab: Tài khoản của bạn -->
+                <div v-show="activeUserTab === 'account'" class="xamvn-tab-content">
+                  <!-- User Brief Info -->
+                  <div class="xamvn-user-brief">
+                    <div class="xamvn-avatar-large" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
+                      {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="xamvn-user-details">
+                      <div class="xamvn-username">{{ currentUser.displayName || currentUser.username }}</div>
+                      <div class="xamvn-title">Yếu sinh lý</div>
+                      <div class="xamvn-stats">
+                        <div class="xamvn-stat-row">
+                          <span class="xamvn-stat-label">Bài viết:</span>
+                          <span class="xamvn-stat-value">{{ currentUser.postCount || 0 }}</span>
+                        </div>
+                        <div class="xamvn-stat-row">
+                          <span class="xamvn-stat-label">Điểm tương tác:</span>
+                          <span class="xamvn-stat-value">{{ currentUser.interactionPoints || 0 }}</span>
+                        </div>
+                        <div class="xamvn-stat-row">
+                          <span class="xamvn-stat-label">Điểm thành tích:</span>
+                          <span class="xamvn-stat-value">{{ currentUser.trophyPoints || 0 }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Double Column Links -->
+                  <div class="xamvn-links-grid">
+                    <a href="#" class="xamvn-link-item" @click.prevent="goToReceivedReactions">Điểm tương tác nhận được</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Mật khẩu và bảo mật</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Đang theo dõi</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Bảo mật cá nhân</a>
+                    <a href="#" class="xamvn-link-item" @click.prevent>Phớt lờ</a>
+                  </div>
+                </div>
+
+                <!-- Tab: Dấu trang -->
+                <div v-show="activeUserTab === 'bookmarks'" class="xamvn-tab-content xamvn-bookmarks-tab">
+                  <div class="xamvn-empty-message">
+                    Không có dấu trang nào được lưu.
+                  </div>
+                </div>
+
+                <hr class="xamvn-divider" />
+
+                <!-- Bottom Logout Button -->
+                <div class="xamvn-footer">
+                  <button @click.stop="handleLogout" class="xamvn-logout-btn">Thoát</button>
+                </div>
               </div>
             </div>
           </div>
@@ -356,7 +425,8 @@ export default {
       canScrollRight: false,
       showSearchDropdown: false,
       showSearchModal: false,
-      searchQuery: ''
+      searchQuery: '',
+      activeUserTab: 'account'
     }
   },
   computed: {
@@ -408,10 +478,14 @@ export default {
     this.checkAuth()
     
     if (this.isLoggedIn && this.currentUser) {
-      this.syncUserProfile()
-      this.fetchNotifSummary()
-      this.fetchMailSummary()
-      this.setupSocket()
+      try {
+        this.syncUserProfile()
+        this.fetchNotifSummary()
+        this.fetchMailSummary()
+        this.setupSocket()
+      } catch (error) {
+        console.error('Lỗi khi thiết lập thông tin người dùng đăng nhập:', error)
+      }
     }
     
     document.addEventListener('click', this.handleClickOutside)
@@ -455,17 +529,26 @@ export default {
       if (!this.isLoggedIn || !this.currentUser || !this.currentUser.username) return
       try {
         const res = await api.get(`/users/by-name?name=${this.currentUser.username}`)
-        if (res.data && res.data.roles) {
-          const dbRoles = res.data.roles
-          const currentRoles = this.currentUser.roles || []
+        if (res.data) {
+          const dbUser = res.data
+          const updatedUser = { 
+            ...this.currentUser, 
+            displayName: dbUser.displayName,
+            avatar: dbUser.avatar,
+            roles: dbUser.roles,
+            postCount: dbUser.postCount,
+            interactionPoints: dbUser.interactionPoints,
+            trophyPoints: dbUser.trophyPoints
+          }
           
-          const isRolesChanged = dbRoles.length !== currentRoles.length || 
-                                 !dbRoles.every(r => currentRoles.includes(r))
+          const currentRoles = this.currentUser.roles || []
+          const isRolesChanged = dbUser.roles.length !== currentRoles.length || 
+                                 !dbUser.roles.every(r => currentRoles.includes(r))
+          
+          localStorage.setItem('user', JSON.stringify(updatedUser))
+          this.currentUser = updatedUser
           
           if (isRolesChanged) {
-            const updatedUser = { ...this.currentUser, roles: dbRoles }
-            localStorage.setItem('user', JSON.stringify(updatedUser))
-            this.currentUser = updatedUser
             window.location.reload()
           }
         }
@@ -617,6 +700,15 @@ export default {
       this.showUserDropdown = !this.showUserDropdown
       this.showNotifDropdown = false
       this.showMailDropdown = false
+      if (this.showUserDropdown) {
+        this.activeUserTab = 'account'
+        this.syncUserProfile()
+      }
+    },
+    viewYourContent() {
+      this.showUserDropdown = false
+      this.searchQuery = this.currentUser.username
+      this.showSearchModal = true
     },
     toggleMailDropdown() {
       this.showMailDropdown = !this.showMailDropdown
@@ -682,6 +774,10 @@ export default {
     goToAddConvo() {
       this.showMailDropdown = false
       this.$router.push({ name: 'AddConversation' })
+    },
+    goToReceivedReactions() {
+      this.showUserDropdown = false
+      this.$router.push({ name: 'ReceivedReactions' })
     },
     async goToConversation(convo) {
       this.showMailDropdown = false
@@ -1180,6 +1276,198 @@ export default {
   border-bottom: 6px solid #fff;
 }
 
+/* Custom XenForo dropdown styling */
+.user-dropdown.xamvn-dropdown {
+  width: 320px;
+  padding: 0;
+  border: 1px solid #d8d8d8;
+  border-top: 3px solid #1a507a;
+  border-radius: 4px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.user-dropdown.xamvn-dropdown::before {
+  border-bottom-color: #1a507a;
+  right: 25px;
+}
+
+.xamvn-dropdown-tabs {
+  display: flex;
+  background-color: #fff;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+.xamvn-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 0.88rem;
+  color: #555;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  outline: none;
+  font-family: inherit;
+}
+
+.xamvn-tab-btn:hover {
+  color: #1a507a;
+  background: #eef4f8;
+}
+
+.xamvn-tab-btn.active {
+  color: #1a507a;
+  background: linear-gradient(0deg, #edf6fd, #f6fafe);
+  border-bottom: 2px solid #1a507a;
+  font-weight: bold;
+}
+
+.xamvn-tab-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0 !important;
+}
+
+.xamvn-user-brief {
+  display: flex;
+  gap: 15px;
+  margin-top: -15px;
+  margin-left: -15px;
+  margin-right: -15px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.xamvn-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.xamvn-user-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.xamvn-username {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a507a;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xamvn-title {
+  font-size: 14px;
+  color: #141414;
+  margin-bottom: 10px;
+}
+
+.xamvn-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.xamvn-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.xamvn-stat-label, .xamvn-stat-value {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.xamvn-divider {
+  border: 0;
+  border-top: 1px solid #e5e5e5;
+  margin: 0;
+  width: 100%;
+}
+
+.xamvn-links-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.xamvn-link-item {
+  font-size: 14px;
+  color: #141414;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: all 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 0px !important;
+}
+
+.xamvn-link-item:hover {
+  background: #f5f8fa;
+  color: #e74c3c;
+}
+
+.xamvn-bookmarks-tab {
+  padding: 30px 15px;
+  align-items: center;
+  justify-content: center;
+}
+
+.xamvn-empty-message {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  text-align: center;
+}
+
+.xamvn-footer {
+  padding: 6px 15px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.xamvn-logout-btn {
+  background: none;
+  border: none;
+  color: #141414;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 0px;
+  border-radius: 3px;
+  transition: all 0.15s;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.xamvn-logout-btn:hover {
+  background: #f5f8fa;
+  color: #e74c3c;
+}
+
 .user-dropdown-item {
   background: none;
   border: none;
@@ -1196,6 +1484,17 @@ export default {
 .user-dropdown-item:hover {
   background: #f5f8fa;
   color: #e74c3c;
+}
+
+@media (max-width: 767px) {
+  .user-dropdown.xamvn-dropdown {
+    position: fixed !important;
+    top: 50px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    z-index: 1001;
+  }
 }
 
 .user-avatar-small {

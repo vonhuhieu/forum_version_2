@@ -139,4 +139,11 @@ export default {
     transform: scale(1);
   }
 }
+
+@media (max-width: 767px) {
+  .reaction-selector-tray {
+    left: auto !important;
+    right: -81px !important;
+  }
+}
 </style>

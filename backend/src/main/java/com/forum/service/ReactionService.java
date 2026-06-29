@@ -3,6 +3,8 @@ package com.forum.service;
 import com.forum.dto.PostDTO;
 import com.forum.dto.ReactionIconDTO;
 import com.forum.dto.ReactionSummaryDTO;
+import com.forum.dto.ReceivedReactionDTO;
+import com.forum.dto.LabelDTO;
 import com.forum.entity.*;
 import com.forum.entity.Thread;
 import com.forum.repository.*;
@@ -558,5 +560,64 @@ public class ReactionService {
 
     public ReactionIconDTO convertToIconDTO(ReactionIcon icon) {
         return reactionIconService.convertToDTO(icon);
+    }
+
+    public List<ReactionSummaryDTO> getReceivedReactionsSummary() {
+        User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
+        List<Object[]> results = reactionRepository.aggregateReactionsReceivedByUserId(currentUser.getId());
+        return mapAggregateResults(results);
+    }
+
+    public org.springframework.data.domain.Page<ReceivedReactionDTO> getReceivedReactions(Long iconId, org.springframework.data.domain.Pageable pageable) {
+        User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
+        org.springframework.data.domain.Page<Reaction> reactions = reactionRepository.findReactionsReceivedByUserId(currentUser.getId(), iconId, pageable);
+        return reactions.map(this::convertToReceivedReactionDTO);
+    }
+
+    private ReceivedReactionDTO convertToReceivedReactionDTO(Reaction r) {
+        ReceivedReactionDTO dto = new ReceivedReactionDTO();
+        dto.setId(r.getId());
+        dto.setActor(mapUserToDTO(r.getUser()));
+        dto.setReactionIcon(reactionIconService.convertToDTO(r.getReactionIcon()));
+        dto.setInteractedAt(r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt());
+
+        if (r.getPost() != null) {
+            Post post = r.getPost();
+            dto.setPostId(post.getId());
+            dto.setContent(post.getContent());
+            dto.setTargetCreatedAt(post.getCreatedAt());
+            if (post.getThread() != null) {
+                Thread thread = post.getThread();
+                dto.setThreadId(thread.getId());
+                dto.setThreadTitle(thread.getTitle());
+                if (thread.getLabel() != null) {
+                    dto.setThreadLabel(new LabelDTO(
+                        thread.getLabel().getId(),
+                        thread.getLabel().getName(),
+                        thread.getLabel().getColorCode(),
+                        thread.getLabel().getTextColor(),
+                        thread.getLabel().getBorderColor(),
+                        thread.getLabel().getAdminOnly()
+                    ));
+                }
+            }
+        } else if (r.getThread() != null) {
+            Thread thread = r.getThread();
+            dto.setThreadId(thread.getId());
+            dto.setThreadTitle(thread.getTitle());
+            dto.setContent(thread.getContent());
+            dto.setTargetCreatedAt(thread.getCreatedAt());
+            if (thread.getLabel() != null) {
+                dto.setThreadLabel(new LabelDTO(
+                    thread.getLabel().getId(),
+                    thread.getLabel().getName(),
+                    thread.getLabel().getColorCode(),
+                    thread.getLabel().getTextColor(),
+                    thread.getLabel().getBorderColor(),
+                    thread.getLabel().getAdminOnly()
+                ));
+            }
+        }
+        return dto;
     }
 }

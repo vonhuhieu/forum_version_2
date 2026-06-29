@@ -69,4 +69,33 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     org.springframework.data.domain.Page<Reaction> findByConversationMessageId(Long messageId, org.springframework.data.domain.Pageable pageable);
 
     org.springframework.data.domain.Page<Reaction> findByConversationMessageIdAndReactionIconId(Long messageId, Long iconId, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT r.reactionIcon, COUNT(r), MAX(r.updatedAt) FROM Reaction r " +
+           "LEFT JOIN r.thread t " +
+           "LEFT JOIN r.post p " +
+           "WHERE (t.author.id = :userId AND r.post IS NULL) OR (p.author.id = :userId) " +
+           "GROUP BY r.reactionIcon")
+    List<Object[]> aggregateReactionsReceivedByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT r FROM Reaction r " +
+           "LEFT JOIN FETCH r.reactionIcon " +
+           "LEFT JOIN FETCH r.user " +
+           "LEFT JOIN FETCH r.thread t " +
+           "LEFT JOIN FETCH t.label " +
+           "LEFT JOIN FETCH r.post p " +
+           "LEFT JOIN FETCH p.thread pt " +
+           "LEFT JOIN FETCH pt.label " +
+           "WHERE ((t.author.id = :userId AND r.post IS NULL) OR (p.author.id = :userId)) " +
+           "AND (:iconId IS NULL OR r.reactionIcon.id = :iconId) " +
+           "ORDER BY r.updatedAt DESC")
+    org.springframework.data.domain.Page<Reaction> findReactionsReceivedByUserId(
+            @Param("userId") Long userId,
+            @Param("iconId") Long iconId,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(r) FROM Reaction r " +
+           "LEFT JOIN r.thread t " +
+           "LEFT JOIN r.post p " +
+           "WHERE (t.author.id = :userId AND p.id IS NULL) OR (p.author.id = :userId)")
+    long countReactionsReceivedByUserId(@Param("userId") Long userId);
 }
