@@ -1,5 +1,6 @@
 <template>
   <div class="page-content">
+    <Loading :visible="saving" />
     <DataTable
       title="Quản lý Thành viên"
       placeholder="Tìm kiếm tên đăng nhập, tên hiển thị, email..."
@@ -113,6 +114,7 @@
 <script>
 import DataTable from '@/shared/components/DataTable.vue'
 import BaseModal from '@/shared/components/BaseModal.vue'
+import Loading from '@/shared/components/Loading.vue'
 import AdminService from '@/apps/Admin/services/admin.service'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 
@@ -120,7 +122,8 @@ export default {
   name: 'UserManagement',
   components: {
     DataTable,
-    BaseModal
+    BaseModal,
+    Loading
   },
   data() {
     return {
