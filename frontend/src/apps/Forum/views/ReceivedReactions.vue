@@ -360,12 +360,8 @@ export default {
 }
 
 .reacted-content-line {
-  color: #65676b;
+  color: #141414;
   font-size: 0.85rem;
-  background-color: #f8f9fa;
-  padding: 8px 12px;
-  border-left: 2px solid #1a507a;
-  border-radius: 2px;
   white-space: pre-line;
   word-break: break-word;
 }
@@ -387,5 +383,16 @@ export default {
   background: #fdfdfd;
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
+}
+
+@media (max-width: 992px) {
+  .account-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .account-content {
+    width: 100%;
+  }
 }
 </style>
