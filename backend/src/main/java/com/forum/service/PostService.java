@@ -206,11 +206,6 @@ public class PostService {
         userRepository.findByUsername(username).ifPresent(post::setAuthor);
 
         Post saved = postRepository.save(post);
-        try {
-            searchDocumentRepository.save(mapPostToSearchDocument(saved));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         evictCache(postDTO.getThreadId());
 
         // Update thread statistics
@@ -219,125 +214,167 @@ public class PostService {
         Thread updatedThread = threadRepository.save(thread);
         com.forum.service.ThreadService.clearListCache();
 
-        // Auto-subscribe the commenting user if not the thread owner
-        boolean autoFollowed = false;
+        // Kiểm tra điều kiện tự động theo dõi trước ở luồng chính để phản hồi DTO chính xác
+        boolean willAutoFollow = false;
         try {
-            User actor = post.getAuthor();
+            User actor = saved.getAuthor();
             if (actor != null && updatedThread.getAuthor() != null && !updatedThread.getAuthor().getId().equals(actor.getId())) {
                 Optional<ThreadSubscription> subOpt = threadSubscriptionRepository.findByThreadIdAndUserId(updatedThread.getId(), actor.getId());
-                if (subOpt.isEmpty()) {
-                    ThreadSubscription sub = new ThreadSubscription();
-                    sub.setThread(updatedThread);
-                    sub.setUser(actor);
-                    sub.setFollowing(true);
-                    threadSubscriptionRepository.save(sub);
-                    autoFollowed = true;
-                } else if (!subOpt.get().isFollowing()) {
-                    ThreadSubscription sub = subOpt.get();
-                    sub.setFollowing(true);
-                    threadSubscriptionRepository.save(sub);
-                    autoFollowed = true;
+                if (subOpt.isEmpty() || !subOpt.get().isFollowing()) {
+                    willAutoFollow = true;
                 }
             }
         } catch (Exception e) {
             // ignore
         }
 
-        // Gửi thông báo
-        try {
-            User actor = post.getAuthor();
-            String content = post.getContent();
-            
-            // 1. Detect tagged users
-            Set<Long> mentionedUserIds = notificationService.getMentionedUserIds(actor, content);
-            Set<Long> notifiedUserIds = new HashSet<>(mentionedUserIds);
-            
-            // Send MENTION notifications to all tagged users
-            for (Long recipientId : mentionedUserIds) {
-                userRepository.findById(recipientId).ifPresent(recipient -> {
-                    notificationService.sendMentionNotification(actor, recipient, updatedThread, saved);
-                });
+        final boolean runAutoFollow = willAutoFollow;
+        
+        // Định nghĩa tác vụ bất đồng bộ
+        Runnable asyncTask = () -> {
+            // 1. Lưu chỉ mục tìm kiếm
+            try {
+                searchDocumentRepository.save(mapPostToSearchDocument(saved));
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
-            // Pattern to detect quotes with data-source
-            Pattern pattern = Pattern.compile("data-source=\"([^\"]+)\"");
-            Matcher matcher = pattern.matcher(content != null ? content : "");
-            Set<String> quotedIds = new HashSet<>();
-            while (matcher.find()) {
-                quotedIds.add(matcher.group(1));
+            // 2. Lưu trạng thái tự động theo dõi vào DB
+            if (runAutoFollow) {
+                try {
+                    User actor = saved.getAuthor();
+                    Optional<ThreadSubscription> subOpt = threadSubscriptionRepository.findByThreadIdAndUserId(updatedThread.getId(), actor.getId());
+                    if (subOpt.isEmpty()) {
+                        ThreadSubscription sub = new ThreadSubscription();
+                        sub.setThread(updatedThread);
+                        sub.setUser(actor);
+                        sub.setFollowing(true);
+                        threadSubscriptionRepository.save(sub);
+                    } else {
+                        ThreadSubscription sub = subOpt.get();
+                        sub.setFollowing(true);
+                        threadSubscriptionRepository.save(sub);
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
             }
 
-            for (String sourceId : quotedIds) {
-                if ("main_thread_entry".equals(sourceId)) {
-                    // Quoting the thread itself
-                    User threadAuthor = updatedThread.getAuthor();
-                    if (threadAuthor != null && actor != null && !threadAuthor.getId().equals(actor.getId())) {
-                        // Suppress quote notification if the threadAuthor is already mentioned
-                        if (!notifiedUserIds.contains(threadAuthor.getId())) {
-                            notificationService.sendQuoteNotification(actor, threadAuthor, updatedThread, saved);
-                            notifiedUserIds.add(threadAuthor.getId());
+            // 3. Gửi thông báo (mentions, quotes, followers)
+            try {
+                User actor = saved.getAuthor();
+                String content = saved.getContent();
+                
+                // Detect tagged users
+                Set<Long> mentionedUserIds = notificationService.getMentionedUserIds(actor, content);
+                Set<Long> notifiedUserIds = new HashSet<>(mentionedUserIds);
+                
+                // Send MENTION notifications to all tagged users
+                for (Long recipientId : mentionedUserIds) {
+                    userRepository.findById(recipientId).ifPresent(recipient -> {
+                        notificationService.sendMentionNotification(actor, recipient, updatedThread, saved);
+                    });
+                }
+
+                // Pattern to detect quotes with data-source
+                Pattern pattern = Pattern.compile("data-source=\"([^\"]+)\"");
+                Matcher matcher = pattern.matcher(content != null ? content : "");
+                Set<String> quotedIds = new HashSet<>();
+                while (matcher.find()) {
+                    quotedIds.add(matcher.group(1));
+                }
+
+                for (String sourceId : quotedIds) {
+                    if ("main_thread_entry".equals(sourceId)) {
+                        // Quoting the thread itself
+                        User threadAuthor = updatedThread.getAuthor();
+                        if (threadAuthor != null && actor != null && !threadAuthor.getId().equals(actor.getId())) {
+                            // Suppress quote notification if the threadAuthor is already mentioned
+                            if (!notifiedUserIds.contains(threadAuthor.getId())) {
+                                notificationService.sendQuoteNotification(actor, threadAuthor, updatedThread, saved);
+                                notifiedUserIds.add(threadAuthor.getId());
+                            }
+                        }
+                    } else {
+                        // Quoting a specific post
+                        try {
+                            Long postId = Long.parseLong(sourceId);
+                            postRepository.findById(postId).ifPresent(quotedPost -> {
+                                User quotedAuthor = quotedPost.getAuthor();
+                                if (quotedAuthor != null && actor != null && !quotedAuthor.getId().equals(actor.getId())) {
+                                    // Suppress quote notification if the quotedAuthor is already mentioned
+                                    if (!notifiedUserIds.contains(quotedAuthor.getId())) {
+                                        notificationService.sendQuoteNotification(actor, quotedAuthor, updatedThread, saved);
+                                        notifiedUserIds.add(quotedAuthor.getId());
+                                    }
+                                }
+                            });
+                        } catch (NumberFormatException e) {
+                            // ignore invalid IDs
                         }
                     }
-                } else {
-                    // Quoting a specific post
-                    try {
-                        Long postId = Long.parseLong(sourceId);
-                        postRepository.findById(postId).ifPresent(quotedPost -> {
-                            User quotedAuthor = quotedPost.getAuthor();
-                            if (quotedAuthor != null && actor != null && !quotedAuthor.getId().equals(actor.getId())) {
-                                // Suppress quote notification if the quotedAuthor is already mentioned
-                                if (!notifiedUserIds.contains(quotedAuthor.getId())) {
-                                    notificationService.sendQuoteNotification(actor, quotedAuthor, updatedThread, saved);
-                                    notifiedUserIds.add(quotedAuthor.getId());
-                                }
-                            }
-                        });
-                    } catch (NumberFormatException e) {
-                        // ignore invalid IDs
+                }
+
+                // Notify all thread followers who have NOT been notified yet via MENTION or QUOTE
+                Set<Long> followers = new HashSet<>();
+                
+                // Explicit followers
+                List<ThreadSubscription> subs = threadSubscriptionRepository.findByThreadIdAndIsFollowingTrue(updatedThread.getId());
+                for (ThreadSubscription sub : subs) {
+                    if (sub.getUser() != null) {
+                        followers.add(sub.getUser().getId());
                     }
                 }
-            }
 
-            // Notify all thread followers who have NOT been notified yet via MENTION or QUOTE
-            Set<Long> followers = new HashSet<>();
-            
-            // Explicit followers
-            List<ThreadSubscription> subs = threadSubscriptionRepository.findByThreadIdAndIsFollowingTrue(updatedThread.getId());
-            for (ThreadSubscription sub : subs) {
-                if (sub.getUser() != null) {
-                    followers.add(sub.getUser().getId());
+                // Implicit thread owner follow
+                User threadOwner = updatedThread.getAuthor();
+                if (threadOwner != null) {
+                    Optional<ThreadSubscription> ownerSubOpt = threadSubscriptionRepository.findByThreadIdAndUserId(updatedThread.getId(), threadOwner.getId());
+                    if (ownerSubOpt.isEmpty() || ownerSubOpt.get().isFollowing()) {
+                        followers.add(threadOwner.getId());
+                    }
                 }
-            }
 
-            // Implicit thread owner follow
-            User threadOwner = updatedThread.getAuthor();
-            if (threadOwner != null) {
-                Optional<ThreadSubscription> ownerSubOpt = threadSubscriptionRepository.findByThreadIdAndUserId(updatedThread.getId(), threadOwner.getId());
-                if (ownerSubOpt.isEmpty() || ownerSubOpt.get().isFollowing()) {
-                    followers.add(threadOwner.getId());
+                for (Long followerId : followers) {
+                    if (actor != null && followerId.equals(actor.getId())) {
+                        continue;
+                    }
+                    if (notifiedUserIds.contains(followerId)) {
+                        continue;
+                    }
+                    userRepository.findById(followerId).ifPresent(follower -> {
+                        notificationService.sendNewCommentNotification(actor, updatedThread, saved, follower);
+                    });
                 }
+            } catch (Exception e) {
+                // log error or ignore
             }
+        };
 
-            for (Long followerId : followers) {
-                if (actor != null && followerId.equals(actor.getId())) {
-                    continue;
+        // Đăng ký chạy bất đồng bộ sau khi transaction đã commit thành công
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        java.util.concurrent.CompletableFuture.runAsync(asyncTask);
+                    }
                 }
-                if (notifiedUserIds.contains(followerId)) {
-                    continue;
-                }
-                userRepository.findById(followerId).ifPresent(follower -> {
-                    notificationService.sendNewCommentNotification(actor, updatedThread, saved, follower);
-                });
-            }
-        } catch (Exception e) {
-            // log error or ignore
+            );
+        } else {
+            java.util.concurrent.CompletableFuture.runAsync(asyncTask);
         }
 
         PostDTO resultDto = postMapper.toDTO(saved);
-        if (autoFollowed) {
+        if (willAutoFollow) {
             resultDto.setAutoFollowed(true);
         }
-        enrichPost(resultDto);
+        
+        // Khởi tạo các trường reaction trống cho bình luận mới tạo (tiết kiệm 3 truy vấn SELECT DB)
+        resultDto.setReactionSummary(new java.util.ArrayList<>());
+        resultDto.setCurrentUserReaction(null);
+        resultDto.setRecentReactors(new java.util.ArrayList<>());
+        
         return ResponseDTO.success(resultDto);
     }
 

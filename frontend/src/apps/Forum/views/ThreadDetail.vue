@@ -821,6 +821,7 @@ export default {
       }
 
       try {
+        this.loading = true
         this.submittingPost = true
         
         // Clean up old attachment HTML if exists
@@ -863,6 +864,7 @@ export default {
 
         const response = await postService.create(payload)
         
+        this.loading = false
         await alertSuccess('Gửi trả lời thành công')
         
         if (response.data && response.data.autoFollowed) {
@@ -889,9 +891,11 @@ export default {
           }, 400);
         })
       } catch (error) {
+        this.loading = false
         console.error(error)
         alertError('Không thể gửi câu trả lời')
       } finally {
+        this.loading = false
         this.submittingPost = false
       }
     },
