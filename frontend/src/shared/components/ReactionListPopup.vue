@@ -135,7 +135,6 @@ export default {
       if (!this.summary) return []
       return [...this.summary]
         .sort((a, b) => b.count - a.count)
-        .slice(0, 3)
     }
   },
   watch: {
@@ -192,9 +191,9 @@ export default {
 </script>
 
 <style scoped>
-.reaction-popup-card {
+:deep(.reaction-popup-card) {
   width: 600px;
-  max-width: 90vw;
+  max-width: calc(100% - 30px);
 }
 
 .reaction-popup-body {
@@ -208,6 +207,8 @@ export default {
   border-bottom: 1px solid #ddd;
   padding: 0 15px;
   background: #fdfdfd;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .reaction-tab {
@@ -222,6 +223,7 @@ export default {
   white-space: nowrap;
   transition: all 0.2s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .reaction-tab:hover {
