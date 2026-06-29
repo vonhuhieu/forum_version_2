@@ -34,6 +34,10 @@ body {
 }
 
 /* Header */
+header {
+  display: contents;
+}
+
 .header-top {
   background-color: var(--primary);
   color: white;
@@ -50,6 +54,9 @@ body {
   background-color: var(--primary-light);
   border-bottom: 1px solid var(--primary-dark);
   height: 50px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .nav-container {
