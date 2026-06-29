@@ -5,6 +5,7 @@ import com.forum.service.ReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reactions")
@@ -85,5 +86,27 @@ public class ReactionController {
             @RequestParam(defaultValue = "10") int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("updatedAt").descending());
         return ResponseEntity.ok(ResponseDTO.success(reactionService.getMessageReactionParticipants(id, iconId, pageable)));
+    }
+
+    @GetMapping("/received/summary")
+    public ResponseEntity<ResponseDTO<List<com.forum.dto.ReactionSummaryDTO>>> getReceivedReactionsSummary() {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (username == null || username.equals("anonymousUser")) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(ResponseDTO.success(reactionService.getReceivedReactionsSummary()));
+    }
+
+    @GetMapping("/received")
+    public ResponseEntity<ResponseDTO<org.springframework.data.domain.Page<com.forum.dto.ReceivedReactionDTO>>> getReceivedReactions(
+            @RequestParam(required = false) Long iconId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (username == null || username.equals("anonymousUser")) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return ResponseEntity.ok(ResponseDTO.success(reactionService.getReceivedReactions(iconId, pageable)));
     }
 }
