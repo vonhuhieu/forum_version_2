@@ -20,6 +20,7 @@ import AddConversation from '@/apps/Forum/views/AddConversation.vue'
 import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
 import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
+import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 
 const routes = [
   {
@@ -69,6 +70,12 @@ const routes = [
         path: 'conversations/:id',
         name: 'ConversationDetail',
         component: ConversationDetail,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account/received-reactions',
+        name: 'ReceivedReactions',
+        component: ReceivedReactions,
         meta: { requiresAuth: true }
       }
     ]

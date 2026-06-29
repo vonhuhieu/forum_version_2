@@ -33,6 +33,14 @@ class ReactionService {
     // type must be 'threads', 'posts', or 'messages'
     return api.get(`/reactions/${type}/${targetId}/participants`, { params })
   }
+
+  getReceivedReactionsSummary() {
+    return api.get('/reactions/received/summary')
+  }
+
+  getReceivedReactions(params) {
+    return api.get('/reactions/received', { params })
+  }
 }
 
 export default new ReactionService()
