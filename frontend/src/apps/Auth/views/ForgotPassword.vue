@@ -1,15 +1,19 @@
 <template>
   <div class="login-page">
+    <Loading :visible="isLoading" />
     <div class="card login-card">
       <div class="card-header">QUÊN MẬT KHẨU</div>
       
       <!-- Bước 1: Nhập Email -->
-      <form v-if="step === 1" @submit.prevent="handleSendCode" class="login-form">
+      <form v-if="step === STEPS.ENTER_CREDENTIALS" @submit.prevent="handleSendCode" class="login-form">
+        <div class="form-group">
+          <label>Tên đăng nhập</label>
+          <input type="text" v-model="username" required placeholder="Nhập tên đăng nhập">
+        </div>
         <div class="form-group">
           <label>Nhập Email đã đăng ký</label>
           <input type="email" v-model="email" required placeholder="example@domain.com">
         </div>
-        <div v-if="error" class="error-msg">{{ error }}</div>
         <div v-if="success" class="success-msg">{{ success }}</div>
         <button type="submit" class="btn-login" :disabled="isLoading">
           {{ isLoading ? 'Đang gửi...' : 'GỬI MÃ XÁC NHẬN' }}
@@ -20,7 +24,7 @@
       </form>
 
       <!-- Bước 2: Đổi mật khẩu -->
-      <form v-else-if="step === 2" @submit.prevent="handleResetPassword" class="login-form">
+      <form v-else-if="step === STEPS.RESET_PASSWORD" @submit.prevent="handleResetPassword" class="login-form">
         <div class="form-group">
           <label>Mã xác nhận (Gửi vào email)</label>
           <input type="text" v-model="code" required placeholder="Nhập mã 6 số">
@@ -51,7 +55,7 @@
           {{ isLoading ? 'Đang đổi...' : 'ĐỔI MẬT KHẨU' }}
         </button>
         <div style="margin-top: 1rem; text-align: center;">
-          <a href="#" @click.prevent="step = 1">Gửi lại mã xác nhận</a>
+          <a href="#" @click.prevent="step = STEPS.ENTER_CREDENTIALS">Gửi lại mã xác nhận</a>
         </div>
       </form>
     </div>
@@ -60,12 +64,18 @@
 
 <script>
 import AuthService from '@/apps/Auth/services/auth.service'
+import { FORGOT_PASSWORD_STEPS } from '@/shared/utils/constants'
+import Swal from 'sweetalert2'
+import Loading from '@/shared/components/Loading.vue'
 
 export default {
   name: 'ForgotPassword',
+  components: { Loading },
   data() {
     return {
-      step: 1,
+      STEPS: FORGOT_PASSWORD_STEPS,
+      step: FORGOT_PASSWORD_STEPS.ENTER_CREDENTIALS,
+      username: '',
       email: '',
       code: '',
       newPassword: '',
@@ -79,18 +89,24 @@ export default {
   },
   methods: {
     async handleSendCode() {
-      this.error = ''
       this.success = ''
       this.isLoading = true
       try {
-        const response = await AuthService.forgotPassword(this.email)
+        const response = await AuthService.forgotPassword(this.username, this.email)
         this.success = response.data.message || 'Đã gửi mã xác nhận'
         setTimeout(() => {
-          this.step = 2
+          this.step = FORGOT_PASSWORD_STEPS.RESET_PASSWORD
           this.success = ''
         }, 1500)
       } catch (err) {
-        this.error = err.response?.data?.message || 'Có lỗi xảy ra khi gửi mã'
+        const msg = err.response?.data?.message || 'Tên đăng nhập hoặc email không đúng. Vui lòng kiểm tra lại.'
+        Swal.fire({
+          icon: 'error',
+          title: 'Thông tin không chính xác',
+          text: msg,
+          confirmButtonText: 'Thử lại',
+          confirmButtonColor: '#1a507a'
+        })
       } finally {
         this.isLoading = false
       }

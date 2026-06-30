@@ -7,8 +7,8 @@ class AuthService {
   register(userData) {
     return api.post('/auth/register', userData)
   }
-  forgotPassword(email) {
-    return api.post('/auth/forgot-password', { email })
+  forgotPassword(username, email) {
+    return api.post('/auth/forgot-password', { username, email })
   }
   resetPassword(payload) {
     return api.post('/auth/reset-password', payload)

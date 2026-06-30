@@ -44,9 +44,10 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
         String email = request.get("email");
         try {
-            authService.generatePasswordResetCode(email);
+            authService.generatePasswordResetCode(username, email);
             return ResponseEntity.ok(Map.of("message", "Mã xác nhận đã được gửi đến email của bạn"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
