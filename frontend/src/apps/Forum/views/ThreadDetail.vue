@@ -59,8 +59,11 @@
         <div v-if="item.isMain" class="thread-content-card card" :id="'post-' + item.id" :class="{ 'highlight-jump': String(item.id) === String(highlightedPostId) }">
           <div class="post-layout">
             <div class="post-sidebar">
-              <div class="avatar-large" :style="{ backgroundColor: thread.author && thread.author.avatar ? thread.author.avatar : '#ccc', color: '#fff' }">
-                {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+              <div class="avatar-large" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                <template v-else>
+                  {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+                </template>
               </div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</div>
@@ -141,8 +144,11 @@
         <div v-else class="thread-content-card card reply-card" :id="'post-' + item.id" :class="{ 'highlight-jump': String(item.id) === String(highlightedPostId) }">
           <div class="post-layout">
             <div class="post-sidebar">
-              <div class="avatar-large" :style="{ backgroundColor: item.author && item.author.avatar ? item.author.avatar : '#ccc', color: '#fff' }">
-                {{ item.author ? (item.author.displayName || item.author.username).charAt(0).toUpperCase() : '?' }}
+              <div class="avatar-large" :style="!isAvatarUrl(item.author?.avatar) ? { backgroundColor: item.author?.avatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl(item.author?.avatar)" :src="item.author.avatar" />
+                <template v-else>
+                  {{ item.author ? (item.author.displayName || item.author.username).charAt(0).toUpperCase() : '?' }}
+                </template>
               </div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh' }}</div>
@@ -233,8 +239,11 @@
       <div ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;" v-if="isLoggedIn && !isNonOfficial && !thread.locked">
         <div class="post-layout">
           <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
-             <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
-                {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : '?' }}
+             <div class="avatar-large" :style="!isAvatarUrl(currentUserAvatar) ? { backgroundColor: currentUserAvatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl(currentUserAvatar)" :src="currentUserAvatar" />
+                <template v-else>
+                  {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : '?' }}
+                </template>
              </div>
           </div>
           <div class="post-main" style="padding: 0; border: 1px solid #e0e0e0;">
@@ -316,7 +325,7 @@ import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
-import { isNonOfficialUser } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ThreadDetail',
@@ -569,6 +578,9 @@ export default {
     }
   },
   methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
     async onNotificationClicked(event) {
       const { threadId } = event.detail;
       if (this.thread && String(this.thread.id) === String(threadId)) {

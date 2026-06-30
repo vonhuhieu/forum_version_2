@@ -44,8 +44,11 @@
         <template v-else>
           <div v-for="participant in participants" :key="participant.user.id" class="reaction-item">
             <div class="reactor-info">
-              <div class="avatar-circle" :style="{ backgroundColor: participant.user.avatar || '#ccc' }">
-                {{ (participant.user.displayName || participant.user.username).charAt(0).toUpperCase() }}
+              <div class="avatar-circle" :style="!isAvatarUrl(participant.user.avatar) ? { backgroundColor: participant.user.avatar || '#ccc' } : {}">
+                <img v-if="isAvatarUrl(participant.user.avatar)" :src="participant.user.avatar" />
+                <template v-else>
+                  {{ (participant.user.displayName || participant.user.username).charAt(0).toUpperCase() }}
+                </template>
               </div>
               <div class="reactor-details">
                 <div class="reactor-name">{{ participant.user.displayName || participant.user.username }}</div>
@@ -83,6 +86,7 @@ import ReactionIcon from './ReactionIcon.vue'
 import ForumPagination from './ForumPagination.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
+import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ReactionListPopup',
@@ -155,6 +159,9 @@ export default {
     handlePageChange(page) {
       this.currentPage = page
       this.fetchParticipants()
+    },
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)

@@ -24,8 +24,11 @@
           
           <div class="thread-list">
             <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center">
-              <div class="thread-avatar" :style="{ backgroundColor: thread.author && thread.author.avatar ? thread.author.avatar : '#ccc', color: '#fff' }">
-                {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+              <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                <template v-else>
+                  {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+                </template>
               </div>
               <div class="thread-main">
                 <div class="thread-title">
@@ -82,8 +85,11 @@
                   </router-link>
                   <span class="last-post-author">{{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }}</span>
                 </div>
-                <div class="last-post-avatar" :style="{ backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' }">
-                  {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                  <template v-else>
+                    {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                  </template>
                 </div>
               </div>
             </div>
@@ -158,7 +164,7 @@ import categoryService from '@/apps/Forum/services/category.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'LatestThreadsView',
@@ -219,6 +225,9 @@ export default {
     await this.fetchData()
   },
   methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
     checkAuth() {
       const user = localStorage.getItem('user')
       this.isLoggedIn = !!user

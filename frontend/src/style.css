@@ -592,3 +592,34 @@ main.container {
   }
 }
 
+/* Generic styles for image avatars inside helper containers */
+.thread-avatar,
+.last-post-avatar,
+.last-thread-avatar,
+.avatar-large,
+.avatar-mini,
+.reactor-avatar,
+.avatar-circle,
+.popup-avatar,
+.user-avatar-circle,
+.notif-avatar {
+  overflow: hidden !important;
+}
+
+.thread-avatar img,
+.last-post-avatar img,
+.last-thread-avatar img,
+.avatar-large img,
+.avatar-mini img,
+.reactor-avatar img,
+.avatar-circle img,
+.popup-avatar img,
+.user-avatar-circle img,
+.notif-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+

@@ -71,8 +71,11 @@
             >
               <div class="post-layout">
                 <div class="post-sidebar">
-                  <div class="avatar-large" :style="{ backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' }">
-                    {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
+                  <div class="avatar-large" :style="!isAvatarUrl(msg.sender?.avatar) ? { backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' } : {}">
+                    <img v-if="isAvatarUrl(msg.sender?.avatar)" :src="msg.sender.avatar" />
+                    <template v-else>
+                      {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
+                    </template>
                   </div>
                   <div class="author-info-mobile-block">
                     <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
@@ -138,9 +141,12 @@
           <div v-if="isCreator || !conversation.locked" ref="replyFormContainer" class="reply-box-wrapper card" style="margin-top: 2rem;">
             <div class="post-layout">
               <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
-                 <div class="avatar-large" :style="{ backgroundColor: currentUserAvatar || '#ccc', color: '#fff' }">
-                    {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : '?' }}
-                 </div>
+                  <div class="avatar-large" :style="!isAvatarUrl(currentUserAvatar) ? { backgroundColor: currentUserAvatar || '#ccc', color: '#fff' } : {}">
+                     <img v-if="isAvatarUrl(currentUserAvatar)" :src="currentUserAvatar" />
+                     <template v-else>
+                        {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : '?' }}
+                     </template>
+                  </div>
               </div>
               <div class="post-main" style="padding: 0; border: 1px solid #e0e0e0;">
                  <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" :allowedUsers="conversationParticipantsForTag" />
@@ -189,8 +195,11 @@
             <div class="card-header">Những người tham gia đối thoại</div>
             <div class="card-body participant-list">
               <div v-for="part in conversation.participants" :key="part.id" class="participant-row">
-                <div class="avatar-mini" :style="{ backgroundColor: part.avatar || '#ccc', color: '#fff' }">
-                  {{ (part.displayName || part.username).charAt(0).toUpperCase() }}
+                <div class="avatar-mini" :style="!isAvatarUrl(part.avatar) ? { backgroundColor: part.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(part.avatar)" :src="part.avatar" />
+                  <template v-else>
+                    {{ (part.displayName || part.username).charAt(0).toUpperCase() }}
+                  </template>
                 </div>
                 <div class="participant-info">
                   <div class="name">{{ part.displayName || part.username }}</div>
@@ -236,6 +245,7 @@ import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ConversationDetail',
@@ -487,6 +497,9 @@ export default {
           msg.recentReactors = msg.recentReactors.slice(0, 3);
         }
       }
+    },
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
     },
     openReactionPopup(orderNumber, targetId, summary) {
       this.reactionPopupData = {
