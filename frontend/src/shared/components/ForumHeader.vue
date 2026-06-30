@@ -56,7 +56,8 @@
         <div class="nav-right">
           <div class="nav-group-user" :class="{ 'active': showUserDropdown }" v-if="isLoggedIn" ref="userContainer" @click="toggleUserDropdown" style="cursor: pointer;">
             <div class="user-info-header">
-              <span class="user-avatar-small" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
+              <img v-if="isAvatarUrl(currentUser.avatar)" :src="currentUser.avatar" class="user-avatar-small user-avatar-img" />
+              <span v-else class="user-avatar-small" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
                 {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
               </span>
               <span class="user-greeting fs-18 color-c9d6e0">{{ truncatedDisplayName }}</span>
@@ -85,8 +86,14 @@
                 <div v-show="activeUserTab === 'account'" class="xamvn-tab-content">
                   <!-- User Brief Info -->
                   <div class="xamvn-user-brief">
-                    <div class="xamvn-avatar-large" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
-                      {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
+                    <div class="xamvn-avatar-wrapper" @click.stop="openAvatarModal">
+                      <img v-if="isAvatarUrl(currentUser.avatar)" :src="currentUser.avatar" class="xamvn-avatar-large xamvn-avatar-img" />
+                      <div v-else class="xamvn-avatar-large" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
+                        {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
+                      </div>
+                      <div class="xamvn-avatar-edit-overlay">
+                        <span>Sửa</span>
+                      </div>
                     </div>
                     <div class="xamvn-user-details">
                       <div class="xamvn-username">{{ currentUser.displayName || currentUser.username }}</div>
@@ -177,11 +184,14 @@
                      :class="{ 'unread': !convo.isRead }"
                      @click="goToConversation(convo)"
                    >
-                     <div class="notif-avatar-wrapper">
-                        <div class="notif-avatar" :style="{ backgroundColor: getConvoAvatarBg(convo) }">
-                           {{ getConvoAvatarText(convo) }}
-                        </div>
-                     </div>
+                      <div class="notif-avatar-wrapper">
+                         <div class="notif-avatar" :style="!isAvatarUrl(getConvoAvatarBg(convo)) ? { backgroundColor: getConvoAvatarBg(convo) } : {}">
+                            <img v-if="isAvatarUrl(getConvoAvatarBg(convo))" :src="getConvoAvatarBg(convo)" />
+                            <template v-else>
+                               {{ getConvoAvatarText(convo) }}
+                            </template>
+                         </div>
+                      </div>
                       <div class="notif-body">
                          <div class="notif-text">
                             <template v-if="convo.isReaction">
@@ -275,11 +285,14 @@
                      :class="{ 'unread': !notif.isRead }"
                      @click="handleNotifClick(notif)"
                    >
-                     <div class="notif-avatar-wrapper">
-                        <div class="notif-avatar" :style="{ backgroundColor: notif.actorAvatar || '#3498db' }">
-                           {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
-                        </div>
-                     </div>
+                      <div class="notif-avatar-wrapper">
+                         <div class="notif-avatar" :style="!isAvatarUrl(notif.actorAvatar) ? { backgroundColor: notif.actorAvatar || '#3498db' } : {}">
+                            <img v-if="isAvatarUrl(notif.actorAvatar)" :src="notif.actorAvatar" />
+                            <template v-else>
+                               {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
+                            </template>
+                         </div>
+                      </div>
                      <div class="notif-body">
                         <div class="notif-text">
                            <strong>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
@@ -380,6 +393,7 @@
 
   <PendingApprovalBanner v-if="isNonOfficial" />
   <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
+  <AvatarUploadModal :show="showAvatarModal" :current-user="currentUser" @close="showAvatarModal = false" @avatar-updated="onAvatarUpdated" />
 </template>
 
 <script>
@@ -394,13 +408,15 @@ import { isNonOfficialUser, truncateString } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
+import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 
 export default {
   name: 'ForumHeader',
   components: {
     PendingApprovalBanner,
     SearchModal,
-    ReactionIcon
+    ReactionIcon,
+    AvatarUploadModal
   },
   data() {
     return {
@@ -428,7 +444,8 @@ export default {
       showSearchDropdown: false,
       showSearchModal: false,
       searchQuery: '',
-      activeUserTab: 'account'
+      activeUserTab: 'account',
+      showAvatarModal: false
     }
   },
   computed: {
@@ -865,6 +882,24 @@ export default {
         return require(`@/assets/reactions/${code}.svg`)
       } catch (e) {
         return ''
+      }
+    },
+    isAvatarUrl(avatar) {
+      if (!avatar) return false
+      return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')
+    },
+    openAvatarModal() {
+      this.showAvatarModal = true
+    },
+    onAvatarUpdated(newAvatarUrl) {
+      // Update current component state
+      this.currentUser.avatar = newAvatarUrl
+      // Persist to localStorage so it survives page refresh
+      const stored = localStorage.getItem('user')
+      if (stored) {
+        const userData = JSON.parse(stored)
+        userData.avatar = newAvatarUrl
+        localStorage.setItem('user', JSON.stringify(userData))
       }
     },
     formatTime(dateStr) {
@@ -1347,6 +1382,42 @@ export default {
   border-bottom: 1px solid #e5e5e5;
 }
 
+.xamvn-avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.xamvn-avatar-wrapper:hover .xamvn-avatar-edit-overlay {
+  opacity: 1;
+}
+
+.xamvn-avatar-edit-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.xamvn-avatar-edit-overlay span {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .xamvn-avatar-large {
   width: 80px;
   height: 80px;
@@ -1359,6 +1430,20 @@ export default {
   flex-shrink: 0;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
   border: 1px solid rgba(0,0,0,0.05);
+}
+
+.xamvn-avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .xamvn-user-details {

@@ -14,8 +14,11 @@
       <div class="popup-content" v-else-if="userData">
         <div class="popup-top">
           <!-- Large circular avatar -->
-          <div class="popup-avatar" :style="{ backgroundColor: userData.avatar || '#3f51b5', color: '#fff' }">
-            {{ (userData.displayName || userData.username || 'A').charAt(0).toUpperCase() }}
+          <div class="popup-avatar" :style="!isAvatarUrl(userData.avatar) ? { backgroundColor: userData.avatar || '#3f51b5', color: '#fff' } : {}">
+            <img v-if="isAvatarUrl(userData.avatar)" :src="userData.avatar" />
+            <template v-else>
+              {{ (userData.displayName || userData.username || 'A').charAt(0).toUpperCase() }}
+            </template>
           </div>
           <!-- Info Details -->
           <div class="popup-info">
@@ -35,6 +38,7 @@
 
 <script>
 import userService from '@/apps/Forum/services/user.service'
+import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'UserProfilePopup',
@@ -68,6 +72,9 @@ export default {
     this.clearTimer()
   },
   methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
     handleMouseEnter() {
       if (this.isCurrentUser) return
       this.clearTimer()

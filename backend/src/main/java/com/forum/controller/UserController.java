@@ -51,6 +51,18 @@ public class UserController {
         }
     }
 
+    @PutMapping("/me/avatar")
+    public ResponseEntity<ResponseDTO<UserDTO>> updateMyAvatar(@RequestBody Map<String, String> payload) {
+        try {
+            String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String avatarUrl = payload.get("avatar");
+            UserDTO result = userService.updateMyAvatar(currentUsername, avatarUrl);
+            return ResponseEntity.ok(ResponseDTO.success(result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
     @GetMapping("/admin")
     public ResponseEntity<ResponseDTO<?>> getAdminUsers(
             @RequestParam(required = false) Integer page,

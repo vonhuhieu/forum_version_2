@@ -30,8 +30,11 @@
             <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center">
               
               <!-- Block trái (Avatar) -->
-              <div class="thread-avatar" :style="{ backgroundColor: convo.creatorAvatar || '#ccc', color: '#fff' }">
-                {{ (convo.creatorDisplayName || convo.creatorUsername || 'C').charAt(0).toUpperCase() }}
+              <div class="thread-avatar" :style="!isAvatarUrl(convo.creatorAvatar) ? { backgroundColor: convo.creatorAvatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl(convo.creatorAvatar)" :src="convo.creatorAvatar" />
+                <template v-else>
+                  {{ (convo.creatorDisplayName || convo.creatorUsername || 'C').charAt(0).toUpperCase() }}
+                </template>
               </div>
 
               <!-- Block chính (Main) -->
@@ -92,8 +95,11 @@
                     {{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'Ẩn danh' }}
                   </span>
                 </div>
-                <div class="last-post-avatar" :style="{ backgroundColor: convo.lastMessageSenderAvatar || '#ccc', color: '#fff' }">
-                  {{ (convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'A').charAt(0).toUpperCase() }}
+                <div class="last-post-avatar" :style="!isAvatarUrl(convo.lastMessageSenderAvatar) ? { backgroundColor: convo.lastMessageSenderAvatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(convo.lastMessageSenderAvatar)" :src="convo.lastMessageSenderAvatar" />
+                  <template v-else>
+                    {{ (convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'A').charAt(0).toUpperCase() }}
+                  </template>
                 </div>
               </div>
 
@@ -129,6 +135,7 @@ import conversationService from '@/apps/Forum/services/conversation.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { formatForumDate } from '@/shared/utils/date'
+import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ConversationList',
@@ -196,6 +203,9 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)

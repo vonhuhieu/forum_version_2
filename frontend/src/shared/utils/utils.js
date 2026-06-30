@@ -46,3 +46,13 @@ export const THREAD_SCOPES = {
   PUBLIC: 'PUBLIC',
   INTERNAL: 'INTERNAL'
 };
+
+/**
+ * Kiểm tra xem chuỗi đại diện avatar có phải là đường dẫn URL ảnh hay không.
+ * @param {string} avatar
+ * @returns {boolean}
+ */
+export function isAvatarUrl(avatar) {
+  if (!avatar) return false;
+  return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/');
+}

@@ -9,8 +9,11 @@
       <div class="thread-list">
         <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8">
           <user-profile-popup :user="thread.author" v-if="thread.author">
-            <div class="thread-avatar" :style="{ backgroundColor: thread.author && thread.author.avatar ? thread.author.avatar : '#ccc', color: '#fff' }">
-              {{ (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() }}
+            <div class="thread-avatar" :style="!isAvatarUrl(thread.author.avatar) ? { backgroundColor: thread.author.avatar || '#ccc', color: '#fff' } : {}">
+              <img v-if="isAvatarUrl(thread.author.avatar)" :src="thread.author.avatar" />
+              <template v-else>
+                {{ (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() }}
+              </template>
             </div>
           </user-profile-popup>
           <div v-else class="thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
@@ -86,8 +89,11 @@
               <span class="last-post-author">{{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }}</span>
             </div>
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
-              <div class="last-post-avatar" :style="{ backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' }">
-                {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+              <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                <template v-else>
+                  {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                </template>
               </div>
             </user-profile-popup>
             <div v-else class="last-post-avatar" style="background-color: #ccc; color: #fff;">A</div>
@@ -146,8 +152,11 @@
           </div>
           <div class="category-last-thread home-category-last-thread">
             <div v-if="lastThreadByCat[cat.id]" class="last-thread-box home-last-thread-box">
-              <div class="last-thread-avatar" :style="{ backgroundColor: (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar || '#ccc', color: '#fff' }">
-                {{ ((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'A').charAt(0).toUpperCase() }}
+              <div class="last-thread-avatar" :style="!isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar) ? { backgroundColor: (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar || '#ccc', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" :src="(lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar" />
+                <template v-else>
+                  {{ ((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'A').charAt(0).toUpperCase() }}
+                </template>
               </div>
               <div class="last-thread-info home-last-thread-info">
                 <router-link :to="{ name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
@@ -186,8 +195,11 @@
         </div>
         <div v-else class="latest-threads-list">
           <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item">
-            <div class="lt-avatar" :style="{ backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' }">
-              {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+            <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
+              <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+              <template v-else>
+                {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+              </template>
             </div>
             <div class="lt-content">
               <div class="lt-title">
@@ -270,6 +282,7 @@
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import { formatForumDate } from '@/shared/utils/date'
+import { isAvatarUrl } from '@/shared/utils/utils'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 
 export default {
@@ -355,6 +368,9 @@ export default {
       } catch (e) {
         console.error(e)
       }
+    },
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)
