@@ -44,6 +44,11 @@ public class ThreadService {
         threadListCache.clear();
     }
 
+    public static void clearAllCaches() {
+        threadCache.clear();
+        threadListCache.clear();
+    }
+
     private SearchDocument mapThreadToSearchDocument(Thread thread) {
         SearchDocument doc = new SearchDocument();
         doc.setId("thread_" + thread.getId());

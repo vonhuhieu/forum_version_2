@@ -178,6 +178,10 @@ export default {
   },
   async mounted() {
     await this.fetchConversationsPaged()
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
     goToCreateConversation() {
@@ -206,6 +210,19 @@ export default {
     },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      this.conversations = this.conversations.map(c => {
+        const updated = { ...c }
+        if (c.creatorUsername === username) {
+          updated.creatorAvatar = avatar
+        }
+        if (c.lastMessageSenderUsername === username) {
+          updated.lastMessageSenderAvatar = avatar
+        }
+        return updated
+      })
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)

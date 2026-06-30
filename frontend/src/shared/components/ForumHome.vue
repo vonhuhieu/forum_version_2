@@ -337,6 +337,10 @@ export default {
     if (this.$route.hash) {
       this.scrollToHash(this.$route.hash)
     }
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
     async fetchData() {
@@ -371,6 +375,29 @@ export default {
     },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      const updatedLastThreadByCat = { ...this.lastThreadByCat }
+      Object.keys(updatedLastThreadByCat).forEach(catId => {
+        const thread = updatedLastThreadByCat[catId]
+        if (thread) {
+          const updatedThread = { ...thread }
+          let changed = false
+          if (thread.author && thread.author.username === username) {
+            updatedThread.author = { ...thread.author, avatar }
+            changed = true
+          }
+          if (thread.lastPostAuthor && thread.lastPostAuthor.username === username) {
+            updatedThread.lastPostAuthor = { ...thread.lastPostAuthor, avatar }
+            changed = true
+          }
+          if (changed) {
+            updatedLastThreadByCat[catId] = updatedThread
+          }
+        }
+      })
+      this.lastThreadByCat = updatedLastThreadByCat
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)

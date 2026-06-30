@@ -280,10 +280,47 @@ export default {
   async mounted() {
     this.checkAuth()
     await this.fetchData()
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      this.threads = this.threads.map(t => {
+        const updated = { ...t }
+        if (t.author && t.author.username === username) {
+          updated.author = { ...t.author, avatar }
+        }
+        if (t.lastPostAuthor && t.lastPostAuthor.username === username) {
+          updated.lastPostAuthor = { ...t.lastPostAuthor, avatar }
+        }
+        return updated
+      })
+      const updatedLastThreadByCat = { ...this.lastThreadByCat }
+      Object.keys(updatedLastThreadByCat).forEach(subId => {
+        const thread = updatedLastThreadByCat[subId]
+        if (thread) {
+          const updatedThread = { ...thread }
+          let changed = false
+          if (thread.author && thread.author.username === username) {
+            updatedThread.author = { ...thread.author, avatar }
+            changed = true
+          }
+          if (thread.lastPostAuthor && thread.lastPostAuthor.username === username) {
+            updatedThread.lastPostAuthor = { ...thread.lastPostAuthor, avatar }
+            changed = true
+          }
+          if (changed) {
+            updatedLastThreadByCat[subId] = updatedThread
+          }
+        }
+      })
+      this.lastThreadByCat = updatedLastThreadByCat
     },
     checkAuth() {
       const user = localStorage.getItem('user')
