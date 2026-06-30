@@ -223,10 +223,27 @@ export default {
   async mounted() {
     this.checkAuth()
     await this.fetchData()
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      this.threads = this.threads.map(t => {
+        const updated = { ...t }
+        if (t.author && t.author.username === username) {
+          updated.author = { ...t.author, avatar }
+        }
+        if (t.lastPostAuthor && t.lastPostAuthor.username === username) {
+          updated.lastPostAuthor = { ...t.lastPostAuthor, avatar }
+        }
+        return updated
+      })
     },
     checkAuth() {
       const user = localStorage.getItem('user')

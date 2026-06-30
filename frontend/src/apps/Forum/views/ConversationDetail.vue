@@ -337,12 +337,14 @@ export default {
     } else {
       this.scrollToBottom()
     }
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   beforeUnmount() {
     window.removeEventListener('conversation-clicked', this.handleConversationClicked)
     if (this.unsubscribeMessages) {
       this.unsubscribeMessages()
     }
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   watch: {
     '$route.params.id': {
@@ -500,6 +502,32 @@ export default {
     },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      if (this.conversation) {
+        const updatedConversation = { ...this.conversation }
+        if (this.conversation.participants) {
+          updatedConversation.participants = this.conversation.participants.map(p => {
+            if (p.username === username) {
+              return { ...p, avatar }
+            }
+            return p
+          })
+        }
+        if (this.conversation.messages) {
+          updatedConversation.messages = this.conversation.messages.map(m => {
+            if (m.sender && m.sender.username === username) {
+              return { ...m, sender: { ...m.sender, avatar } }
+            }
+            return m
+          })
+        }
+        this.conversation = updatedConversation
+      }
+      if (this.currentUser && this.currentUser.username === username) {
+        this.currentUserAvatar = avatar
+      }
     },
     openReactionPopup(orderNumber, targetId, summary) {
       this.reactionPopupData = {

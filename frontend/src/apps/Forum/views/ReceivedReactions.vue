@@ -152,10 +152,23 @@ export default {
   },
   mounted() {
     this.fetchData()
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      this.reactions = this.reactions.map(item => {
+        if (item.actor && item.actor.username === username) {
+          return { ...item, actor: { ...item.actor, avatar } }
+        }
+        return item
+      })
     },
     async fetchData() {
       this.loading = true
