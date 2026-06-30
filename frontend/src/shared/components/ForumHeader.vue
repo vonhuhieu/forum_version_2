@@ -901,6 +901,14 @@ export default {
         userData.avatar = newAvatarUrl
         localStorage.setItem('user', JSON.stringify(userData))
       }
+      
+      // Dispatch a window event to update avatar in other active components
+      window.dispatchEvent(new CustomEvent('user-avatar-updated', {
+        detail: {
+          username: this.currentUser.username,
+          avatar: newAvatarUrl
+        }
+      }))
     },
     formatTime(dateStr) {
       return formatForumDate(dateStr)

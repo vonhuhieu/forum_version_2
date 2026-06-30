@@ -491,12 +491,14 @@ export default {
     this.initQuoteCollapsing()
 
     window.addEventListener('notification-clicked', this.onNotificationClicked);
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated);
   },
   updated() {
     this.initQuoteCollapsing()
   },
   beforeUnmount() {
     window.removeEventListener('notification-clicked', this.onNotificationClicked);
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated);
   },
   watch: {
     // Lắng nghe khi tham số query thay đổi (trong trường hợp click thông báo khi đang ở sẵn trong trang này)
@@ -580,6 +582,21 @@ export default {
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      if (this.thread && this.thread.author && this.thread.author.username === username) {
+        this.thread.author = { ...this.thread.author, avatar }
+      }
+      this.posts = this.posts.map(p => {
+        if (p.author && p.author.username === username) {
+          return { ...p, author: { ...p.author, avatar } }
+        }
+        return p
+      })
+      if (this.currentUser && this.currentUser.username === username) {
+        this.currentUserAvatar = avatar
+      }
     },
     async onNotificationClicked(event) {
       const { threadId } = event.detail;

@@ -342,6 +342,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         user.setAvatar(avatarUrl);
         User saved = userRepository.save(user);
+        com.forum.service.ThreadService.clearAllCaches();
         return convertToDTO(saved);
     }
 
