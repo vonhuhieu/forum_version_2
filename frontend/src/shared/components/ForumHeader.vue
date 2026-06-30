@@ -186,7 +186,7 @@
                          <div class="notif-text">
                             <template v-if="convo.isReaction">
                                <strong>{{ convo.creatorDisplayName || convo.creatorUsername }}</strong> đã tương tác 
-                               <img :src="getReactionIconUrl(convo.reactionIcon)" class="notif-reaction-icon" :title="convo.reactionName" />
+                               <ReactionIcon :code="convo.reactionIcon" :color="convo.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" />
                                <strong :style="{ color: convo.reactionColor || '#2c3e50' }">{{ convo.reactionName }}</strong>
                                với trả lời của bạn trong hội thoại 
                                <span class="convo-title-link" style="display: inline;">{{ convo.title }}</span>
@@ -284,7 +284,7 @@
                         <div class="notif-text">
                            <strong>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
                            <template v-if="notif.type === 'REACTION'">
-                              đã tương tác <img :src="getReactionIconUrl(notif.reactionIcon)" class="notif-reaction-icon" :title="notif.reactionName" /> 
+                              đã tương tác <ReactionIcon :code="notif.reactionIcon" :color="notif.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" /> 
                               <strong :style="{ color: notif.reactionColor || '#2c3e50' }">{{ notif.reactionName }}</strong>
                               với bài viết của bạn trong chủ đề
                            </template>
@@ -393,12 +393,14 @@ import { alertSuccess, alertWarning } from '@/shared/utils/swal'
 import { isNonOfficialUser, truncateString } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
+import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 
 export default {
   name: 'ForumHeader',
   components: {
     PendingApprovalBanner,
-    SearchModal
+    SearchModal,
+    ReactionIcon
   },
   data() {
     return {
