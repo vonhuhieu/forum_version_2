@@ -12,8 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Random;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.SimpleMailMessage;
 
 @Service
 public class AuthService {
@@ -26,6 +24,9 @@ public class AuthService {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private EmailService emailService;
 
     public Map<String, Object> authenticateUser(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username)
@@ -89,13 +90,11 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
-
-    public void generatePasswordResetCode(String email) {
+    public void generatePasswordResetCode(String username, String email) {
         Optional<User> userOpt = userRepository.findFirstByEmail(email);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
+        // Kiểm tra cả email tồn tại lẫn username khớp — thông báo chung để tránh lộ thông tin
+        if (userOpt.isEmpty() || !userOpt.get().getUsername().equals(username)) {
+            throw new IllegalArgumentException("Tên đăng nhập hoặc email không chính xác");
         }
 
         User user = userOpt.get();
@@ -106,18 +105,11 @@ public class AuthService {
 
         System.out.println("Mã reset mật khẩu cho email " + email + " là: " + code);
 
-        if (mailSender != null) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(email);
-                message.setSubject("Mã xác nhận lấy lại mật khẩu - Diễn đàn");
-                message.setText("Mã xác nhận của bạn là: " + code + "\nMã này sẽ hết hạn sau 15 phút.");
-                mailSender.send(message);
-            } catch (Exception e) {
-                System.out.println("Lỗi gửi email: " + e.getMessage());
-                // Khong throw exception de van log code ra console cho muc dich test
-            }
-        }
+        emailService.sendEmailAsync(
+            email,
+            "Mã xác nhận lấy lại mật khẩu - Diễn đàn",
+            "Mã xác nhận của bạn là: " + code + "\nMã này sẽ hết hạn sau 15 phút."
+        );
     }
 
     public void resetPasswordWithCode(String email, String code, String newPassword) {
