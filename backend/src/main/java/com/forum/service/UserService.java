@@ -336,6 +336,15 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    @Transactional
+    public UserDTO updateMyAvatar(String username, String avatarUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setAvatar(avatarUrl);
+        User saved = userRepository.save(user);
+        return convertToDTO(saved);
+    }
+
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());

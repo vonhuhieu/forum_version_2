@@ -32,8 +32,11 @@
               </div>
               <div v-else class="latest-threads-list">
                 <div v-for="thread in latestThreads" :key="thread.id" class="latest-thread-item">
-                  <div class="lt-avatar" :style="{ backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' }">
-                    {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                  <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                    <template v-else>
+                      {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                    </template>
                   </div>
                   <div class="lt-content">
                     <div class="lt-title">
@@ -177,7 +180,7 @@ import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import statisticsService from '@/apps/Forum/services/statistics.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'HomeView',
@@ -225,6 +228,9 @@ export default {
     this.loadAllData()
   },
   methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
     checkAuth() {
       const user = localStorage.getItem('user')
       if (user) {
