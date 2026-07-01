@@ -28,13 +28,14 @@
             </button>
           </div>
           <div class="sidebar-menu">
-            <a 
-              href="#" 
+            <router-link 
+              :to="{ name: 'UserProfile' }" 
               class="menu-item" 
-              @click.prevent="isOpen = false"
+              :class="{ 'is-active': activeMenu === 'profile' }"
+              @click="isOpen = false"
             >
               Trang cá nhân
-            </a>
+            </router-link>
             <a 
               href="#" 
               class="menu-item" 

@@ -14,6 +14,11 @@ public class PostDTO {
     private String attachedImages;
     private Boolean autoFollowed;
     
+    private String threadTitle;
+    private LabelDTO threadLabel;
+    private CategoryDTO category;
+    private Long seqNumber;
+    
     // Reactions fields
     private List<ReactionSummaryDTO> reactionSummary;
     private ReactionIconDTO currentUserReaction;

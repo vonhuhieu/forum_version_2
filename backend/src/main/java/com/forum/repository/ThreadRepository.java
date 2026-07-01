@@ -76,6 +76,9 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
     List<Object[]> getCategoryStats();
 
     long countByAuthorId(Long authorId);
+
+    @EntityGraph(attributePaths = {"category", "label", "author", "poll"})
+    org.springframework.data.domain.Page<Thread> findByAuthorUsernameOrderByCreatedAtDesc(String username, org.springframework.data.domain.Pageable pageable);
 }
 
 

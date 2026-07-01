@@ -37,4 +37,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Object[]> findLatestPostFieldsForThreadIds(@org.springframework.data.repository.query.Param("threadIds") List<Long> threadIds);
 
     long countByAuthorId(Long authorId);
+
+    @org.springframework.data.jpa.repository.Query(
+        value = "SELECT p FROM Post p LEFT JOIN FETCH p.author LEFT JOIN FETCH p.thread LEFT JOIN FETCH p.thread.category LEFT JOIN FETCH p.thread.label WHERE p.author.username = :username ORDER BY p.createdAt DESC",
+        countQuery = "SELECT COUNT(p) FROM Post p WHERE p.author.username = :username"
+    )
+    org.springframework.data.domain.Page<Post> findByAuthorUsernameOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("username") String username, org.springframework.data.domain.Pageable pageable);
 }

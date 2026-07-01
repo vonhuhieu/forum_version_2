@@ -225,6 +225,29 @@ public class ThreadService {
         return ResponseDTO.success(dto);
     }
 
+    public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getMyThreadsPaged(String username, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Thread> threadPage = threadRepository.findByAuthorUsernameOrderByCreatedAtDesc(username, pageable);
+        List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
+        enrichThreads(dtos);
+        
+        // Trả lại content cho DTO của bản thân (vì enrichThreads set content = null)
+        // Nhưng ở màn hình list của Profile, ta lại cần content để hiển thị dòng 2!
+        // Để ý dòng 259: dto.setContent(null). Do đó ta cần khôi phục content sau khi enrichThreads,
+        // hoặc viết hàm riêng. Để đơn giản, ta khôi phục content từ DB.
+        for (int i = 0; i < dtos.size(); i++) {
+            dtos.get(i).setContent(threadPage.getContent().get(i).getContent());
+        }
+
+        return ResponseDTO.success(new com.forum.dto.PageResponseDTO<>(
+            dtos,
+            threadPage.getTotalPages(),
+            threadPage.getTotalElements(),
+            threadPage.getNumber(),
+            threadPage.getSize()
+        ));
+    }
+
     private void enrichThreads(List<ThreadDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) return;
         

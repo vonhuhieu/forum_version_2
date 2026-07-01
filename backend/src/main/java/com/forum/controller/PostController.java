@@ -31,6 +31,14 @@ public class PostController {
         return ResponseEntity.ok(postService.getPostPageNumber(id, size));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ResponseDTO<com.forum.dto.PageResponseDTO<PostDTO>>> getMyPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String currentUsername = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(postService.getMyPostsPaged(currentUsername, page, size));
+    }
+
     @PostMapping
     public ResponseEntity<ResponseDTO<PostDTO>> createPost(@RequestBody PostDTO postDTO) {
         try {
