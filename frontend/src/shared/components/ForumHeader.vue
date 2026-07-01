@@ -116,7 +116,8 @@
                   </div>
 
                   <!-- Double Column Links -->
-                  <div class="xamvn-links-grid">
+                  <div class="xamvn-links-grid" @click="showUserDropdown = false">
+                    <router-link :to="{ name: 'UserProfile' }" class="xamvn-link-item">Trang cá nhân</router-link>
                     <a href="#" class="xamvn-link-item" @click.prevent="goToReceivedReactions">Điểm tương tác nhận được</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>
@@ -125,6 +126,7 @@
                     <a href="#" class="xamvn-link-item" @click.prevent>Bảo mật cá nhân</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Phớt lờ</a>
                   </div>
+
                 </div>
 
                 <!-- Tab: Dấu trang -->
@@ -514,6 +516,7 @@ export default {
       nav.addEventListener('scroll', this.updateScrollArrows)
     }
     window.addEventListener('resize', this.updateScrollArrows)
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
 
     try {
       const response = await menuService.getAll()
@@ -542,8 +545,15 @@ export default {
       nav.removeEventListener('scroll', this.updateScrollArrows)
     }
     window.removeEventListener('resize', this.updateScrollArrows)
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      if (this.currentUser && this.currentUser.username === username) {
+        this.currentUser.avatar = avatar
+      }
+    },
     async syncUserProfile() {
       if (!this.isLoggedIn || !this.currentUser || !this.currentUser.username) return
       try {

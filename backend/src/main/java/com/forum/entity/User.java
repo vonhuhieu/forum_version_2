@@ -38,6 +38,9 @@ public class User {
     @Column
     private String avatar;
 
+    @Column(name = "profile_banner")
+    private String profileBanner;
+
     @Column
     private String email;
 
@@ -50,6 +53,9 @@ public class User {
     @org.hibernate.annotations.CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
 
     public User(String username, String password, Set<String> roles) {
         this.username = username;

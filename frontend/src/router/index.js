@@ -21,6 +21,8 @@ import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
 import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
+import UserProfile from '@/apps/Forum/views/UserProfile.vue'
+import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
   {
@@ -76,6 +78,12 @@ const routes = [
         path: 'account/received-reactions',
         name: 'ReceivedReactions',
         component: ReceivedReactions,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account/profile',
+        name: 'UserProfile',
+        component: UserProfile,
         meta: { requiresAuth: true }
       }
     ]
@@ -206,6 +214,10 @@ router.beforeEach((to, from, next) => {
   }
 
   next()
+})
+
+router.afterEach(() => {
+  activeTracker.updateActive()
 })
 
 export default router
