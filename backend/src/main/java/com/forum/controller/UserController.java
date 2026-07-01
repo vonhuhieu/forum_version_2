@@ -75,6 +75,17 @@ public class UserController {
         }
     }
 
+    @PostMapping("/me/active")
+    public ResponseEntity<ResponseDTO<Void>> updateActive() {
+        try {
+            String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            userService.updateLastActive(currentUsername);
+            return ResponseEntity.ok(ResponseDTO.success(null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
     @GetMapping("/admin")
     public ResponseEntity<ResponseDTO<?>> getAdminUsers(
             @RequestParam(required = false) Integer page,

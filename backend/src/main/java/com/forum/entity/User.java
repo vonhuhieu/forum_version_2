@@ -54,6 +54,9 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
+
     public User(String username, String password, Set<String> roles) {
         this.username = username;
         this.password = password;

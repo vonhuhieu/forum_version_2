@@ -67,3 +67,26 @@
         margin-top: 4px !important;
     }
 }
+
+@media (min-width: 768px) {
+    .pt-196 {
+        padding-top: 196px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .no-pt-mobile {
+        padding: 0 !important;
+    }
+
+    .pl-and-pr-6 {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+}
+
+@media (max-width: 376px) {
+    .fs-9 {
+        font-size: 9px !important;
+    }
+}

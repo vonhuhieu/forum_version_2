@@ -70,6 +70,8 @@ public class UserService {
         dto.setPostCount(totalPosts);
         dto.setInteractionPoints(interactionPoints);
         dto.setTrophyPoints(trophyPoints);
+        dto.setThreadCount(threadCount);
+        dto.setCommentCount(postCountInDb);
     }
 
     public List<UserDTO> getAdminUsers(String currentUsername) {
@@ -356,6 +358,14 @@ public class UserService {
         return convertToDTO(saved);
     }
 
+    @Transactional
+    public void updateLastActive(String username) {
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setLastActiveAt(java.time.LocalDateTime.now());
+            userRepository.save(user);
+        });
+    }
+
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
@@ -365,6 +375,7 @@ public class UserService {
         dto.setAvatar(user.getAvatar());
         dto.setProfileBanner(user.getProfileBanner());
         dto.setCreatedAt(user.getCreatedAt());
+        dto.setLastActiveAt(user.getLastActiveAt());
         dto.setRoles(user.getRoles());
         return dto;
     }

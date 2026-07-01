@@ -172,10 +172,10 @@ export default {
       return this.mode === 'banner' ? 110 : 320
     },
     outputWidth() {
-      return this.mode === 'banner' ? 960 : 400
+      return this.mode === 'banner' ? 2400 : 400
     },
     outputHeight() {
-      return this.mode === 'banner' ? 240 : 400
+      return this.mode === 'banner' ? 600 : 400
     },
     previewStyle() {
       return {

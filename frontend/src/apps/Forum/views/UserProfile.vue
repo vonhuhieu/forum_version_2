@@ -22,20 +22,8 @@
             >
               <div class="banner-overlay-gradient" v-if="userStats.profileBanner"></div>
               
-              <!-- Nút hành động trên banner -->
-              <div class="banner-actions">
-                <button class="btn-banner-action" @click="triggerReport">Báo cáo</button>
-                <button class="btn-banner-action btn-banner-edit" @click="openUploadModal('banner')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                  </svg>
-                  Edit profile banner
-                </button>
-              </div>
-
               <!-- Thông tin tài khoản phía trên (nằm trong phạm vi banner) -->
-              <div class="profile-info-upper" :class="{ 'text-white': !!userStats.profileBanner }">
+              <div class="profile-info-upper no-pt-mobile" :class="{ 'text-white': !!userStats.profileBanner }">
                 <div class="profile-avatar-wrapper" @click="openUploadModal('avatar')">
                   <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" class="profile-avatar-img" />
                   <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
@@ -53,14 +41,25 @@
                     <span class="meta-item">Tham gia: {{ formatDate(userStats.createdAt) }}</span>
                   </div>
                   <div class="profile-time-row">
-                    <span class="meta-item text-dimmed">Thấy lần gần nhất: 3 phút trước · Đang xem hồ sơ thành viên <span class="highlight-self">{{ userStats.displayName || userStats.username }}</span></span>
+                    <span class="meta-item text-dimmed">Thấy lần gần nhất: {{ formatDate(userStats.lastActiveAt) }}</span>
+                  </div>
+                  <!-- Nút hành động nằm dưới meta -->
+                  <div class="banner-actions">
+                    <button class="btn-banner-action fs-9" @click="triggerReport">Báo cáo</button>
+                    <button class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      Đổi ảnh bìa
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Vùng thống kê phía dưới banner -->
-            <div class="profile-stats-bar">
+            <div class="profile-stats-bar pt-196">
               <div class="stat-box">
                 <span class="stat-label">Bài viết</span>
                 <span class="stat-val">{{ userStats.postCount || 0 }}</span>
@@ -74,27 +73,25 @@
                 <span class="stat-val">{{ userStats.trophyPoints || 0 }}</span>
               </div>
             </div>
-          </div>
 
-          <!-- Thành phần 2: Tabs Selection -->
-          <div class="profile-tabs-card card" style="margin-top: 1.5rem;">
+            <!-- Thành phần 2: Tabs Selection -->
             <div class="profile-tabs-bar">
               <button 
-                class="profile-tab-btn" 
+                class="profile-tab-btn pl-and-pr-6" 
                 :class="{ 'is-active': activeTab === 'posts' }"
                 @click="switchTab('posts')"
               >
-                Bài đăng
+                Bài đăng ({{ userStats.threadCount || 0 }})
               </button>
               <button 
-                class="profile-tab-btn" 
+                class="profile-tab-btn pl-and-pr-6" 
                 :class="{ 'is-active': activeTab === 'comments' }"
                 @click="switchTab('comments')"
               >
-                Bình luận/Phản hồi
+                Bình luận/Phản hồi ({{ userStats.commentCount || 0 }})
               </button>
               <button 
-                class="profile-tab-btn" 
+                class="profile-tab-btn pl-and-pr-6" 
                 :class="{ 'is-active': activeTab === 'about' }"
                 @click="switchTab('about')"
               >
@@ -106,27 +103,7 @@
             <div class="profile-tab-content">
               <!-- Tab: Giới thiệu -->
               <div v-if="activeTab === 'about'" class="about-tab-panel">
-                <div class="about-section">
-                  <h3 class="about-header">Giới thiệu bản thân</h3>
-                  <p class="about-empty-text">Thành viên này chưa viết lời giới thiệu.</p>
-                </div>
-                <div class="about-section" style="margin-top: 2rem;">
-                  <h3 class="about-header">Thông tin tài khoản</h3>
-                  <table class="about-stats-table">
-                    <tr>
-                      <td>Ngày tham gia:</td>
-                      <td>{{ formatDate(userStats.createdAt) }}</td>
-                    </tr>
-                    <tr>
-                      <td>Tên tài khoản:</td>
-                      <td>{{ userStats.username }}</td>
-                    </tr>
-                    <tr>
-                      <td>Vai trò nhóm:</td>
-                      <td>{{ formatRoles(userStats.roles) }}</td>
-                    </tr>
-                  </table>
-                </div>
+                <p class="about-empty-text">Thành viên này chưa viết lời giới thiệu.</p>
               </div>
 
               <!-- Tab: Bài đăng & Bình luận/Phản hồi -->
@@ -178,12 +155,13 @@
                           <span class="meta-post-number">Post #{{ activeTab === 'posts' ? 1 : item.seqNumber }}</span>
                           <span class="meta-divider">&middot;</span>
                           <span class="meta-time">{{ formatDate(item.createdAt) }}</span>
-                          <span class="meta-divider">&middot;</span>
-                          <span class="meta-category">
-                            Chuyên mục: 
-                            <span class="category-link" @click="goToCategory(item.category || (item.category || {}))">
-                              {{ item.category ? item.category.name : 'Không xác định' }}
-                            </span>
+                        </div>
+
+                        <!-- Dòng 4: Chuyên mục -->
+                        <div class="item-category-row">
+                          Chuyên mục: 
+                          <span class="category-link" @click="goToCategory(item.category)">
+                            {{ item.category ? item.category.name : 'Không xác định' }}
                           </span>
                         </div>
                       </div>
@@ -314,8 +292,8 @@ export default {
       const localUser = JSON.parse(userStr)
       try {
         const res = await api.get('/users/by-name', { params: { name: localUser.username } })
-        if (res.data && res.data.data) {
-          this.userStats = res.data.data
+        if (res.data) {
+          this.userStats = res.data
           // Đồng bộ lại local storage nếu có thay đổi ảnh/tên
           const updatedLocalUser = {
             ...localUser,
@@ -346,9 +324,9 @@ export default {
           }
         })
         
-        if (res.data && res.data.data) {
-          this.items = res.data.data.content || []
-          this.totalPages = res.data.data.totalPages || 1
+        if (res.data) {
+          this.items = res.data.content || []
+          this.totalPages = res.data.totalPages || 1
         } else {
           this.items = []
           this.totalPages = 1
@@ -378,7 +356,7 @@ export default {
         try {
           this.loading = true
           const res = await api.get(`/posts/${item.id}/page-number`, { params: { size: 10 } })
-          const pageNum = res.data?.data || 1
+          const pageNum = res.data || 1
           this.$router.push({
             name: 'ThreadDetail',
             params: { id: item.threadId },
@@ -424,7 +402,7 @@ export default {
 @media (max-width: 992px) {
   .account-layout {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0;
   }
 }
 
@@ -468,17 +446,18 @@ export default {
 .banner-overlay-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.12) 100%);
   z-index: 1;
 }
 
 .banner-actions {
-  position: absolute;
-  top: 15px;
-  right: 15px;
+  position: relative;
+  top: auto;
+  left: auto;
+  margin-top: 16px;
   display: flex;
   gap: 8px;
-  z-index: 5;
+  z-index: 10;
 }
 
 .btn-banner-action {
@@ -513,11 +492,16 @@ export default {
 
 /* Info upper positioning inside banner */
 .profile-info-upper {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  z-index: 3;
+  position: absolute;
+  top: 100%;
+  left: 0;
   width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0 24px;
+  gap: 20px;
+  z-index: 10;
 }
 
 @media (max-width: 576px) {
@@ -527,23 +511,20 @@ export default {
 }
 
 .profile-avatar-wrapper {
-  width: 96px;
-  height: 96px;
+  position: relative;
+  left: auto;
+  bottom: auto;
+  margin-top: 20px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   border: 4px solid #ffffff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   overflow: hidden;
-  position: relative;
   cursor: pointer;
-  flex-shrink: 0;
+  z-index: 11;
   background-color: #fff;
-}
-
-@media (max-width: 576px) {
-  .profile-avatar-wrapper {
-    width: 72px;
-    height: 72px;
-  }
+  flex-shrink: 0;
 }
 
 .profile-avatar-wrapper:hover .avatar-edit-overlay {
@@ -584,17 +565,35 @@ export default {
   justify-content: center;
   color: #fff;
   font-weight: bold;
-  font-size: 2.2rem;
+  font-size: 5.5rem;
 }
 
 .profile-meta-details {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   color: #1a507a;
+  margin-left: 0;
+  margin-top: 24px;
+  flex: 1;
 }
+
 .profile-info-upper.text-white .profile-meta-details {
-  color: #ffffff;
+  color: #1a507a !important;
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.profile-info-upper.text-white .profile-displayname {
+  color: #1a507a !important;
+}
+.profile-info-upper.text-white .profile-title-tag {
+  color: #666 !important;
+}
+.profile-info-upper.text-white .text-dimmed {
+  color: #7f8c8d !important;
+  white-space: nowrap !important;
 }
 
 .profile-displayname {
@@ -602,12 +601,6 @@ export default {
   font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.2;
-}
-
-@media (max-width: 576px) {
-  .profile-displayname {
-    font-size: 1.25rem;
-  }
 }
 
 .profile-title-tag {
@@ -639,23 +632,18 @@ export default {
 /* Stats Bar */
 .profile-stats-bar {
   display: flex;
-  background: #f8f9fa;
+  background: #ffffff;
   border-top: 1px solid #d8dbe0;
-  padding: 12px 1.5rem;
-  gap: 2.5rem;
-}
-
-@media (max-width: 576px) {
-  .profile-stats-bar {
-    gap: 1.2rem;
-    padding: 10px 1rem;
-  }
+  padding: 265px 24px 15px 268px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .stat-box {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
 }
 
 .stat-label {
@@ -669,11 +657,139 @@ export default {
   color: #1a507a;
 }
 
+@media (max-width: 767px) {
+  .profile-banner-area {
+    height: 180px;
+    padding: 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+  }
+  
+  .profile-info-upper {
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    width: calc(100% - 32px);
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 12px;
+    z-index: 10;
+  }
+
+  .profile-avatar-wrapper {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 90px;
+    height: 90px;
+    margin: 16px 0 0 0;
+    flex-shrink: 0;
+    border: 3px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .profile-avatar-placeholder {
+    font-size: 2.2rem;
+  }
+
+  .profile-meta-details {
+    margin-left: 0;
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+    max-width: none;
+    background: none !important;
+    padding: 10px 0 0 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #1a507a !important;
+  }
+
+  .profile-displayname {
+    font-size: 1.25rem;
+    color: #1a507a !important;
+  }
+  
+  .profile-title-tag {
+    color: #666 !important;
+    margin-top: 1px;
+  }
+
+  .profile-time-row,
+  .profile-time-row .text-dimmed {
+    color: #7f8c8d !important;
+  }
+  .profile-time-row {
+    margin-top: 3px;
+  }
+
+  .banner-actions {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: auto;
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .profile-stats-bar {
+    margin-top: 166px;
+    padding: 12px 1rem;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 576px) {
+  .profile-banner-area {
+    height: 140px;
+  }
+  
+  .profile-avatar-wrapper {
+    width: 76px;
+    height: 76px;
+    margin-top: 12px;
+  }
+  
+  .profile-avatar-placeholder {
+    font-size: 1.8rem;
+  }
+  
+  .profile-meta-details {
+    padding-top: 6px !important;
+  }
+
+  .profile-displayname {
+    font-size: 1.15rem;
+  }
+
+  .banner-actions {
+    margin-top: 4px;
+  }
+
+  .profile-stats-bar {
+    margin-top: 166px;
+    padding: 10px 0.75rem;
+  }
+}
+
+
 /* Tabs styles */
 .profile-tabs-bar {
   display: flex;
   background: #f8f9fa;
+  border-top: 1px solid #d8dbe0;
   border-bottom: 1px solid #d8dbe0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.profile-tabs-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .profile-tab-btn {
@@ -687,6 +803,8 @@ export default {
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
   outline: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .profile-tab-btn:hover {
@@ -757,10 +875,8 @@ export default {
 }
 
 .item-title-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  line-height: 1.4;
+  margin-bottom: 4px;
 }
 
 .label-tag-mini {
@@ -770,6 +886,8 @@ export default {
   font-weight: 600;
   border-radius: 3px;
   border: 1px solid transparent;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 .item-title-link {
@@ -777,6 +895,8 @@ export default {
   font-weight: 600;
   color: #1a507a;
   cursor: pointer;
+  display: inline;
+  vertical-align: middle;
 }
 .item-title-link:hover {
   text-decoration: underline;
@@ -815,6 +935,12 @@ export default {
 
 .meta-divider {
   color: #cbd5e1;
+}
+
+.item-category-row {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  margin-top: 2px;
 }
 
 /* Loading & Empty States */
@@ -868,4 +994,6 @@ export default {
   font-weight: 600;
   color: #333333;
 }
+
+@import "@/shared/assets/styles/custom.css";
 </style>

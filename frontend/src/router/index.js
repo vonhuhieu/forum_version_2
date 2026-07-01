@@ -22,6 +22,7 @@ import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 import UserProfile from '@/apps/Forum/views/UserProfile.vue'
+import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
   {
@@ -213,6 +214,10 @@ router.beforeEach((to, from, next) => {
   }
 
   next()
+})
+
+router.afterEach(() => {
+  activeTracker.updateActive()
 })
 
 export default router
