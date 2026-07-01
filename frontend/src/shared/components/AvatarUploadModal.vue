@@ -4,7 +4,7 @@
       <div class="avatar-modal">
         <!-- Header -->
         <div class="avatar-modal-header">
-          <h3>Cập nhật ảnh đại diện</h3>
+          <h3>{{ mode === 'banner' ? 'Cập nhật ảnh bìa' : 'Cập nhật ảnh đại diện' }}</h3>
           <button class="btn-close-modal" @click="close">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -16,18 +16,22 @@
 
         <!-- Body -->
         <div class="avatar-modal-body">
-          <!-- Vùng hiển thị avatar hiện tại hoặc preview mới -->
+          <!-- Vùng hiển thị avatar/banner hiện tại hoặc preview mới -->
           <div class="avatar-preview-header">
-            <div class="avatar-preview-circle-large">
-              <img v-if="previewDataUrl" :src="previewDataUrl" class="avatar-img-large" />
-              <img v-else-if="isAvatarUrl(currentAvatar)" :src="currentAvatar" class="avatar-img-large" />
+            <div :class="mode === 'banner' ? 'banner-preview-rect' : 'avatar-preview-circle-large'" :style="mode === 'banner' ? { borderRadius: '6px', width: '240px', height: '60px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' } : {}">
+              <img v-if="previewDataUrl" :src="previewDataUrl" :style="mode === 'banner' ? { width: '240px', height: '60px', objectFit: 'cover' } : {}" class="avatar-img-large" />
+              <img v-else-if="mode !== 'banner' && isAvatarUrl(currentAvatar)" :src="currentAvatar" class="avatar-img-large" />
+              <img v-else-if="mode === 'banner' && currentUser && currentUser.profileBanner" :src="currentUser.profileBanner" :style="{ width: '240px', height: '60px', objectFit: 'cover' }" />
+              <div v-else-if="mode === 'banner'" class="avatar-color-large" :style="{ backgroundColor: '#edf6fd', color: '#1a507a', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }">
+                Chưa có banner
+              </div>
               <div v-else class="avatar-color-large" :style="{ backgroundColor: currentAvatar || '#fff', color: currentAvatar ? '#fff' : '#1a507a' }">
                 {{ userInitial }}
               </div>
             </div>
             <div class="avatar-preview-info">
               <span class="avatar-preview-label">
-                {{ previewDataUrl ? 'Ảnh mới (Xem trước)' : 'Ảnh đại diện hiện tại' }}
+                {{ previewDataUrl ? 'Ảnh mới (Xem trước)' : (mode === 'banner' ? 'Ảnh bìa hiện tại' : 'Ảnh đại diện hiện tại') }}
               </span>
               <span class="avatar-preview-sub" v-if="currentUser">
                 {{ currentUser.displayName || currentUser.username }}
@@ -57,10 +61,11 @@
 
           <!-- Step 2: Crop Area -->
           <div v-else class="crop-section">
-            <div class="crop-container">
+            <div class="crop-container" :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">
               <canvas
                 ref="cropCanvas"
                 class="crop-canvas"
+                :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
                 @mousedown="onMouseDown"
                 @mousemove="onMouseMove"
                 @mouseup="onMouseUp"
@@ -116,7 +121,7 @@
         <!-- Footer -->
         <div class="avatar-modal-footer">
           <button class="btn-save" @click="saveAvatar" :disabled="!imageSrc || isUploading">
-            Lưu ảnh đại diện
+            {{ mode === 'banner' ? 'Lưu ảnh bìa' : 'Lưu ảnh đại diện' }}
           </button>
           <button class="btn-cancel" @click="close" :disabled="isUploading">Hủy</button>
         </div>
@@ -132,9 +137,6 @@
 import api from '@/shared/services/api.service'
 import Loading from '@/shared/components/Loading.vue'
 
-const CANVAS_SIZE = 320
-const OUTPUT_SIZE = 400
-
 export default {
   name: 'AvatarUploadModal',
   components: {
@@ -142,9 +144,10 @@ export default {
   },
   props: {
     show: { type: Boolean, default: false },
-    currentUser: { type: Object, default: null }
+    currentUser: { type: Object, default: null },
+    mode: { type: String, default: 'avatar' }
   },
-  emits: ['close', 'avatar-updated'],
+  emits: ['close', 'avatar-updated', 'banner-updated'],
   data() {
     return {
       imageSrc: null,
@@ -162,6 +165,18 @@ export default {
     }
   },
   computed: {
+    canvasWidth() {
+      return this.mode === 'banner' ? 440 : 320
+    },
+    canvasHeight() {
+      return this.mode === 'banner' ? 110 : 320
+    },
+    outputWidth() {
+      return this.mode === 'banner' ? 960 : 400
+    },
+    outputHeight() {
+      return this.mode === 'banner' ? 240 : 400
+    },
     previewStyle() {
       return {
         backgroundImage: this.previewDataUrl ? `url(${this.previewDataUrl})` : 'none',
@@ -214,10 +229,10 @@ export default {
         img.onload = () => {
           this.image = img
           // Fit image to cover canvas
-          const fitScale = Math.max(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height)
+          const fitScale = Math.max(this.canvasWidth / img.width, this.canvasHeight / img.height)
           this.scale = fitScale
-          this.offsetX = (CANVAS_SIZE - img.width * fitScale) / 2
-          this.offsetY = (CANVAS_SIZE - img.height * fitScale) / 2
+          this.offsetX = (this.canvasWidth - img.width * fitScale) / 2
+          this.offsetY = (this.canvasHeight - img.height * fitScale) / 2
           this.$nextTick(() => this.drawCanvas())
         }
         img.src = e.target.result
@@ -228,44 +243,53 @@ export default {
     drawCanvas() {
       const canvas = this.$refs.cropCanvas
       if (!canvas || !this.image) return
-      canvas.width = CANVAS_SIZE
-      canvas.height = CANVAS_SIZE
+      canvas.width = this.canvasWidth
+      canvas.height = this.canvasHeight
       const ctx = canvas.getContext('2d')
-      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+      ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
 
       // Draw image with current scale & offset
       const w = this.image.width * this.scale
       const h = this.image.height * this.scale
       ctx.drawImage(this.image, this.offsetX, this.offsetY, w, h)
 
-      // Lớp tối CHỈ bên ngoài vòng tròn (dùng even-odd fill rule)
-      ctx.save()
-      ctx.beginPath()
-      ctx.rect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
-      ctx.arc(CANVAS_SIZE / 2, CANVAS_SIZE / 2, CANVAS_SIZE / 2 - 4, 0, Math.PI * 2, true)
-      ctx.fillStyle = 'rgba(0,0,0,0.45)'
-      ctx.fill('evenodd')
-      ctx.restore()
+      if (this.mode === 'avatar') {
+        // Lớp tối CHỈ bên ngoài vòng tròn (dùng even-odd fill rule)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, 0, this.canvasWidth, this.canvasHeight)
+        ctx.arc(this.canvasWidth / 2, this.canvasHeight / 2, this.canvasWidth / 2 - 4, 0, Math.PI * 2, true)
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'
+        ctx.fill('evenodd')
+        ctx.restore()
 
-      // Circle border
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 2.5
-      ctx.beginPath()
-      ctx.arc(CANVAS_SIZE / 2, CANVAS_SIZE / 2, CANVAS_SIZE / 2 - 4, 0, Math.PI * 2)
-      ctx.stroke()
+        // Circle border
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 2.5
+        ctx.beginPath()
+        ctx.arc(this.canvasWidth / 2, this.canvasHeight / 2, this.canvasWidth / 2 - 4, 0, Math.PI * 2)
+        ctx.stroke()
+      } else {
+        // Banner mode: rectangular border highlight
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 2
+        ctx.strokeRect(1, 1, this.canvasWidth - 2, this.canvasHeight - 2)
+      }
 
       this.updatePreview()
     },
 
     updatePreview() {
       const offscreen = document.createElement('canvas')
-      offscreen.width = OUTPUT_SIZE
-      offscreen.height = OUTPUT_SIZE
+      offscreen.width = this.outputWidth
+      offscreen.height = this.outputHeight
       const ctx = offscreen.getContext('2d')
-      const sf = OUTPUT_SIZE / CANVAS_SIZE
-      ctx.beginPath()
-      ctx.arc(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, 0, Math.PI * 2)
-      ctx.clip()
+      const sf = this.outputWidth / this.canvasWidth
+      if (this.mode === 'avatar') {
+        ctx.beginPath()
+        ctx.arc(this.outputWidth / 2, this.outputHeight / 2, this.outputWidth / 2, 0, Math.PI * 2)
+        ctx.clip()
+      }
       ctx.drawImage(this.image, this.offsetX * sf, this.offsetY * sf,
         this.image.width * this.scale * sf, this.image.height * this.scale * sf)
       this.previewDataUrl = offscreen.toDataURL('image/jpeg', 0.95)
@@ -274,13 +298,15 @@ export default {
     getCroppedBlob() {
       return new Promise((resolve) => {
         const offscreen = document.createElement('canvas')
-        offscreen.width = OUTPUT_SIZE
-        offscreen.height = OUTPUT_SIZE
+        offscreen.width = this.outputWidth
+        offscreen.height = this.outputHeight
         const ctx = offscreen.getContext('2d')
-        const sf = OUTPUT_SIZE / CANVAS_SIZE
-        ctx.beginPath()
-        ctx.arc(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, 0, Math.PI * 2)
-        ctx.clip()
+        const sf = this.outputWidth / this.canvasWidth
+        if (this.mode === 'avatar') {
+          ctx.beginPath()
+          ctx.arc(this.outputWidth / 2, this.outputHeight / 2, this.outputWidth / 2, 0, Math.PI * 2)
+          ctx.clip()
+        }
         ctx.drawImage(this.image, this.offsetX * sf, this.offsetY * sf,
           this.image.width * this.scale * sf, this.image.height * this.scale * sf)
         offscreen.toBlob(resolve, 'image/jpeg', 0.92)
@@ -307,8 +333,8 @@ export default {
     onWheel(e) {
       const delta = e.deltaY < 0 ? 0.1 : -0.1
       const newScale = Math.min(3, Math.max(0.3, this.scale + delta))
-      const cx = CANVAS_SIZE / 2
-      const cy = CANVAS_SIZE / 2
+      const cx = this.canvasWidth / 2
+      const cy = this.canvasHeight / 2
       const ratio = newScale / this.scale
       this.offsetX = cx + (this.offsetX - cx) * ratio
       this.offsetY = cy + (this.offsetY - cy) * ratio
@@ -374,24 +400,30 @@ export default {
       try {
         // 1. Crop canvas to blob
         const blob = await this.getCroppedBlob()
+        const filename = this.mode === 'banner' ? 'banner.jpg' : 'avatar.jpg'
         const formData = new FormData()
-        formData.append('file', blob, 'avatar.jpg')
+        formData.append('file', blob, filename)
 
         // 2. Upload file
         const uploadRes = await api.post('/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
-        const avatarUrl = uploadRes.data?.url
-        if (!avatarUrl) throw new Error('Upload failed')
+        const fileUrl = uploadRes.data?.url
+        if (!fileUrl) throw new Error('Upload failed')
 
-        // 3. Update user avatar
-        await api.put('/users/me/avatar', { avatar: avatarUrl })
+        // 3. Update user avatar or banner
+        if (this.mode === 'banner') {
+          await api.put('/users/me/banner', { banner: fileUrl })
+          this.$emit('banner-updated', fileUrl)
+        } else {
+          await api.put('/users/me/avatar', { avatar: fileUrl })
+          this.$emit('avatar-updated', fileUrl)
+        }
 
-        this.$emit('avatar-updated', avatarUrl)
         this.close()
       } catch (err) {
-        console.error('Avatar upload error:', err)
-        alert('Có lỗi khi lưu ảnh đại diện. Vui lòng thử lại.')
+        console.error('File upload error:', err)
+        alert(this.mode === 'banner' ? 'Có lỗi khi lưu ảnh bìa. Vui lòng thử lại.' : 'Có lỗi khi lưu ảnh đại diện. Vui lòng thử lại.')
       } finally {
         this.isUploading = false
       }

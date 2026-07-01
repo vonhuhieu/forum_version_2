@@ -7,6 +7,8 @@ import com.forum.entity.Thread;
 import com.forum.entity.ThreadSubscription;
 import com.forum.entity.User;
 import com.forum.mapper.PostMapper;
+import com.forum.mapper.LabelMapper;
+import com.forum.mapper.CategoryMapper;
 import com.forum.repository.PostRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
@@ -35,6 +37,8 @@ public class PostService {
     private final ThreadRepository threadRepository;
     private final UserRepository userRepository;
     private final PostMapper postMapper;
+    private final LabelMapper labelMapper;
+    private final CategoryMapper categoryMapper;
     private final NotificationService notificationService;
     private final ReactionService reactionService;
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
@@ -167,6 +171,37 @@ public class PostService {
         long seqNum = count + 2; // +1 for 1-based, +1 for main post
         int page = (int) Math.ceil((double) seqNum / size);
         return ResponseDTO.success(page);
+    }
+
+    public ResponseDTO<com.forum.dto.PageResponseDTO<PostDTO>> getMyPostsPaged(String username, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Post> postPage = postRepository.findByAuthorUsernameOrderByCreatedAtDesc(username, pageable);
+        
+        List<PostDTO> dtos = postPage.getContent().stream().map(post -> {
+            PostDTO dto = postMapper.toDTO(post);
+            if (post.getThread() != null) {
+                dto.setThreadId(post.getThread().getId());
+                dto.setThreadTitle(post.getThread().getTitle());
+                if (post.getThread().getLabel() != null) {
+                    dto.setThreadLabel(labelMapper.toDTO(post.getThread().getLabel()));
+                }
+                if (post.getThread().getCategory() != null) {
+                    dto.setCategory(categoryMapper.toDTO(post.getThread().getCategory()));
+                }
+                // Tính số thứ tự seqNumber trong thread
+                long count = postRepository.countBeforePost(post.getThread().getId(), post.getCreatedAt(), post.getId());
+                dto.setSeqNumber(count + 2);
+            }
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return ResponseDTO.success(new com.forum.dto.PageResponseDTO<>(
+            dtos,
+            postPage.getTotalPages(),
+            postPage.getTotalElements(),
+            postPage.getNumber(),
+            postPage.getSize()
+        ));
     }
 
     private void enrichPosts(List<PostDTO> dtos) {

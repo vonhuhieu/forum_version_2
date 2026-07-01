@@ -117,6 +117,7 @@
 
                   <!-- Double Column Links -->
                   <div class="xamvn-links-grid">
+                    <router-link :to="{ name: 'UserProfile' }" class="xamvn-link-item">Trang cá nhân</router-link>
                     <a href="#" class="xamvn-link-item" @click.prevent="goToReceivedReactions">Điểm tương tác nhận được</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>

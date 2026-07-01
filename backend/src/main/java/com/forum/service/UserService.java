@@ -346,6 +346,16 @@ public class UserService {
         return convertToDTO(saved);
     }
 
+    @Transactional
+    public UserDTO updateMyBanner(String username, String bannerUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setProfileBanner(bannerUrl);
+        User saved = userRepository.save(user);
+        com.forum.service.ThreadService.clearAllCaches();
+        return convertToDTO(saved);
+    }
+
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
@@ -353,6 +363,7 @@ public class UserService {
         dto.setDisplayName(user.getDisplayName());
         dto.setEmail(user.getEmail());
         dto.setAvatar(user.getAvatar());
+        dto.setProfileBanner(user.getProfileBanner());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setRoles(user.getRoles());
         return dto;

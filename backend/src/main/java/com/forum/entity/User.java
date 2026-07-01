@@ -38,6 +38,9 @@ public class User {
     @Column
     private String avatar;
 
+    @Column(name = "profile_banner")
+    private String profileBanner;
+
     @Column
     private String email;
 

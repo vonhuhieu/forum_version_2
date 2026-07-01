@@ -10,6 +10,7 @@ public class UserDTO {
     private String displayName;
     private String email;
     private String avatar;
+    private String profileBanner;
     private LocalDateTime createdAt;
     private java.util.Set<String> roles;
     private Long postCount;

@@ -31,6 +31,14 @@ public class ThreadController {
         return ResponseEntity.ok(threadService.getAllThreads(categoryId, limit));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>>> getMyThreads(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String currentUsername = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(threadService.getMyThreadsPaged(currentUsername, page, size));
+    }
+
 
     @GetMapping("/latest")
     public ResponseEntity<ResponseDTO<List<ThreadDTO>>> getLatestThreads() {
