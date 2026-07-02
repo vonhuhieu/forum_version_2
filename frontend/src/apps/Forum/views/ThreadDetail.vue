@@ -59,12 +59,15 @@
         <div v-if="item.isMain" class="thread-content-card card" :id="'post-' + item.id" :class="{ 'highlight-jump': String(item.id) === String(highlightedPostId) }">
           <div class="post-layout">
             <div class="post-sidebar">
-              <div class="avatar-large" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
-                <template v-else>
-                  {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
-                </template>
-              </div>
+              <user-profile-popup :user="thread.author" v-if="thread.author">
+                <div class="avatar-large" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                  <template v-else>
+                    {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">A</div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</div>
                 <div class="author-title">Yếu sinh lý</div>
@@ -144,12 +147,15 @@
         <div v-else class="thread-content-card card reply-card" :id="'post-' + item.id" :class="{ 'highlight-jump': String(item.id) === String(highlightedPostId) }">
           <div class="post-layout">
             <div class="post-sidebar">
-              <div class="avatar-large" :style="!isAvatarUrl(item.author?.avatar) ? { backgroundColor: item.author?.avatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(item.author?.avatar)" :src="item.author.avatar" />
-                <template v-else>
-                  {{ item.author ? (item.author.displayName || item.author.username).charAt(0).toUpperCase() : '?' }}
-                </template>
-              </div>
+              <user-profile-popup :user="item.author" v-if="item.author">
+                <div class="avatar-large" :style="!isAvatarUrl(item.author?.avatar) ? { backgroundColor: item.author?.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(item.author?.avatar)" :src="item.author.avatar" />
+                  <template v-else>
+                    {{ item.author ? (item.author.displayName || item.author.username).charAt(0).toUpperCase() : '?' }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh' }}</div>
                 <div class="author-title">Thành viên</div>
@@ -318,6 +324,7 @@ import PollDisplay from '@/shared/components/PollDisplay.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import { formatForumDate } from '@/shared/utils/date'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
@@ -338,7 +345,8 @@ export default {
     ReactionButton,
     ReactionSummary,
     ReactionListPopup,
-    Loading
+    Loading,
+    UserProfilePopup
   },
   data() {
     const userStr = localStorage.getItem('user')

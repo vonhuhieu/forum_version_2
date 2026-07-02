@@ -24,12 +24,15 @@
           
           <div class="thread-list">
             <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center">
-              <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
-                <template v-else>
-                  {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
-                </template>
-              </div>
+              <user-profile-popup :user="thread.author" v-if="thread.author">
+                <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                  <template v-else>
+                    {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
               <div class="thread-main">
                 <div class="thread-title">
                   <span v-if="thread.label" class="label-tag" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
@@ -85,12 +88,15 @@
                   </router-link>
                   <span class="last-post-author">{{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }}</span>
                 </div>
-                <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
-                  <template v-else>
-                    {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
-                  </template>
-                </div>
+                <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                  <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
+                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                    <template v-else>
+                      {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                    </template>
+                  </div>
+                </user-profile-popup>
+                <div v-else class="last-post-avatar" style="background-color: #ccc; color: #fff;">A</div>
               </div>
             </div>
 
@@ -163,6 +169,7 @@ import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
 
@@ -170,7 +177,8 @@ export default {
   name: 'LatestThreadsView',
   components: {
     Breadcrumb,
-    ForumPagination
+    ForumPagination,
+    UserProfilePopup
   },
   data() {
     return {

@@ -44,12 +44,15 @@
         <template v-else>
           <div v-for="participant in participants" :key="participant.user.id" class="reaction-item">
             <div class="reactor-info">
-              <div class="avatar-circle" :style="!isAvatarUrl(participant.user.avatar) ? { backgroundColor: participant.user.avatar || '#ccc' } : {}">
-                <img v-if="isAvatarUrl(participant.user.avatar)" :src="participant.user.avatar" />
-                <template v-else>
-                  {{ (participant.user.displayName || participant.user.username).charAt(0).toUpperCase() }}
-                </template>
-              </div>
+              <user-profile-popup :user="participant.user" v-if="participant.user">
+                <div class="avatar-circle" :style="!isAvatarUrl(participant.user.avatar) ? { backgroundColor: participant.user.avatar || '#ccc' } : {}">
+                  <img v-if="isAvatarUrl(participant.user.avatar)" :src="participant.user.avatar" />
+                  <template v-else>
+                    {{ (participant.user.displayName || participant.user.username).charAt(0).toUpperCase() }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="avatar-circle" style="background-color: #ccc; color: #fff;">?</div>
               <div class="reactor-details">
                 <div class="reactor-name">{{ participant.user.displayName || participant.user.username }}</div>
                 <div class="reactor-title">Thành viên</div>
@@ -84,6 +87,7 @@
 import BaseModal from './BaseModal.vue'
 import ReactionIcon from './ReactionIcon.vue'
 import ForumPagination from './ForumPagination.vue'
+import UserProfilePopup from './UserProfilePopup.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
@@ -93,7 +97,8 @@ export default {
   components: {
     BaseModal,
     ReactionIcon,
-    ForumPagination
+    ForumPagination,
+    UserProfilePopup
   },
   props: {
     show: {

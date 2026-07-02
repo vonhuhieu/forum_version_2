@@ -3,19 +3,19 @@
     <!-- Slot for trigger (e.g., avatar) -->
     <slot></slot>
 
-    <!-- Backdrop overlay to absorb background clicks on mobile/touch screens -->
-    <div v-if="visible && isTouch" class="popup-backdrop" @click.stop="hidePopup"></div>
+    <teleport to="body" v-if="visible">
+      <!-- Backdrop overlay to absorb background clicks on mobile/touch screens -->
+      <div v-if="isTouch" class="popup-backdrop" @click.stop="hidePopup"></div>
 
-    <!-- Popup container -->
-    <div
-      v-if="visible"
-      class="user-profile-popup"
-      :class="{ 'display-below': displayBelow }"
-      :style="popupStyle"
-      @click.stop
-      @mouseenter="clearTimer"
-      @mouseleave="handleMouseLeave"
-    >
+      <!-- Popup container -->
+      <div
+        class="user-profile-popup"
+        :class="{ 'display-below': displayBelow }"
+        :style="popupStyle"
+        @click.stop
+        @mouseenter="clearTimer"
+        @mouseleave="handleMouseLeave"
+      >
       <div class="popup-loading" v-if="loading">Đang tải...</div>
       <div class="popup-content" v-else-if="userData">
         <!-- Real HTML elements for arrows to support dynamic positioning -->
@@ -72,8 +72,9 @@
           <button class="btn-popup-action" @click="handleBlock">Chặn</button>
           <button class="btn-popup-action" @click="startConversation">Bắt đầu đối thoại</button>
         </div>
+        </div>
       </div>
-    </div>
+    </teleport>
   </div>
 </template>
 
@@ -104,6 +105,7 @@ export default {
   },
   mounted() {
     this.isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    window.addEventListener('scroll', this.handleScroll, { passive: true })
   },
   computed: {
     isCurrentUser() {
@@ -126,6 +128,7 @@ export default {
   },
   beforeUnmount() {
     this.clearTimer()
+    window.removeEventListener('scroll', this.handleScroll)
   },
   methods: {
     isAvatarUrl(avatar) {
@@ -163,11 +166,49 @@ export default {
         this.timer = null
       }
     },
+    handleScroll() {
+      if (this.visible) {
+        this.hidePopup()
+      }
+    },
     async showPopup() {
       if (this.$el) {
         const rect = this.$el.getBoundingClientRect()
         this.displayBelow = rect.top < 240
-        this.adjustMobilePosition(rect)
+        
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const popupWidth = 320
+        
+        const avatarCenterX = rect.left + rect.width / 2
+        let popupLeft = avatarCenterX - popupWidth / 2
+        
+        // boundary check for left/right screen edge
+        if (popupLeft < 10) {
+          popupLeft = 10
+        } else if (popupLeft + popupWidth > viewportWidth - 10) {
+          popupLeft = viewportWidth - 10 - popupWidth
+        }
+        
+        const styles = {
+          position: 'fixed',
+          left: `${popupLeft}px`,
+          transform: 'none',
+          zIndex: 99999
+        }
+        
+        if (this.displayBelow) {
+          styles.top = `${rect.bottom + 10}px`
+          styles.bottom = 'auto'
+        } else {
+          styles.bottom = `${viewportHeight - rect.top + 10}px`
+          styles.top = 'auto'
+        }
+        
+        this.popupStyle = styles
+        this.arrowStyle = {
+          left: `${avatarCenterX - popupLeft}px`
+        }
       }
       
       this.visible = true
@@ -178,34 +219,6 @@ export default {
     hidePopup() {
       this.clearTimer()
       this.visible = false
-    },
-    adjustMobilePosition(rect) {
-      const viewportWidth = window.innerWidth
-      const popupWidth = 320
-      
-      const avatarCenterX = rect.left + rect.width / 2
-      const popupLeft = avatarCenterX - popupWidth / 2
-      const popupRight = popupLeft + popupWidth
-      
-      let offsetLeft = 0
-      if (popupLeft < 10) {
-        offsetLeft = 10 - popupLeft
-      } else if (popupRight > viewportWidth - 10) {
-        offsetLeft = (viewportWidth - 10) - popupRight
-      }
-      
-      if (offsetLeft !== 0) {
-        this.popupStyle = {
-          left: '50%',
-          transform: `translateX(calc(-50% + ${offsetLeft}px))`
-        }
-        this.arrowStyle = {
-          left: `calc(50% - ${offsetLeft}px)`
-        }
-      } else {
-        this.popupStyle = {}
-        this.arrowStyle = {}
-      }
     },
     async fetchUserProfile() {
       this.loading = true
@@ -268,6 +281,7 @@ export default {
 .user-popup-wrapper {
   position: relative;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .user-popup-wrapper.clickable {
@@ -421,9 +435,8 @@ export default {
 }
 
 .popup-meta-item.text-dimmed {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* Stats Bar */

@@ -657,20 +657,15 @@ div.thread-title span {
 }
 
 .lt-title a {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
+  display: inline;
+  vertical-align: middle;
+  word-break: break-word;
 }
 
 .lt-title-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
-  display: block;
+  white-space: normal;
+  display: inline;
+  vertical-align: middle;
 }
 
 .lt-title span {
