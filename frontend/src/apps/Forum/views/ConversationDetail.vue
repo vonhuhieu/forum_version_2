@@ -674,6 +674,9 @@ export default {
   color: #333;
   font-weight: 500;
   line-height: 1.4;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .convo-meta-bar {
@@ -865,6 +868,9 @@ export default {
   font-size: 1rem;
   line-height: 1.6;
   color: #333;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .post-meta-bottom {
