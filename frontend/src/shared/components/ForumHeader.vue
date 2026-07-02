@@ -33,7 +33,7 @@
 
           <nav class="nav-links" ref="navLinks">
             <router-link class="fs-18"
-              v-for="menu in menus"
+              v-for="menu in activeMenus"
               :key="menu.id"
               :to="menu.url"
               active-class="active"
@@ -380,7 +380,7 @@
         </div>
         <nav class="sidebar-nav">
           <router-link
-            v-for="menu in menus"
+            v-for="menu in activeMenus"
             :key="menu.id"
             :to="menu.url"
             active-class="active"
@@ -451,6 +451,9 @@ export default {
     }
   },
   computed: {
+    activeMenus() {
+      return this.menus.filter(menu => menu.active)
+    },
     isNonOfficial() {
       return isNonOfficialUser()
     },
