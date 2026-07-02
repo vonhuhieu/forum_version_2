@@ -245,7 +245,19 @@ export default {
     this.fetchUserStats()
     this.fetchTabData()
   },
+  mounted() {
+    window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
+  },
   methods: {
+    handleAvatarUpdated(event) {
+      const { username, avatar } = event.detail
+      if (this.userStats && this.userStats.username === username) {
+        this.userStats.avatar = avatar
+      }
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },
