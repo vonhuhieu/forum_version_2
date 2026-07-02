@@ -63,6 +63,8 @@ export default {
   display: flex;
   align-items: center;
   font-size: 0.9rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .breadcrumb-item a {
@@ -71,6 +73,10 @@ export default {
   transition: color 0.2s ease;
   display: flex;
   align-items: center;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .breadcrumb-item a:hover {
@@ -78,8 +84,16 @@ export default {
   text-decoration: underline;
 }
 
+.breadcrumb-item span:not(.separator) {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
 .icon-home {
   margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
 .separator {
@@ -87,10 +101,12 @@ export default {
   color: #6c757d;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .breadcrumb-item.active {
   color: #6c757d;
   font-weight: 500;
+  min-width: 0;
 }
 </style>
