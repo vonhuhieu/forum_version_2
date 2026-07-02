@@ -51,6 +51,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/by-name/public")
+    public ResponseEntity<ResponseDTO<UserDTO>> getUserByNamePublic(@RequestParam String name) {
+        try {
+            return userService.getUserByNamePublic(name)
+                    .map(dto -> ResponseEntity.ok(ResponseDTO.success(dto)))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
     @PutMapping("/me/avatar")
     public ResponseEntity<ResponseDTO<UserDTO>> updateMyAvatar(@RequestBody Map<String, String> payload) {
         try {
