@@ -67,13 +67,14 @@
             >
               Chi tiết tài khoản
             </a>
-            <a 
-              href="#" 
+            <router-link 
+              :to="{ name: 'ChangePassword' }" 
               class="menu-item" 
-              @click.prevent="isOpen = false"
+              :class="{ 'is-active': activeMenu === 'password' }"
+              @click="isOpen = false"
             >
-              Mật khẩu và bảo mật
-            </a>
+              Mật khẩu
+            </router-link>
             <a 
               href="#" 
               class="menu-item" 

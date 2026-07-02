@@ -22,6 +22,7 @@ import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 import UserProfile from '@/apps/Forum/views/UserProfile.vue'
+import ChangePassword from '@/apps/Forum/views/ChangePassword.vue'
 import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
@@ -84,6 +85,12 @@ const routes = [
         path: 'account/profile',
         name: 'UserProfile',
         component: UserProfile,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account/password',
+        name: 'ChangePassword',
+        component: ChangePassword,
         meta: { requiresAuth: true }
       }
     ]
