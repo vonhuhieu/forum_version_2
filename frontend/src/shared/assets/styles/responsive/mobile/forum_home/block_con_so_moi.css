@@ -70,6 +70,8 @@
   }
 
   .mobile-con-so-block .lt-title-text {
+    display: inline;
+    white-space: normal;
     vertical-align: middle;
   }
 

@@ -71,12 +71,15 @@
             >
               <div class="post-layout">
                 <div class="post-sidebar">
-                  <div class="avatar-large" :style="!isAvatarUrl(msg.sender?.avatar) ? { backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl(msg.sender?.avatar)" :src="msg.sender.avatar" />
-                    <template v-else>
-                      {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
-                    </template>
-                  </div>
+                  <user-profile-popup :user="msg.sender" v-if="msg.sender">
+                    <div class="avatar-large" :style="!isAvatarUrl(msg.sender?.avatar) ? { backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' } : {}">
+                      <img v-if="isAvatarUrl(msg.sender?.avatar)" :src="msg.sender.avatar" />
+                      <template v-else>
+                        {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
+                      </template>
+                    </div>
+                  </user-profile-popup>
+                  <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
                   <div class="author-info-mobile-block">
                     <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
                     <div class="author-title">{{ getUserRoleText(msg.sender?.roles) }}</div>
@@ -195,12 +198,15 @@
             <div class="card-header">Những người tham gia đối thoại</div>
             <div class="card-body participant-list">
               <div v-for="part in conversation.participants" :key="part.id" class="participant-row">
-                <div class="avatar-mini" :style="!isAvatarUrl(part.avatar) ? { backgroundColor: part.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(part.avatar)" :src="part.avatar" />
-                  <template v-else>
-                    {{ (part.displayName || part.username).charAt(0).toUpperCase() }}
-                  </template>
-                </div>
+                <user-profile-popup :user="part" v-if="part">
+                  <div class="avatar-mini" :style="!isAvatarUrl(part.avatar) ? { backgroundColor: part.avatar || '#ccc', color: '#fff' } : {}">
+                    <img v-if="isAvatarUrl(part.avatar)" :src="part.avatar" />
+                    <template v-else>
+                      {{ (part.displayName || part.username).charAt(0).toUpperCase() }}
+                    </template>
+                  </div>
+                </user-profile-popup>
+                <div v-else class="avatar-mini" style="background-color: #ccc; color: #fff;">?</div>
                 <div class="participant-info">
                   <div class="name">{{ part.displayName || part.username }}</div>
                   <div class="title">{{ getUserRoleText(part.roles) }}</div>
@@ -245,6 +251,7 @@ import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
@@ -255,7 +262,8 @@ export default {
     ReactionButton,
     ReactionSummary,
     ReactionListPopup,
-    ForumPagination
+    ForumPagination,
+    UserProfilePopup
   },
   data() {
     const userStr = localStorage.getItem('user')

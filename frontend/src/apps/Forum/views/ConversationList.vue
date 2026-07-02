@@ -30,12 +30,15 @@
             <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center">
               
               <!-- Block trái (Avatar) -->
-              <div class="thread-avatar" :style="!isAvatarUrl(convo.creatorAvatar) ? { backgroundColor: convo.creatorAvatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(convo.creatorAvatar)" :src="convo.creatorAvatar" />
-                <template v-else>
-                  {{ (convo.creatorDisplayName || convo.creatorUsername || 'C').charAt(0).toUpperCase() }}
-                </template>
-              </div>
+              <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
+                <div class="thread-avatar" :style="!isAvatarUrl(convo.creatorAvatar) ? { backgroundColor: convo.creatorAvatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(convo.creatorAvatar)" :src="convo.creatorAvatar" />
+                  <template v-else>
+                    {{ (convo.creatorDisplayName || convo.creatorUsername || 'C').charAt(0).toUpperCase() }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="thread-avatar" style="background-color: #ccc; color: #fff;">C</div>
 
               <!-- Block chính (Main) -->
               <div class="thread-main">
@@ -95,12 +98,15 @@
                     {{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'Ẩn danh' }}
                   </span>
                 </div>
-                <div class="last-post-avatar" :style="!isAvatarUrl(convo.lastMessageSenderAvatar) ? { backgroundColor: convo.lastMessageSenderAvatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(convo.lastMessageSenderAvatar)" :src="convo.lastMessageSenderAvatar" />
-                  <template v-else>
-                    {{ (convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'A').charAt(0).toUpperCase() }}
-                  </template>
-                </div>
+                <user-profile-popup :user="getConvoLastSender(convo)" v-if="getConvoLastSender(convo)">
+                  <div class="last-post-avatar" :style="!isAvatarUrl(convo.lastMessageSenderAvatar) ? { backgroundColor: convo.lastMessageSenderAvatar || '#ccc', color: '#fff' } : {}">
+                    <img v-if="isAvatarUrl(convo.lastMessageSenderAvatar)" :src="convo.lastMessageSenderAvatar" />
+                    <template v-else>
+                      {{ (convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'A').charAt(0).toUpperCase() }}
+                    </template>
+                  </div>
+                </user-profile-popup>
+                <div v-else class="last-post-avatar" style="background-color: #ccc; color: #fff;">A</div>
               </div>
 
             </div>
@@ -134,6 +140,7 @@
 import conversationService from '@/apps/Forum/services/conversation.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 
@@ -141,7 +148,8 @@ export default {
   name: 'ConversationList',
   components: {
     Breadcrumb,
-    ForumPagination
+    ForumPagination,
+    UserProfilePopup
   },
   data() {
     return {
@@ -206,6 +214,22 @@ export default {
         console.error('Lỗi khi tải danh sách đối thoại:', error)
       } finally {
         this.loading = false
+      }
+    },
+    getConvoCreator(convo) {
+      if (!convo) return null
+      return {
+        username: convo.creatorUsername,
+        displayName: convo.creatorDisplayName,
+        avatar: convo.creatorAvatar
+      }
+    },
+    getConvoLastSender(convo) {
+      if (!convo) return null
+      return {
+        username: convo.lastMessageSenderUsername,
+        displayName: convo.lastMessageSenderDisplayName,
+        avatar: convo.lastMessageSenderAvatar
       }
     },
     isAvatarUrl(avatar) {
