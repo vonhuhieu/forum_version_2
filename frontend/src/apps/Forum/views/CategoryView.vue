@@ -589,7 +589,15 @@ export default {
 
 .thread-title {
   margin-bottom: 4px;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.thread-title span {
+  flex-shrink: 0;
 }
 
 .thread-title a {
@@ -598,7 +606,12 @@ export default {
   font-weight: 500;
   font-size: 1.05rem;
   line-height: 1.5;
-  display: inline;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .thread-meta {

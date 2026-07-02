@@ -738,7 +738,15 @@ export default {
 
 .thread-title-wrapper {
   margin-bottom: 4px;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.thread-title-wrapper span {
+  flex-shrink: 0;
 }
 
 .thread-title {
@@ -748,7 +756,12 @@ export default {
   text-decoration: none;
   margin-bottom: 0;
   line-height: 1.5;
-  display: inline;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .thread-title:hover {

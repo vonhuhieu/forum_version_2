@@ -623,3 +623,78 @@ main.container {
   display: block;
 }
 
+/* Truncate thread titles and sidebar titles on a single line with ellipsis to prevent layout breaks */
+a.thread-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+}
+
+div.thread-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+div.thread-title a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+div.thread-title span {
+  flex-shrink: 0;
+}
+
+.label-tag, .label-tag-mini {
+  flex-shrink: 0;
+}
+
+.lt-title a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.lt-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+  display: block;
+}
+
+.lt-title span {
+  flex-shrink: 0;
+}
+
+.home-last-thread-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-last-thread-title-txt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+  display: block;
+}
+
+.home-last-thread-title span {
+  flex-shrink: 0;
+}
+

@@ -131,10 +131,16 @@ public class ThreadService {
             }
             sort = org.springframework.data.domain.Sort.by(direction, property);
         } else {
-            sort = org.springframework.data.domain.Sort.by(
-                org.springframework.data.domain.Sort.Order.desc("pinned"),
-                org.springframework.data.domain.Sort.Order.desc("lastPostAt")
-            );
+            if (categoryId != null) {
+                sort = org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Order.desc("pinned"),
+                    org.springframework.data.domain.Sort.Order.desc("lastPostAt")
+                );
+            } else {
+                sort = org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Order.desc("lastPostAt")
+                );
+            }
         }
         
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
