@@ -152,12 +152,15 @@
           </div>
           <div class="category-last-thread home-category-last-thread">
             <div v-if="lastThreadByCat[cat.id]" class="last-thread-box home-last-thread-box">
-              <div class="last-thread-avatar" :style="!isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar) ? { backgroundColor: (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" :src="(lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar" />
-                <template v-else>
-                  {{ ((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'A').charAt(0).toUpperCase() }}
-                </template>
-              </div>
+              <user-profile-popup :user="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author" v-if="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author">
+                <div class="last-thread-avatar" :style="!isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar) ? { backgroundColor: (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar || '#ccc', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" :src="(lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar" />
+                  <template v-else>
+                    {{ ((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'A').charAt(0).toUpperCase() }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="last-thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
               <div class="last-thread-info home-last-thread-info">
                 <router-link :to="{ name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
                   <span v-if="lastThreadByCat[cat.id].label" class="label-tag-mini" :style="{ backgroundColor: lastThreadByCat[cat.id].label.colorCode, color: lastThreadByCat[cat.id].label.textColor, borderColor: lastThreadByCat[cat.id].label.borderColor || 'transparent' }">
@@ -195,12 +198,15 @@
         </div>
         <div v-else class="latest-threads-list">
           <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item">
-            <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
-              <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
-              <template v-else>
-                {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
-              </template>
-            </div>
+            <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+              <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                <template v-else>
+                  {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                </template>
+              </div>
+            </user-profile-popup>
+            <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
             <div class="lt-content">
               <div class="lt-title">
                 <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">

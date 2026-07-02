@@ -32,12 +32,15 @@
               </div>
               <div v-else class="latest-threads-list">
                 <div v-for="thread in latestThreads" :key="thread.id" class="latest-thread-item">
-                  <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
-                    <template v-else>
-                      {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
-                    </template>
-                  </div>
+                  <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                    <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                      <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                      <template v-else>
+                        {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                      </template>
+                    </div>
+                  </user-profile-popup>
+                  <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
                   <div class="lt-content">
                     <div class="lt-title">
                       <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
@@ -176,6 +179,7 @@
 <script>
 import ForumHome from '@/shared/components/ForumHome.vue'
 import Loading from '@/shared/components/Loading.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import statisticsService from '@/apps/Forum/services/statistics.service'
@@ -186,7 +190,8 @@ export default {
   name: 'HomeView',
   components: {
     ForumHome,
-    Loading
+    Loading,
+    UserProfilePopup
   },
   data() {
     return {
@@ -388,7 +393,7 @@ export default {
 }
 
 .lt-title a {
-  display: block;
+  display: inline;
   color: #2c3e50;
   text-decoration: none;
 }
@@ -399,6 +404,8 @@ export default {
 }
 
 .lt-title-text {
+  display: inline;
+  white-space: normal;
   vertical-align: middle;
 }
 

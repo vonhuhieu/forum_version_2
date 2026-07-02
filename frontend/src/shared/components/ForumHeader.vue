@@ -187,12 +187,15 @@
                      @click="goToConversation(convo)"
                    >
                       <div class="notif-avatar-wrapper">
-                         <div class="notif-avatar" :style="!isAvatarUrl(getConvoAvatarBg(convo)) ? { backgroundColor: getConvoAvatarBg(convo) } : {}">
-                            <img v-if="isAvatarUrl(getConvoAvatarBg(convo))" :src="getConvoAvatarBg(convo)" />
-                            <template v-else>
-                               {{ getConvoAvatarText(convo) }}
-                            </template>
-                         </div>
+                         <user-profile-popup :user="getConvoUser(convo)" v-if="getConvoUser(convo)">
+                            <div class="notif-avatar" :style="!isAvatarUrl(getConvoAvatarBg(convo)) ? { backgroundColor: getConvoAvatarBg(convo) } : {}">
+                               <img v-if="isAvatarUrl(getConvoAvatarBg(convo))" :src="getConvoAvatarBg(convo)" />
+                               <template v-else>
+                                  {{ getConvoAvatarText(convo) }}
+                               </template>
+                            </div>
+                         </user-profile-popup>
+                         <div v-else class="notif-avatar" style="background-color: #ccc; color: #fff;">C</div>
                       </div>
                       <div class="notif-body">
                          <div class="notif-text">
@@ -247,7 +250,7 @@
                 <div class="notif-footer">
                    <a href="#" class="btn-load-more" :class="{ 'disabled': !hasMoreMail }" @click.prevent="loadMoreMail">Xem thêm</a>
                     <span style="color: #ccc;">·</span>
-                    <router-link :to="{ name: 'ConversationList' }">Xem tất cả</router-link>
+                    <router-link :to="{ name: 'ConversationList' }" @click="showMailDropdown = false">Xem tất cả</router-link>
                     <span style="color: #ccc;">·</span>
                     <a href="#" @click.prevent="goToAddConvo" v-if="!isNonOfficial">Bắt đầu đối thoại mới</a>
                  </div>
@@ -288,12 +291,15 @@
                      @click="handleNotifClick(notif)"
                    >
                       <div class="notif-avatar-wrapper">
-                         <div class="notif-avatar" :style="!isAvatarUrl(notif.actorAvatar) ? { backgroundColor: notif.actorAvatar || '#3498db' } : {}">
-                            <img v-if="isAvatarUrl(notif.actorAvatar)" :src="notif.actorAvatar" />
-                            <template v-else>
-                               {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
-                            </template>
-                         </div>
+                         <user-profile-popup :user="getNotifUser(notif)" v-if="getNotifUser(notif)">
+                            <div class="notif-avatar" :style="!isAvatarUrl(notif.actorAvatar) ? { backgroundColor: notif.actorAvatar || '#3498db' } : {}">
+                               <img v-if="isAvatarUrl(notif.actorAvatar)" :src="notif.actorAvatar" />
+                               <template v-else>
+                                  {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
+                               </template>
+                            </div>
+                         </user-profile-popup>
+                         <div v-else class="notif-avatar" style="background-color: #ccc; color: #fff;">?</div>
                       </div>
                      <div class="notif-body">
                         <div class="notif-text">
@@ -411,6 +417,7 @@ import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue
 import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 
 export default {
   name: 'ForumHeader',
@@ -418,7 +425,8 @@ export default {
     PendingApprovalBanner,
     SearchModal,
     ReactionIcon,
-    AvatarUploadModal
+    AvatarUploadModal,
+    UserProfilePopup
   },
   data() {
     return {
@@ -895,6 +903,36 @@ export default {
         return require(`@/assets/reactions/${code}.svg`)
       } catch (e) {
         return ''
+      }
+    },
+    getConvoUser(convo) {
+      if (!convo) return null
+      if (convo.isReaction) {
+        return {
+          username: convo.creatorUsername,
+          displayName: convo.creatorDisplayName,
+          avatar: convo.creatorAvatar
+        }
+      }
+      if (convo.isReply || convo.isQuote || convo.isMention) {
+        return {
+          username: convo.lastMessageSenderUsername,
+          displayName: convo.lastMessageSenderDisplayName,
+          avatar: convo.lastMessageSenderAvatar
+        }
+      }
+      return {
+        username: convo.creatorUsername,
+        displayName: convo.creatorDisplayName,
+        avatar: convo.creatorAvatar
+      }
+    },
+    getNotifUser(notif) {
+      if (!notif) return null
+      return {
+        username: notif.actorUsername,
+        displayName: notif.actorDisplayName,
+        avatar: notif.actorAvatar
       }
     },
     isAvatarUrl(avatar) {
