@@ -57,6 +57,19 @@ public class UserService {
         });
     }
 
+    public Optional<UserDTO> getUserByNamePublic(String name) {
+        Optional<User> userOpt = userRepository.findByUsername(name);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findFirstByDisplayNameIgnoreCase(name);
+        }
+        return userOpt.map(user -> {
+            UserDTO dto = convertToDTO(user);
+            enrichUserStats(dto);
+            dto.setEmail(null); // Hide email for privacy
+            return dto;
+        });
+    }
+
     private void enrichUserStats(UserDTO dto) {
         if (dto == null || dto.getId() == null) return;
         Long userId = dto.getId();
