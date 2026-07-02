@@ -40,13 +40,13 @@
           </div>
 
           <!-- Step 1: Drop Zone -->
-          <div v-if="!imageSrc"
+          <label v-if="!imageSrc"
+            for="avatar-file-input"
             class="drop-zone"
             :class="{ 'drag-over': isDragging }"
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false"
             @drop.prevent="onDrop"
-            @click="triggerFileInput"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
               stroke="#adb5bd" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -57,7 +57,7 @@
             <p class="drop-title">Kéo thả ảnh vào đây</p>
             <p class="drop-sub">hoặc <span class="drop-link">click để chọn file</span></p>
             <p class="drop-hint">PNG, JPG, WEBP — tối đa 5MB</p>
-          </div>
+          </label>
 
           <!-- Step 2: Crop Area -->
           <div v-else class="crop-section">
@@ -126,7 +126,7 @@
           <button class="btn-cancel" @click="close" :disabled="isUploading">Hủy</button>
         </div>
 
-        <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
+        <input id="avatar-file-input" ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
       </div>
       <Loading :visible="isUploading" />
     </div>
@@ -209,7 +209,9 @@ export default {
     onFileSelected(e) {
       const file = e.target.files[0]
       if (file) this.loadImage(file)
-      e.target.value = ''
+      setTimeout(() => {
+        if (e.target) e.target.value = ''
+      }, 200)
     },
     onDrop(e) {
       this.isDragging = false
@@ -223,9 +225,17 @@ export default {
         return
       }
       const reader = new FileReader()
+      reader.onerror = (err) => {
+        console.error('FileReader error:', err)
+        alert('Lỗi đọc file hình ảnh. Vui lòng chọn lại hoặc chọn ảnh khác.')
+      }
       reader.onload = (e) => {
         this.imageSrc = e.target.result
         const img = new Image()
+        img.onerror = (err) => {
+          console.error('Image load error:', err)
+          alert('Không thể giải mã hình ảnh này. Vui lòng chọn ảnh khác.')
+        }
         img.onload = () => {
           this.image = img
           // Fit image to cover canvas
