@@ -8,6 +8,10 @@ class UserService {
   getByName(name) {
     return api.get('/users/by-name', { params: { name } })
   }
+
+  getPublicByName(name) {
+    return api.get('/users/by-name/public', { params: { name } })
+  }
 }
 
 export default new UserService()
