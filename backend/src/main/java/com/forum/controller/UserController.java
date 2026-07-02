@@ -75,6 +75,33 @@ public class UserController {
         }
     }
 
+    @PutMapping("/me/change-password")
+    public ResponseEntity<ResponseDTO<Void>> changePassword(@RequestBody Map<String, String> payload) {
+        try {
+            String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String currentPassword = payload.get("currentPassword");
+            String newPassword = payload.get("newPassword");
+            String confirmPassword = payload.get("confirmPassword");
+
+            if (currentPassword == null || currentPassword.isEmpty() ||
+                newPassword == null || newPassword.isEmpty() ||
+                confirmPassword == null || confirmPassword.isEmpty()) {
+                return ResponseEntity.badRequest().body(ResponseDTO.fail(null, "Tất cả các trường mật khẩu đều bắt buộc."));
+            }
+
+            if (!newPassword.equals(confirmPassword)) {
+                return ResponseEntity.badRequest().body(ResponseDTO.fail(null, "Mật khẩu mới và xác nhận mật khẩu không khớp."));
+            }
+
+            userService.changePassword(currentUsername, currentPassword, newPassword);
+            return ResponseEntity.ok(ResponseDTO.success(null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, "Có lỗi xảy ra khi đổi mật khẩu."));
+        }
+    }
+
     @PostMapping("/me/active")
     public ResponseEntity<ResponseDTO<Void>> updateActive() {
         try {

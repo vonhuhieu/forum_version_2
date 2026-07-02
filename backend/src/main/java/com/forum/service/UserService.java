@@ -359,6 +359,19 @@ public class UserService {
     }
 
     @Transactional
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại."));
+        
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác.");
+        }
+        
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void updateLastActive(String username) {
         userRepository.findByUsername(username).ifPresent(user -> {
             user.setLastActiveAt(java.time.LocalDateTime.now());
