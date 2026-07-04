@@ -1201,6 +1201,7 @@ export default {
       }
 
       try {
+        this.loading = true; // Bật loading hệ thống
         this.submittingEdit = true;
         let finalContent = cleanContent;
         const attachedImages = this.editAttachedImages;
@@ -1242,6 +1243,7 @@ export default {
         alertError('Không thể cập nhật nội dung');
       } finally {
         this.submittingEdit = false;
+        this.loading = false; // Tắt loading hệ thống
       }
     },
     handleEditInsertImages(urls, type) {
