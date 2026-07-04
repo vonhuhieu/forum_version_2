@@ -2,19 +2,19 @@
   <div class="forum-layout app-wrapper">
     <ForumHeader />
     <router-view />
-    <ForumFooter />
+    <!-- <ForumFooter /> -->
   </div>
 </template>
 
 <script>
 import ForumHeader from './ForumHeader.vue'
-import ForumFooter from './ForumFooter.vue'
+// import ForumFooter from './ForumFooter.vue'
 
 export default {
   name: 'ForumLayout',
   components: {
     ForumHeader,
-    ForumFooter
+    // ForumFooter
   }
 }
 </script>
