@@ -1,5 +1,5 @@
 <template>
-  <div class="custom-editor-wrapper" :style="{ '--editor-min-height': minHeight }">
+  <div class="custom-editor-wrapper" :class="{ 'is-edit': isEdit }" :style="{ '--editor-min-height': minHeight }">
     <ckeditor 
       :editor="editor" 
       :model-value="modelValue" 
@@ -124,6 +124,10 @@ export default {
     allowedUsers: {
       type: Array,
       default: null
+    },
+    isEdit: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue', 'ready', 'image-uploaded', 'upload-loading-start', 'upload-loading-end'],
@@ -349,6 +353,194 @@ export default {
             this.isTagging = false;
             this.hasClosedManually = true;
             this.manualCloseQuery = this.searchQuery;
+          }
+        }
+      }, { priority: 'highest' });
+
+      // Lưu vị trí con trỏ an toàn gần nhất ngoài blockQuote
+      let lastSafeSelection = null;
+
+      // 1. Quản lý vùng chọn: Tự động nhảy con trỏ khi đi vào blockQuote hoặc ngăn bôi đen blockQuote
+      editor.model.document.selection.on('change:range', (evt, data) => {
+        const selection = editor.model.document.selection;
+        const focus = selection.focus;
+        const anchor = selection.anchor;
+        
+        if (!focus || !anchor) return;
+        
+        // Hàm kiểm tra xem một vị trí có nằm trong blockQuote không
+        const getBlockQuoteAncestor = (position) => {
+          return position.getAncestors().find(a => a.name === 'blockQuote');
+        };
+        
+        const focusBQ = getBlockQuoteAncestor(focus);
+        const anchorBQ = getBlockQuoteAncestor(anchor);
+        
+        // Kiểm tra xem vùng chọn có bao phủ/giao với blockQuote nào không
+        let spanningBQ = null;
+        if (!focusBQ && !anchorBQ) {
+          for (const range of selection.getRanges()) {
+            for (const item of range.getItems()) {
+              if (item.is('element') && item.name === 'blockQuote') {
+                spanningBQ = item;
+                break;
+              }
+            }
+            if (spanningBQ) break;
+          }
+        }
+        
+        // Tìm ra blockQuote bị vùng chọn chạm vào (nếu có)
+        const blockQuoteElement = focusBQ || anchorBQ || spanningBQ;
+        
+        if (blockQuoteElement) {
+          let targetPosition;
+          let goBefore = false;
+          
+          if (lastSafeSelection) {
+            try {
+              editor.model.change(writer => {
+                const beforePos = writer.createPositionBefore(blockQuoteElement);
+                if (lastSafeSelection.compareWith(beforePos) === 'after') {
+                  goBefore = true;
+                }
+              });
+            } catch (err) {
+              console.warn('Error comparing positions:', err);
+            }
+          }
+          
+          editor.model.change(writer => {
+            if (goBefore) {
+              let siblingBefore = blockQuoteElement.previousSibling;
+              if (!siblingBefore || siblingBefore.name === 'blockQuote') {
+                const paragraph = writer.createElement('paragraph');
+                writer.insert(paragraph, blockQuoteElement, 'before');
+                siblingBefore = paragraph;
+              }
+              targetPosition = writer.createPositionAt(siblingBefore, 'end');
+            } else {
+              let siblingAfter = blockQuoteElement.nextSibling;
+              if (!siblingAfter || siblingAfter.name === 'blockQuote') {
+                const paragraph = writer.createElement('paragraph');
+                writer.insert(paragraph, blockQuoteElement, 'after');
+                siblingAfter = paragraph;
+              }
+              targetPosition = writer.createPositionAt(siblingAfter, 0);
+            }
+            
+            // Thu sập vùng chọn về vị trí an toàn ngoài blockQuote
+            writer.setSelection(targetPosition);
+          });
+          return;
+        }
+        
+        // Chỉ lưu vị trí an toàn khi con trỏ hoàn toàn nằm ngoài blockQuote
+        lastSafeSelection = focus;
+      });
+
+      // 2. Xử lý xóa trích dẫn khi bấm Backspace ở đầu dòng tiếp theo hoặc Delete ở cuối dòng trước đó
+      editor.editing.view.document.on('keydown', (evt, data) => {
+        const keyCode = data.keyCode;
+        
+        if (keyCode === 8) { // Backspace
+          const selection = editor.model.document.selection;
+          const position = selection.getFirstPosition();
+          if (position && position.offset === 0) {
+            const parentBlock = position.parent;
+            const blockQuoteElement = parentBlock.previousSibling;
+            if (blockQuoteElement && blockQuoteElement.name === 'blockQuote') {
+              evt.stop();
+              data.preventDefault();
+              
+              // Chỉ thực hiện xóa quote khi KHÔNG phải chế độ Edit
+              if (!this.isEdit) {
+                editor.model.change(writer => {
+                  writer.remove(blockQuoteElement);
+                });
+              }
+              return;
+            }
+          }
+        }
+        
+        if (keyCode === 46) { // Delete
+          const selection = editor.model.document.selection;
+          const position = selection.getFirstPosition();
+          if (position && position.parent && position.offset === position.parent.maxOffset) {
+            const parentBlock = position.parent;
+            const blockQuoteElement = parentBlock.nextSibling;
+            if (blockQuoteElement && blockQuoteElement.name === 'blockQuote') {
+              evt.stop();
+              data.preventDefault();
+              
+              // Chỉ thực hiện xóa quote khi KHÔNG phải chế độ Edit
+              if (!this.isEdit) {
+                editor.model.change(writer => {
+                  writer.remove(blockQuoteElement);
+                });
+              }
+              return;
+            }
+          }
+        }
+      }, { priority: 'high' });
+
+      // 3. Xử lý hiển thị tooltip "Xóa quote" khi rê chuột vào góc trên bên phải của blockQuote
+      editor.editing.view.document.on('mousemove', (evt, data) => {
+        if (this.isEdit) return; // Không hiển thị tooltip khi đang sửa bài viết
+        
+        const domEvent = data.domEvent;
+        if (!domEvent) return;
+        const target = domEvent.target;
+        if (!target) return;
+        
+        const blockquote = target.closest('blockquote');
+        if (blockquote) {
+          const rect = blockquote.getBoundingClientRect();
+          const mouseX = domEvent.clientX - rect.left;
+          const mouseY = domEvent.clientY - rect.top;
+          const mouseXFromRight = rect.width - mouseX;
+          
+          // Nút xóa được thiết kế ở góc trên bên phải (phạm vi cách lề phải 36px và lề trên 34px)
+          if (mouseXFromRight >= 0 && mouseXFromRight <= 36 && mouseY >= 0 && mouseY <= 34) {
+            blockquote.setAttribute('title', 'Xóa quote');
+          } else {
+            blockquote.removeAttribute('title');
+          }
+        }
+      });
+
+      // 4. Xử lý click chuột trái vào nút "Xóa quote"
+      editor.editing.view.document.on('mousedown', (evt, data) => {
+        if (this.isEdit) return; // Không cho phép click xóa khi đang sửa bài viết
+        
+        const domEvent = data.domEvent;
+        if (!domEvent) return;
+        const target = domEvent.target;
+        if (!target) return;
+        
+        const blockquote = target.closest('blockquote');
+        if (blockquote) {
+          const rect = blockquote.getBoundingClientRect();
+          const clickX = domEvent.clientX - rect.left;
+          const clickY = domEvent.clientY - rect.top;
+          const clickXFromRight = rect.width - clickX;
+          
+          // Click vào nút xóa ở góc trên bên phải (phạm vi cách lề phải 36px và lề trên 34px)
+          if (clickXFromRight >= 0 && clickXFromRight <= 36 && clickY >= 0 && clickY <= 34) {
+            domEvent.preventDefault();
+            evt.stop();
+            
+            const viewElement = editor.editing.view.domConverter.mapDomToView(blockquote);
+            if (viewElement) {
+              const modelElement = editor.editing.mapper.toModelElement(viewElement);
+              if (modelElement) {
+                editor.model.change(writer => {
+                  writer.remove(modelElement);
+                });
+              }
+            }
           }
         }
       }, { priority: 'highest' });
@@ -842,6 +1034,55 @@ export default {
    width: 24px !important;
    height: 24px !important;
    display: inline-block !important;
+}
+
+/* Cấu hình thẻ blockquote trong editor */
+:deep(.ck-editor__editable blockquote) {
+  position: relative !important;
+  cursor: not-allowed !important;
+  user-select: none !important;
+}
+
+:deep(.ck-editor__editable blockquote *) {
+  cursor: not-allowed !important;
+  user-select: none !important;
+}
+
+/* Nút xóa trích dẫn (icon tròn đỏ chứa dấu nhân x) nằm ở góc trên bên phải blockquote, ngang hàng tiêu đề tác giả */
+:deep(.ck-editor__editable blockquote::before) {
+  content: "×" !important;
+  position: absolute !important;
+  top: 14px !important;
+  right: 16px !important;
+  width: 18px !important;
+  height: 18px !important;
+  background-color: #ff4d4f !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+  z-index: 100 !important;
+  user-select: none !important;
+  pointer-events: auto !important;
+}
+
+/* Hiệu ứng zoom nhẹ và đổi màu khi hover */
+:deep(.ck-editor__editable blockquote:hover::before) {
+  background-color: #d9363e !important;
+  transform: scale(1.1) !important;
+}
+
+/* Ẩn hoàn toàn nút xóa trích dẫn khi đang sửa bài viết (Edit mode) */
+.is-edit :deep(.ck-editor__editable blockquote::before) {
+  display: none !important;
 }
 
 </style>
