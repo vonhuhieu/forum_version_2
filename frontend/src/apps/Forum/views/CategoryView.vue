@@ -7,26 +7,20 @@
         <!-- Block 1: Breadcrumb -->
         <Breadcrumb :items="breadcrumbItems" />
 
-        <!-- Block 2: Danh sách bài viết -->
+        <!-- Block 2: Tiêu đề chuyên mục hiện tại (Card header chuyển lên vị trí trên cùng dưới breadcrumb) -->
         <div class="card" style="margin-bottom: 2rem;">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span>{{ category ? category.name : 'Chuyên mục' }}</span>
               <span v-if="category" style="font-size: 0.8rem; font-weight: normal; opacity: 0.8;">{{ category.description }}</span>
             </div>
             <button v-if="isLoggedIn && !isNonOfficial" class="btn-post-thread" @click="goToCreateThread">Đăng bài...</button>
           </div>
+        </div>
 
-          <div class="pagination-wrapper" style="padding: 1rem; border-top: 1px solid #eee;">
-            <ForumPagination 
-              :current-page="currentPage" 
-              :total-pages="totalPages" 
-              @page-changed="currentPage = $event"
-            />
-          </div>
-
-          <!-- Sub-categories block (New) -->
-          <div v-if="category && category.subCategories && category.subCategories.length > 0" class="sub-categories-block">
+        <!-- Block 3: Chuyên mục con (Tách riêng thành 1 Card độc lập và nằm dưới Tiêu đề chuyên mục) -->
+        <div v-if="category && category.subCategories && category.subCategories.length > 0" class="card" style="margin-bottom: 2rem; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+          <div class="sub-categories-block" style="border-bottom: none;">
             <div class="sub-categories-list">
               <div v-for="sub in category.subCategories" :key="sub.id" class="category-row">
                 <div class="category-icon">
@@ -84,6 +78,26 @@
                   <div v-else class="no-thread" style="color: #999; font-size: 0.85rem;">Chưa có bài viết</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Block 4: Danh sách bài viết -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <!-- Chỉ hiển thị pagination-wrapper trên khi tổng số trang > 1 -->
+          <div v-if="totalPages > 1" class="pagination-wrapper" style="padding: 1rem; border-bottom: 1px solid #eee;">
+            <ForumPagination 
+              :current-page="currentPage" 
+              :total-pages="totalPages" 
+              @page-changed="currentPage = $event"
+            />
+          </div>
+
+          <!-- Thanh bộ lọc (Filter bar) -->
+          <div class="thread-filter-bar">
+            <div class="filter-trigger">
+              <span>Lọc</span>
+              <span class="arrow-down">▼</span>
             </div>
           </div>
           
@@ -171,8 +185,8 @@
             </div>
           </div>
           
-          <!-- Phân trang -->
-          <div class="pagination-wrapper" style="padding: 1rem; border-top: 1px solid #eee;">
+          <!-- Chỉ hiển thị pagination-wrapper dưới khi tổng số trang > 1 -->
+          <div v-if="totalPages > 1" class="pagination-wrapper" style="padding: 1rem; border-top: 1px solid #eee;">
             <ForumPagination 
               :current-page="currentPage" 
               :total-pages="totalPages" 
@@ -723,6 +737,170 @@ export default {
   flex-shrink: 0;
   border: 1px solid #dee2e6;
   margin-top: 3px;
+}
+
+@media (max-width: 767px) {
+  .sub-categories-block .category-row {
+    display: grid !important;
+    grid-template-columns: 40px 1fr !important;
+    grid-template-areas: 
+      "icon info"
+      "icon stats"
+      "icon last-thread" !important;
+    align-items: center !important;
+    padding: 12px 15px !important;
+    gap: 4px 0px !important;
+  }
+
+  .sub-categories-block .category-icon {
+    grid-area: icon !important;
+    margin-top: 0 !important;
+  }
+
+  .sub-categories-block .category-info {
+    grid-area: info !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .sub-categories-block .category-stats {
+    grid-area: stats !important;
+    display: flex !important;
+    flex-direction: row !important;
+    width: auto !important;
+    gap: 15px !important;
+    text-align: left !important;
+    font-size: 0.8rem !important;
+    color: #666 !important;
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+
+  .sub-categories-block .category-stats .stat-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .sub-categories-block .category-stats .stat-item .stat-label {
+    font-size: 0.8rem !important;
+    color: #666 !important;
+    text-transform: none !important;
+  }
+
+  .sub-categories-block .category-stats .stat-item .stat-label::after {
+    content: ":" !important;
+  }
+
+  .sub-categories-block .category-stats .stat-item .stat-value {
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    margin-top: 0 !important;
+  }
+
+  .sub-categories-block .category-last-thread {
+    grid-area: last-thread !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+
+  .sub-categories-block .last-thread-box {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .sub-categories-block .category-last-thread .last-thread-avatar {
+    display: none !important;
+  }
+
+  .sub-categories-block .last-thread-info {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .sub-categories-block .last-thread-title {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 6px !important;
+    font-size: 0.85rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .sub-categories-block .last-thread-title .title-txt {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex: 0 1 auto !important;
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .sub-categories-block .last-thread-meta {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    font-size: 0.8rem !important;
+    color: #888 !important;
+  }
+
+  .sub-categories-block .last-thread-meta .dot {
+    margin: 0 2px !important;
+  }
+
+  .sub-categories-block .last-thread-meta .author {
+    color: #1a507a !important;
+  }
+
+  .sub-categories-block .no-thread {
+    font-size: 0.85rem !important;
+    color: #888 !important;
+    margin-top: 2px !important;
+  }
+}
+
+.thread-filter-bar {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 8px 15px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1a507a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.filter-trigger:hover {
+  background-color: rgba(26, 80, 122, 0.08);
+}
+
+.filter-trigger .arrow-down {
+  font-size: 0.7rem;
+  color: #1a507a;
 }
 
 @import "@/shared/assets/styles/custom.css";
