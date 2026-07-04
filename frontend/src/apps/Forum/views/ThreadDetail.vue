@@ -86,7 +86,7 @@
               </div>
               
               <div v-if="editingItemId === item.id" class="inline-edit-box">
-                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" @image-uploaded="handleEditImageUploaded" />
+                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" @image-uploaded="handleEditImageUploaded" />
                 
                 <!-- Khối xem trước đính kèm khi sửa nhanh bài viết gốc -->
                 <div v-if="editAttachedImages && editAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -174,7 +174,7 @@
               </div>
               
               <div v-if="editingItemId === item.id" class="inline-edit-box">
-                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" @image-uploaded="handleEditImageUploaded" />
+                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" @image-uploaded="handleEditImageUploaded" />
                 
                 <!-- Khối xem trước đính kèm khi sửa nhanh bài viết -->
                 <div v-if="editAttachedImages && editAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -849,7 +849,71 @@ export default {
       return fixed
     },
     formatPostContent(content) {
-      return this.processMediaTags(content)
+      if (!content) return ''
+      
+      // 1. Xử lý các thẻ media trước
+      let processed = this.processMediaTags(content)
+      
+      // 2. Đồng bộ quote động từ dữ liệu mới nhất
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(processed, 'text/html')
+        const blockquotes = doc.querySelectorAll('blockquote[data-source]')
+        
+        let hasChanges = false
+        
+        blockquotes.forEach(bq => {
+          const sourceId = bq.getAttribute('data-source')
+          if (!sourceId) return
+          
+          if (sourceId === 'main_thread_entry') {
+            if (this.thread) {
+              const authorName = this.thread.author ? (this.thread.author.displayName || this.thread.author.username) : 'Ẩn danh'
+              const threadContentClean = this.stripBlockQuotes(this.thread.content || '')
+              bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${threadContentClean}`
+              hasChanges = true
+            }
+          } else {
+            const postId = parseInt(sourceId, 10)
+            if (!isNaN(postId) && this.posts) {
+              const quotedPost = this.posts.find(p => p.id === postId)
+              if (quotedPost) {
+                const authorName = quotedPost.author ? (quotedPost.author.displayName || quotedPost.author.username) : 'Ẩn danh'
+                const postContentClean = this.stripBlockQuotes(quotedPost.content || '')
+                bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${postContentClean}`
+                hasChanges = true
+              }
+            }
+          }
+        })
+        
+        if (hasChanges) {
+          processed = doc.body.innerHTML
+        }
+      } catch (err) {
+        console.error('Lỗi khi tự động cập nhật nội dung trích dẫn:', err)
+      }
+      
+      return processed
+    },
+    stripBlockQuotes(html) {
+      if (!html) return ''
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, 'text/html')
+        
+        // Xóa bỏ các thẻ blockquote lồng nhau
+        const blockquotes = doc.querySelectorAll('blockquote')
+        blockquotes.forEach(bq => bq.remove())
+        
+        // Xóa bỏ các khối đính kèm cũ
+        const attachments = doc.querySelectorAll('.attachment-block')
+        attachments.forEach(att => att.remove())
+        
+        return doc.body.innerHTML.trim()
+      } catch (err) {
+        return html.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '').trim()
+      }
     },
     async submitReply() {
       if (!this.replyForm.content.trim()) {
@@ -1112,7 +1176,10 @@ export default {
     startEditing(item) {
       this.editingItemId = item.id;
       const rawContent = item.isMain ? this.thread.content : item.content;
-      this.editForm.content = this.stripAttachments(rawContent);
+      
+      // Đồng bộ hóa nội dung quote động mới nhất trước khi đưa vào editor
+      const formattedContent = this.formatPostContent(rawContent);
+      this.editForm.content = this.stripAttachments(formattedContent);
       
       try {
         const imgsStr = item.isMain ? this.thread.attachedImages : item.attachedImages;
