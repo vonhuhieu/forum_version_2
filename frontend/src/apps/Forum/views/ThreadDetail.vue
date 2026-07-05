@@ -398,7 +398,13 @@ export default {
   computed: {
     breadcrumbItems() {
       const items = [{ title: 'Trang chủ', to: { name: 'Home' } }]
-      const query = this.$route.query.labelId ? { labelId: this.$route.query.labelId } : {}
+      const query = {}
+      if (this.$route.query.labelId) {
+        query.labelId = this.$route.query.labelId
+      }
+      if (this.$route.query.displayName) {
+        query.displayName = this.$route.query.displayName
+      }
       
       if (this.thread && this.thread.category && this.thread.category.categoryGroupId) {
         if (this.categoryGroup) {
