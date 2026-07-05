@@ -8,4 +8,7 @@ public class Constants {
 
     public static final String THREAD_SCOPE_PUBLIC = "PUBLIC";
     public static final String THREAD_SCOPE_INTERNAL = "INTERNAL";
+
+    public static final String THREAD_TYPE_DISCUSSION = "discussion";
+    public static final String THREAD_TYPE_POLL = "poll";
 }
