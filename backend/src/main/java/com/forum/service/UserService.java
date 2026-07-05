@@ -45,6 +45,13 @@ public class UserService {
         return userPage.map(this::convertToDTO);
     }
 
+    public Page<UserDTO> searchUsersPublic(String keyword, int page, int size) {
+        String trimmedKeyword = keyword != null ? keyword.trim() : "";
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        Page<User> userPage = userRepository.searchUsersPublic(trimmedKeyword, pageable);
+        return userPage.map(this::convertToDTO);
+    }
+
     public Optional<UserDTO> getUserByName(String name) {
         Optional<User> userOpt = userRepository.findByUsername(name);
         if (userOpt.isEmpty()) {
