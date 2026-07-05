@@ -5,6 +5,10 @@ class UserService {
     return api.get('/users/search', { params })
   }
 
+  searchPublic(params) {
+    return api.get('/users/search/public', { params })
+  }
+
   getByName(name) {
     return api.get('/users/by-name', { params: { name } })
   }
