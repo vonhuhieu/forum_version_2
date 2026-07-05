@@ -405,6 +405,9 @@ export default {
       if (this.$route.query.displayName) {
         query.displayName = this.$route.query.displayName
       }
+      if (this.$route.query.threadType) {
+        query.threadType = this.$route.query.threadType
+      }
       
       if (this.thread && this.thread.category && this.thread.category.categoryGroupId) {
         if (this.categoryGroup) {
