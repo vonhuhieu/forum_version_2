@@ -17,14 +17,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = :role")
     long countByRole(@Param("role") String role);
 
-    @Query("SELECT u FROM User u WHERE LOWER(u.displayName) LIKE LOWER(CONCAT('%', :keyword, '%')) AND u.username <> :currentUsername")
+    @Query("SELECT u FROM User u WHERE LOWER(u.displayName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "AND u.username <> :currentUsername " +
+           "AND NOT EXISTS (SELECT 1 FROM u.roles r WHERE r = '" + com.forum.utils.Constants.ROLE_ADMIN + "' OR r = '" + com.forum.utils.Constants.ROLE_SUPER_ADMIN + "')")
     org.springframework.data.domain.Page<User> searchUsersByDisplayName(
             @Param("keyword") String keyword,
             @Param("currentUsername") String currentUsername,
             org.springframework.data.domain.Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE u.id <> :currentUserId " +
-           "AND (:isSuperAdmin = true OR NOT EXISTS (SELECT 1 FROM u.roles r WHERE r = 'ROLE_ADMIN' OR r = 'ROLE_SUPER_ADMIN')) " +
+           "AND (:isSuperAdmin = true OR NOT EXISTS (SELECT 1 FROM u.roles r WHERE r = '" + com.forum.utils.Constants.ROLE_ADMIN + "' OR r = '" + com.forum.utils.Constants.ROLE_SUPER_ADMIN + "')) " +
            "AND (:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
            "AND (:roleFilter IS NULL OR :roleFilter MEMBER OF u.roles)")
     org.springframework.data.domain.Page<User> findAdminUsersPaged(
