@@ -120,7 +120,13 @@ public class SearchService {
         NativeQuery query = queryBuilder.build();
 
         // 3. Execute Search
-        SearchHits<SearchDocument> searchHits = elasticsearchOperations.search(query, SearchDocument.class);
+        SearchHits<SearchDocument> searchHits;
+        try {
+            searchHits = elasticsearchOperations.search(query, SearchDocument.class);
+        } catch (org.springframework.data.elasticsearch.NoSuchIndexException e) {
+            System.err.println(">>> Search failed: Index 'forum_search' not found. Returning empty results.");
+            return ResponseDTO.success(new PageResponseDTO<>(Collections.emptyList(), 0, 0L, page, size));
+        }
 
         // 4. Map Results
         List<SearchResultDTO> results = new ArrayList<>();
