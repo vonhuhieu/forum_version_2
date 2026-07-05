@@ -72,9 +72,10 @@ public class ThreadService {
         }
     }
 
-    public ResponseDTO<List<ThreadDTO>> getAllThreads(Long categoryId, Integer limit) {
+    public ResponseDTO<List<ThreadDTO>> getAllThreads(Long categoryId, Long labelId, Integer limit) {
         boolean canSeeInternal = isUserAuthorizedForInternalThreads();
         String cacheKey = (categoryId != null ? categoryId.toString() : "null") + "_" + 
+                           (labelId != null ? labelId.toString() : "null") + "_" + 
                            (limit != null ? limit.toString() : "null") + "_" + 
                            canSeeInternal;
         
@@ -109,6 +110,14 @@ public class ThreadService {
                 threads = threadRepository.findAllPublicOrderByLastPostAtDesc();
             }
         }
+        
+        // In-memory filter for labelId if specified (fallback for non-paged endpoint)
+        if (labelId != null) {
+            threads = threads.stream()
+                    .filter(t -> t.getLabel() != null && labelId.equals(t.getLabel().getId()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichThreads(dtos);
         threadListCache.put(cacheKey, dtos);
@@ -116,7 +125,7 @@ public class ThreadService {
     }
 
     public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
-            Long categoryId, String keyword, String sortBy, String sortOrder, int page, int size) {
+            Long categoryId, Long labelId, String keyword, String sortBy, String sortOrder, int page, int size) {
         
         org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
         if (sortBy != null && !sortBy.trim().isEmpty()) {
@@ -152,7 +161,7 @@ public class ThreadService {
         }
         
         org.springframework.data.domain.Page<Thread> threadPage = threadRepository.searchThreads(
-            canSeeInternal, categoryId, searchPattern, pageable);
+            canSeeInternal, categoryId, labelId, searchPattern, pageable);
             
         List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
         enrichThreads(dtos);

@@ -62,6 +62,7 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
     @Query("SELECT t FROM Thread t WHERE " +
            "(:canSeeInternal = true OR t.scope IS NULL OR t.scope <> '" + com.forum.utils.Constants.THREAD_SCOPE_INTERNAL + "') " +
            "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+           "AND (:labelId IS NULL OR t.label.id = :labelId) " +
            "AND (LOWER(t.title) LIKE :keyword " +
            "OR LOWER(t.author.username) LIKE :keyword " +
            "OR LOWER(t.author.displayName) LIKE :keyword " +
@@ -69,6 +70,7 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
     org.springframework.data.domain.Page<Thread> searchThreads(
             @org.springframework.data.repository.query.Param("canSeeInternal") boolean canSeeInternal,
             @org.springframework.data.repository.query.Param("categoryId") Long categoryId, 
+            @org.springframework.data.repository.query.Param("labelId") Long labelId, 
             @org.springframework.data.repository.query.Param("keyword") String keyword, 
             org.springframework.data.domain.Pageable pageable);
 
