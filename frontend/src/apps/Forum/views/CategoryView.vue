@@ -692,7 +692,7 @@ export default {
     async fetchUsers() {
       this.loadingUsers = true
       try {
-        const response = await userService.search({
+        const response = await userService.searchPublic({
           keyword: this.userSearchKeyword,
           page: 0,
           size: 10

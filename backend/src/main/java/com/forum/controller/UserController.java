@@ -40,6 +40,20 @@ public class UserController {
         }
     }
 
+    @GetMapping("/search/public")
+    public ResponseEntity<ResponseDTO<Page<UserDTO>>> searchUsersPublic(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            Page<UserDTO> result = userService.searchUsersPublic(keyword, page, size);
+            return ResponseEntity.ok(ResponseDTO.success(result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
     @GetMapping("/by-name")
     public ResponseEntity<ResponseDTO<UserDTO>> getUserByName(@RequestParam String name) {
         try {
