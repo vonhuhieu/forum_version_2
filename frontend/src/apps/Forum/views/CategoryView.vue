@@ -104,6 +104,14 @@
                 Nhãn: {{ appliedLabel.name }}
                 <span class="remove-filter-btn" @click="removeLabelFilter">&times;</span>
               </div>
+              <div 
+                v-if="appliedUser" 
+                class="active-filter-badge"
+                style="background-color: #eef4f9; color: #1a507a; border-color: #c5d5e2;"
+              >
+                Bắt đầu bởi: {{ appliedUser.displayName || appliedUser.username }}
+                <span class="remove-filter-btn" @click="removeUserFilter">&times;</span>
+              </div>
             </div>
 
             <div class="filter-trigger-wrapper" style="position: relative;">
@@ -164,6 +172,47 @@
                       </div>
                     </div>
                   </div>
+
+                  <div class="filter-field-group filter-user-search" style="position: relative;">
+                    <label class="filter-field-label">Bắt đầu bởi:</label>
+                    <div class="select-selected-container">
+                      <input 
+                        type="text" 
+                        v-model="userSearchKeyword" 
+                        @focus="onUserSearchFocus"
+                        @input="handleUserSearchInput"
+                        placeholder="Tên người dùng..."
+                        class="select-search-input"
+                      />
+                      <span 
+                        v-if="selectedUser" 
+                        class="select-clear-btn" 
+                        @click.stop="clearUserSelection"
+                      >
+                        &times;
+                      </span>
+                    </div>
+
+                    <!-- Dropdown autocomplete search results -->
+                    <div v-if="userDropdownOpen && userSearchResults.length > 0" class="autocomplete-dropdown-filter">
+                      <div 
+                        v-for="user in userSearchResults" 
+                        :key="user.id" 
+                        class="autocomplete-item-filter" 
+                        @click="selectUser(user)"
+                      >
+                        <div class="user-avatar-mini" :style="!isAvatarUrl(user.avatar) ? { backgroundColor: user.avatar || '#ccc', color: '#fff' } : {}">
+                          <img v-if="isAvatarUrl(user.avatar)" :src="user.avatar" />
+                          <template v-else>
+                            {{ (user.displayName || user.username || 'A').charAt(0).toUpperCase() }}
+                          </template>
+                        </div>
+                        <span class="user-name-text">
+                          <strong>{{ user.displayName || user.username }}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   
                   <div class="filter-dropdown-footer">
                     <button class="btn-submit-filter" @click="submitFilter">Lọc</button>
@@ -189,7 +238,7 @@
                   <span v-if="thread.label" class="label-tag" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                     {{ thread.label.name }}
                   </span>
-                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }">{{ thread.title }}</router-link>
+                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: getThreadDetailQuery() }">{{ thread.title }}</router-link>
                   <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
                   </span>
@@ -200,13 +249,13 @@
                 <div class="thread-meta">
                   <span class="author-name white-space-nowrap">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
                   <span class="dot-divider">•</span>
-                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }" class="meta-link">{{ formatDate(thread.createdAt) }}</router-link>
+                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: getThreadDetailQuery() }" class="meta-link">{{ formatDate(thread.createdAt) }}</router-link>
                   
                   <span class="quick-pages" v-if="getThreadPages(thread.replyCount).length > 0">
                     <router-link 
                       v-for="p in getThreadPages(thread.replyCount)" 
                       :key="p" 
-                      :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: { page: p, ...($route.query.labelId ? { labelId: $route.query.labelId } : {}) } }"
+                      :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: getThreadDetailQuery({ page: p }) }"
                       class="page-badge"
                     >
                       {{ p }}
@@ -233,7 +282,7 @@
               <div class="thread-last-post">
                 <div class="last-post-info">
                   <router-link 
-                    :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId, ...($route.query.labelId ? { labelId: $route.query.labelId } : {}) } } : { name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }" 
+                    :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: getThreadDetailQuery(thread.lastPostId ? { postId: thread.lastPostId } : {}) }" 
                     class="last-post-time-link">
                     {{ formatDate(thread.lastPostAt || thread.createdAt) }}
                   </router-link>
@@ -277,6 +326,7 @@
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import labelService from '@/apps/Forum/services/label.service'
+import userService from '@/apps/Forum/services/user.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
@@ -309,7 +359,14 @@ export default {
       appliedLabel: null,
       labelSearchKeyword: '',
       filterDropdownOpen: false,
-      labelDropdownOpen: false
+      labelDropdownOpen: false,
+      selectedUser: null,
+      appliedUser: null,
+      userSearchKeyword: '',
+      userDropdownOpen: false,
+      userSearchResults: [],
+      loadingUsers: false,
+      userSearchTimeout: null
     }
   },
   watch: {
@@ -343,6 +400,19 @@ export default {
         this.loading = true
         try {
           this.syncLabelFromQuery()
+          await this.fetchThreadsPaged()
+        } finally {
+          this.loading = false
+        }
+      }
+    },
+    '$route.query.displayName': {
+      async handler(newVal, oldVal) {
+        if (this.isChangingCategory) return
+        this.currentPage = 1
+        this.loading = true
+        try {
+          await this.syncUserFromQuery()
           await this.fetchThreadsPaged()
         } finally {
           this.loading = false
@@ -484,6 +554,9 @@ export default {
         // Sync label from URL query parameters
         this.syncLabelFromQuery()
 
+        // Sync user from URL query parameters
+        await this.syncUserFromQuery()
+
         // Fetch danh sách bài viết trang hiện tại
         await this.fetchThreadsPaged()
 
@@ -504,8 +577,9 @@ export default {
       const page = this.currentPage - 1
       const size = this.itemsPerPage
       const labelId = this.$route.query.labelId || null
+      const displayName = this.$route.query.displayName || null
       
-      const threadRes = await threadService.getAll({ categoryId, labelId, page, size })
+      const threadRes = await threadService.getAll({ categoryId, labelId, displayName, page, size })
       if (threadRes.data && threadRes.data.content) {
         this.threads = threadRes.data.content
         this.totalPagesCount = threadRes.data.totalPages || 1
@@ -578,6 +652,71 @@ export default {
     toggleLabelDropdown() {
       this.labelDropdownOpen = !this.labelDropdownOpen
     },
+    async syncUserFromQuery() {
+      const displayName = this.$route.query.displayName
+      if (displayName) {
+        try {
+          const res = await userService.getPublicByName(displayName)
+          if (res.data) {
+            this.appliedUser = res.data
+            this.selectedUser = res.data
+            this.userSearchKeyword = res.data.displayName || res.data.username
+            return
+          }
+        } catch (e) {
+          console.error('Lỗi khi sync user từ query:', e)
+        }
+      }
+      this.appliedUser = null
+      this.selectedUser = null
+      this.userSearchKeyword = ''
+    },
+    onUserSearchFocus() {
+      this.userDropdownOpen = true
+      if (this.userSearchKeyword && this.userSearchKeyword.trim()) {
+        this.handleUserSearchInput()
+      }
+    },
+    handleUserSearchInput() {
+      if (!this.userSearchKeyword || !this.userSearchKeyword.trim()) {
+        this.userSearchResults = []
+        this.selectedUser = null
+        return
+      }
+      this.userDropdownOpen = true
+      clearTimeout(this.userSearchTimeout)
+      this.userSearchTimeout = setTimeout(() => {
+        this.fetchUsers()
+      }, 300)
+    },
+    async fetchUsers() {
+      this.loadingUsers = true
+      try {
+        const response = await userService.search({
+          keyword: this.userSearchKeyword,
+          page: 0,
+          size: 10
+        })
+        if (response.data) {
+          this.userSearchResults = response.data.content || []
+        }
+      } catch (error) {
+        console.error('Lỗi khi tìm kiếm người dùng:', error)
+      } finally {
+        this.loadingUsers = false
+      }
+    },
+    selectUser(user) {
+      this.selectedUser = user
+      this.userSearchKeyword = user.displayName || user.username
+      this.userDropdownOpen = false
+    },
+    clearUserSelection() {
+      this.selectedUser = null
+      this.userSearchKeyword = ''
+      this.userDropdownOpen = false
+      this.userSearchResults = []
+    },
     submitFilter() {
       const query = { ...this.$route.query }
       if (this.selectedLabel) {
@@ -585,6 +724,13 @@ export default {
       } else {
         delete query.labelId
       }
+      
+      if (this.selectedUser) {
+        query.displayName = this.selectedUser.displayName || this.selectedUser.username
+      } else {
+        delete query.displayName
+      }
+      
       this.filterDropdownOpen = false
       this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
     },
@@ -593,6 +739,15 @@ export default {
       delete query.labelId
       this.selectedLabel = null
       this.labelSearchKeyword = ''
+      this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
+    },
+    removeUserFilter() {
+      const query = { ...this.$route.query }
+      delete query.displayName
+      this.selectedUser = null
+      this.appliedUser = null
+      this.userSearchKeyword = ''
+      this.userSearchResults = []
       this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
     },
     handleDocumentClick(e) {
@@ -607,6 +762,22 @@ export default {
         this.labelDropdownOpen = false
         this.labelSearchKeyword = this.selectedLabel ? this.selectedLabel.name : ''
       }
+
+      const userSearchGroup = this.$el.querySelector('.filter-user-search')
+      if (userSearchGroup && !userSearchGroup.contains(e.target)) {
+        this.userDropdownOpen = false
+        this.userSearchKeyword = this.selectedUser ? (this.selectedUser.displayName || this.selectedUser.username) : ''
+      }
+    },
+    getThreadDetailQuery(extraParams = {}) {
+      const query = { ...extraParams }
+      if (this.$route.query.labelId) {
+        query.labelId = this.$route.query.labelId
+      }
+      if (this.$route.query.displayName) {
+        query.displayName = this.$route.query.displayName
+      }
+      return query
     }
   }
 }
@@ -1255,6 +1426,54 @@ export default {
 
 .remove-filter-btn:hover {
   filter: brightness(0.8);
+}
+
+.autocomplete-dropdown-filter {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #c5d5e2;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 5px;
+}
+
+.autocomplete-item-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.autocomplete-item-filter:hover {
+  background-color: #f5f7fa;
+}
+
+.user-avatar-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 11px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #dee2e6;
+}
+
+.user-avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 @import "@/shared/assets/styles/custom.css";

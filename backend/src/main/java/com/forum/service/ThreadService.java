@@ -125,7 +125,7 @@ public class ThreadService {
     }
 
     public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
-            Long categoryId, Long labelId, String keyword, String sortBy, String sortOrder, int page, int size) {
+            Long categoryId, Long labelId, String displayName, String keyword, String sortBy, String sortOrder, int page, int size) {
         
         org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
         if (sortBy != null && !sortBy.trim().isEmpty()) {
@@ -161,7 +161,7 @@ public class ThreadService {
         }
         
         org.springframework.data.domain.Page<Thread> threadPage = threadRepository.searchThreads(
-            canSeeInternal, categoryId, labelId, searchPattern, pageable);
+            canSeeInternal, categoryId, labelId, displayName, searchPattern, pageable);
             
         List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
         enrichThreads(dtos);
