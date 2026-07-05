@@ -64,6 +64,7 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
            "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
            "AND (:labelId IS NULL OR t.label.id = :labelId) " +
            "AND (:displayName IS NULL OR t.author.displayName = :displayName) " +
+           "AND (:threadType IS NULL OR (:threadType = '" + com.forum.utils.Constants.THREAD_TYPE_DISCUSSION + "' AND t.poll IS NULL) OR (:threadType = '" + com.forum.utils.Constants.THREAD_TYPE_POLL + "' AND t.poll IS NOT NULL)) " +
            "AND (LOWER(t.title) LIKE :keyword " +
            "OR LOWER(t.author.username) LIKE :keyword " +
            "OR LOWER(t.author.displayName) LIKE :keyword " +
@@ -73,6 +74,7 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
             @org.springframework.data.repository.query.Param("categoryId") Long categoryId, 
             @org.springframework.data.repository.query.Param("labelId") Long labelId, 
             @org.springframework.data.repository.query.Param("displayName") String displayName, 
+            @org.springframework.data.repository.query.Param("threadType") String threadType, 
             @org.springframework.data.repository.query.Param("keyword") String keyword, 
             org.springframework.data.domain.Pageable pageable);
 

@@ -21,6 +21,7 @@ public class ThreadController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long labelId,
             @RequestParam(required = false) String displayName,
+            @RequestParam(required = false) String threadType,
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -28,7 +29,7 @@ public class ThreadController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortOrder) {
         if (page != null && size != null) {
-            return ResponseEntity.ok(threadService.getAllThreadsPaged(categoryId, labelId, displayName, keyword, sortBy, sortOrder, page, size));
+            return ResponseEntity.ok(threadService.getAllThreadsPaged(categoryId, labelId, displayName, threadType, keyword, sortBy, sortOrder, page, size));
         }
         return ResponseEntity.ok(threadService.getAllThreads(categoryId, labelId, limit));
     }

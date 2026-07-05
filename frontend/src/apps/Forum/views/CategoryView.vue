@@ -112,6 +112,14 @@
                 Bắt đầu bởi: {{ appliedUser.displayName || appliedUser.username }}
                 <span class="remove-filter-btn" @click="removeUserFilter">&times;</span>
               </div>
+              <div 
+                v-if="appliedThreadType" 
+                class="active-filter-badge"
+                style="background-color: #f5f5f5; color: #444; border-color: #ddd;"
+              >
+                Thread type: {{ appliedThreadType === 'discussion' ? 'Thảo luận' : 'Bình chọn' }}
+                <span class="remove-filter-btn" @click="removeThreadTypeFilter">&times;</span>
+              </div>
             </div>
 
             <div class="filter-trigger-wrapper" style="position: relative;">
@@ -210,6 +218,43 @@
                         <span class="user-name-text">
                           <strong>{{ user.displayName || user.username }}</strong>
                         </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="filter-field-group filter-thread-type" style="position: relative;">
+                    <label class="filter-field-label">Thread type:</label>
+                    <div class="custom-select">
+                      <div 
+                        class="select-selected-container"
+                        @click.stop="toggleTypeDropdown"
+                        style="cursor: pointer; justify-content: space-between;"
+                      >
+                        <div style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                          {{ getSelectedTypeText() }}
+                        </div>
+                        <span class="select-arrow-icon" style="position: static; font-size: 0.6rem; color: #8c8c8c; cursor: pointer;">▼</span>
+                      </div>
+                      
+                      <div class="select-items" v-if="typeDropdownOpen">
+                        <div 
+                          class="select-item" 
+                          @click="selectThreadType(null)"
+                        >
+                          (Mọi)
+                        </div>
+                        <div 
+                          class="select-item" 
+                          @click="selectThreadType('discussion')"
+                        >
+                          Thảo luận
+                        </div>
+                        <div 
+                          class="select-item" 
+                          @click="selectThreadType('poll')"
+                        >
+                          Bình chọn
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -366,7 +411,10 @@ export default {
       userDropdownOpen: false,
       userSearchResults: [],
       loadingUsers: false,
-      userSearchTimeout: null
+      userSearchTimeout: null,
+      selectedThreadType: null,
+      appliedThreadType: null,
+      typeDropdownOpen: false
     }
   },
   watch: {
@@ -413,6 +461,19 @@ export default {
         this.loading = true
         try {
           await this.syncUserFromQuery()
+          await this.fetchThreadsPaged()
+        } finally {
+          this.loading = false
+        }
+      }
+    },
+    '$route.query.threadType': {
+      async handler(newVal, oldVal) {
+        if (this.isChangingCategory) return
+        this.currentPage = 1
+        this.loading = true
+        try {
+          this.syncThreadTypeFromQuery()
           await this.fetchThreadsPaged()
         } finally {
           this.loading = false
@@ -557,6 +618,9 @@ export default {
         // Sync user from URL query parameters
         await this.syncUserFromQuery()
 
+        // Sync thread type from URL query parameters
+        this.syncThreadTypeFromQuery()
+
         // Fetch danh sách bài viết trang hiện tại
         await this.fetchThreadsPaged()
 
@@ -578,8 +642,9 @@ export default {
       const size = this.itemsPerPage
       const labelId = this.$route.query.labelId || null
       const displayName = this.$route.query.displayName || null
+      const threadType = this.$route.query.threadType || null
       
-      const threadRes = await threadService.getAll({ categoryId, labelId, displayName, page, size })
+      const threadRes = await threadService.getAll({ categoryId, labelId, displayName, threadType, page, size })
       if (threadRes.data && threadRes.data.content) {
         this.threads = threadRes.data.content
         this.totalPagesCount = threadRes.data.totalPages || 1
@@ -730,6 +795,12 @@ export default {
       } else {
         delete query.displayName
       }
+
+      if (this.selectedThreadType) {
+        query.threadType = this.selectedThreadType
+      } else {
+        delete query.threadType
+      }
       
       this.filterDropdownOpen = false
       this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
@@ -768,6 +839,39 @@ export default {
         this.userDropdownOpen = false
         this.userSearchKeyword = this.selectedUser ? (this.selectedUser.displayName || this.selectedUser.username) : ''
       }
+
+      const typeSelect = this.$el.querySelector('.filter-thread-type')
+      if (typeSelect && !typeSelect.contains(e.target)) {
+        this.typeDropdownOpen = false
+      }
+    },
+    toggleTypeDropdown() {
+      this.typeDropdownOpen = !this.typeDropdownOpen
+    },
+    selectThreadType(type) {
+      this.selectedThreadType = type
+      this.typeDropdownOpen = false
+    },
+    getSelectedTypeText() {
+      if (this.selectedThreadType === 'discussion') {
+        return 'Thảo luận'
+      }
+      if (this.selectedThreadType === 'poll') {
+        return 'Bình chọn'
+      }
+      return '(Mọi)'
+    },
+    syncThreadTypeFromQuery() {
+      const type = this.$route.query.threadType || null
+      this.appliedThreadType = type
+      this.selectedThreadType = type
+    },
+    removeThreadTypeFilter() {
+      const query = { ...this.$route.query }
+      delete query.threadType
+      this.selectedThreadType = null
+      this.appliedThreadType = null
+      this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
     },
     getThreadDetailQuery(extraParams = {}) {
       const query = { ...extraParams }
@@ -776,6 +880,9 @@ export default {
       }
       if (this.$route.query.displayName) {
         query.displayName = this.$route.query.displayName
+      }
+      if (this.$route.query.threadType) {
+        query.threadType = this.$route.query.threadType
       }
       return query
     }
@@ -1338,11 +1445,13 @@ export default {
   cursor: pointer;
 }
 
-.filter-label-select {
+.filter-label-select,
+.filter-thread-type {
   position: relative;
 }
 
-.filter-label-select .select-items {
+.filter-label-select .select-items,
+.filter-thread-type .select-items {
   position: absolute;
   background-color: #fff;
   border: 1px solid #ddd;
@@ -1358,7 +1467,8 @@ export default {
   padding: 5px;
 }
 
-.filter-label-select .select-item {
+.filter-label-select .select-item,
+.filter-thread-type .select-item {
   padding: 8px 10px;
   cursor: pointer;
   border-radius: 3px;
@@ -1368,8 +1478,10 @@ export default {
   border: 1px solid transparent;
 }
 
-.filter-label-select .select-item:hover {
+.filter-label-select .select-item:hover,
+.filter-thread-type .select-item:hover {
   filter: brightness(0.9);
+  background-color: #f8f9fa;
 }
 
 .filter-dropdown-footer {
