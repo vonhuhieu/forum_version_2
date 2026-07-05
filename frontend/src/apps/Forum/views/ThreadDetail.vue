@@ -398,6 +398,7 @@ export default {
   computed: {
     breadcrumbItems() {
       const items = [{ title: 'Trang chủ', to: { name: 'Home' } }]
+      const query = this.$route.query.labelId ? { labelId: this.$route.query.labelId } : {}
       
       if (this.thread && this.thread.category && this.thread.category.categoryGroupId) {
         if (this.categoryGroup) {
@@ -423,18 +424,18 @@ export default {
          parents.forEach(p => {
              items.push({
                  title: p.name,
-                 to: { name: 'CategoryDetail', params: { id: p.id } }
+                 to: { name: 'CategoryDetail', params: { id: p.id }, query }
              })
          });
          
          items.push({ 
            title: this.thread.category.name, 
-           to: { name: 'CategoryDetail', params: { id: this.thread.category.id } } 
+           to: { name: 'CategoryDetail', params: { id: this.thread.category.id }, query } 
          })
       } else if (this.thread && this.thread.category) {
         items.push({ 
           title: this.thread.category.name, 
-          to: { name: 'CategoryDetail', params: { id: this.thread.category.id } } 
+          to: { name: 'CategoryDetail', params: { id: this.thread.category.id }, query } 
         })
       }
 

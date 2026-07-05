@@ -95,9 +95,81 @@
 
           <!-- Thanh bộ lọc (Filter bar) -->
           <div class="thread-filter-bar">
-            <div class="filter-trigger">
-              <span>Lọc</span>
-              <span class="arrow-down">▼</span>
+            <div class="active-filters">
+              <div 
+                v-if="appliedLabel" 
+                class="active-filter-badge" 
+                :style="{ backgroundColor: appliedLabel.colorCode, color: appliedLabel.textColor, borderColor: appliedLabel.borderColor || 'transparent' }"
+              >
+                Nhãn: {{ appliedLabel.name }}
+                <span class="remove-filter-btn" @click="removeLabelFilter">&times;</span>
+              </div>
+            </div>
+
+            <div class="filter-trigger-wrapper" style="position: relative;">
+              <div class="filter-trigger" @click="filterDropdownOpen = !filterDropdownOpen">
+                <span>Lọc</span>
+                <span class="arrow-down">▼</span>
+              </div>
+
+              <!-- Filter Dropdown overlay -->
+              <div class="filter-dropdown" v-if="filterDropdownOpen" @click.stop>
+                <div class="filter-dropdown-header">Chỉ hiện:</div>
+                <div class="filter-dropdown-body">
+                  <div class="filter-field-group">
+                    <label class="filter-field-label">Nhãn:</label>
+                    <div class="custom-select filter-label-select">
+                      <div 
+                        class="select-selected-container"
+                        :style="selectedLabel ? { backgroundColor: selectedLabel.colorCode, color: selectedLabel.textColor, borderColor: selectedLabel.borderColor || 'transparent' } : {}"
+                      >
+                        <input 
+                          type="text" 
+                          v-model="labelSearchKeyword" 
+                          @focus="onLabelInputFocus"
+                          placeholder="(Mọi)"
+                          class="select-search-input"
+                          :style="selectedLabel ? { color: selectedLabel.textColor, fontWeight: '600' } : {}"
+                        />
+                        <span 
+                          v-if="selectedLabel" 
+                          class="select-clear-btn" 
+                          @click.stop="clearLabelSelection"
+                          :style="selectedLabel ? { color: selectedLabel.textColor } : {}"
+                        >
+                          &times;
+                        </span>
+                        <span class="select-arrow-icon" @click.stop="toggleLabelDropdown" :style="selectedLabel ? { color: selectedLabel.textColor } : {}">▼</span>
+                      </div>
+                      
+                      <div class="select-items" v-if="labelDropdownOpen">
+                        <div 
+                          class="select-item" 
+                          @click="selectLabel(null)"
+                        >
+                          (Mọi)
+                        </div>
+                        <div 
+                          v-for="label in filteredLabels" 
+                          :key="label.id" 
+                          class="select-item"
+                          :style="{ backgroundColor: label.colorCode, color: label.textColor, borderColor: label.borderColor || 'transparent' }"
+                          @click="selectLabel(label)"
+                        >
+                          {{ label.name }}
+                        </div>
+                        <div v-if="filteredLabels.length === 0" class="select-item no-result" style="color: #999; text-align: center; padding: 8px;">
+                          Không tìm thấy nhãn nào
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="filter-dropdown-footer">
+                    <button class="btn-submit-filter" @click="submitFilter">Lọc</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -117,7 +189,7 @@
                   <span v-if="thread.label" class="label-tag" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                     {{ thread.label.name }}
                   </span>
-                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }">{{ thread.title }}</router-link>
+                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }">{{ thread.title }}</router-link>
                   <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
                   </span>
@@ -128,13 +200,13 @@
                 <div class="thread-meta">
                   <span class="author-name white-space-nowrap">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
                   <span class="dot-divider">•</span>
-                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" class="meta-link">{{ formatDate(thread.createdAt) }}</router-link>
+                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }" class="meta-link">{{ formatDate(thread.createdAt) }}</router-link>
                   
                   <span class="quick-pages" v-if="getThreadPages(thread.replyCount).length > 0">
                     <router-link 
                       v-for="p in getThreadPages(thread.replyCount)" 
                       :key="p" 
-                      :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: { page: p } }"
+                      :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: { page: p, ...($route.query.labelId ? { labelId: $route.query.labelId } : {}) } }"
                       class="page-badge"
                     >
                       {{ p }}
@@ -161,7 +233,7 @@
               <div class="thread-last-post">
                 <div class="last-post-info">
                   <router-link 
-                    :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" 
+                    :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId, ...($route.query.labelId ? { labelId: $route.query.labelId } : {}) } } : { name: 'ThreadDetail', params: { id: thread.id }, query: $route.query.labelId ? { labelId: $route.query.labelId } : {} }" 
                     class="last-post-time-link">
                     {{ formatDate(thread.lastPostAt || thread.createdAt) }}
                   </router-link>
@@ -204,6 +276,7 @@
 <script>
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
+import labelService from '@/apps/Forum/services/label.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
@@ -230,7 +303,13 @@ export default {
       isLoggedIn: false,
       totalPagesCount: 1,
       totalElements: 0,
-      isChangingCategory: false
+      isChangingCategory: false,
+      allLabels: [],
+      selectedLabel: null,
+      appliedLabel: null,
+      labelSearchKeyword: '',
+      filterDropdownOpen: false,
+      labelDropdownOpen: false
     }
   },
   watch: {
@@ -254,6 +333,19 @@ export default {
           } finally {
             this.loading = false
           }
+        }
+      }
+    },
+    '$route.query.labelId': {
+      async handler(newVal, oldVal) {
+        if (this.isChangingCategory) return
+        this.currentPage = 1
+        this.loading = true
+        try {
+          this.syncLabelFromQuery()
+          await this.fetchThreadsPaged()
+        } finally {
+          this.loading = false
         }
       }
     }
@@ -300,15 +392,28 @@ export default {
     },
     paginatedThreads() {
       return this.threads
+    },
+    filteredLabels() {
+      if (!this.labelSearchKeyword) {
+        return this.allLabels
+      }
+      if (this.selectedLabel && this.labelSearchKeyword === this.selectedLabel.name) {
+        return this.allLabels
+      }
+      return this.allLabels.filter(label => 
+        label.name.toLowerCase().includes(this.labelSearchKeyword.toLowerCase())
+      )
     }
   },
   async mounted() {
     this.checkAuth()
     await this.fetchData()
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    document.addEventListener('click', this.handleDocumentClick)
   },
   beforeUnmount() {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
     isAvatarUrl(avatar) {
@@ -360,19 +465,24 @@ export default {
       this.loading = true
       const categoryId = this.$route.params.id
       try {
-        // Fetch tất cả chuyên mục để tìm tên chuyên mục hiện tại
-        const [catRes, groupRes] = await Promise.all([
+        // Fetch tất cả chuyên mục, nhóm và nhãn
+        const [catRes, groupRes, labelRes] = await Promise.all([
           categoryService.getAll(),
-          categoryService.getGroups()
+          categoryService.getGroups(),
+          labelService.getAll()
         ])
         
         const categories = catRes.data
         this.allCategories = categories
         this.category = categories.find(c => c.id == categoryId)
+        this.allLabels = labelRes.data || []
 
         if (this.category && this.category.categoryGroupId) {
           this.categoryGroup = groupRes.data.find(g => g.id === this.category.categoryGroupId)
         }
+
+        // Sync label from URL query parameters
+        this.syncLabelFromQuery()
 
         // Fetch danh sách bài viết trang hiện tại
         await this.fetchThreadsPaged()
@@ -393,8 +503,9 @@ export default {
       const categoryId = this.$route.params.id
       const page = this.currentPage - 1
       const size = this.itemsPerPage
+      const labelId = this.$route.query.labelId || null
       
-      const threadRes = await threadService.getAll({ categoryId, page, size })
+      const threadRes = await threadService.getAll({ categoryId, labelId, page, size })
       if (threadRes.data && threadRes.data.content) {
         this.threads = threadRes.data.content
         this.totalPagesCount = threadRes.data.totalPages || 1
@@ -435,6 +546,67 @@ export default {
       if (totalPages === 3) return [2, 3];
       
       return [totalPages - 2, totalPages - 1, totalPages];
+    },
+    syncLabelFromQuery() {
+      const labelId = this.$route.query.labelId
+      if (labelId && this.allLabels && this.allLabels.length > 0) {
+        const found = this.allLabels.find(l => String(l.id) === String(labelId))
+        if (found) {
+          this.appliedLabel = found
+          this.selectedLabel = found
+          this.labelSearchKeyword = found.name
+          return
+        }
+      }
+      this.appliedLabel = null
+      this.selectedLabel = null
+      this.labelSearchKeyword = ''
+    },
+    onLabelInputFocus() {
+      this.labelDropdownOpen = true
+    },
+    selectLabel(label) {
+      this.selectedLabel = label
+      this.labelSearchKeyword = label ? label.name : ''
+      this.labelDropdownOpen = false
+    },
+    clearLabelSelection() {
+      this.selectedLabel = null
+      this.labelSearchKeyword = ''
+      this.labelDropdownOpen = false
+    },
+    toggleLabelDropdown() {
+      this.labelDropdownOpen = !this.labelDropdownOpen
+    },
+    submitFilter() {
+      const query = { ...this.$route.query }
+      if (this.selectedLabel) {
+        query.labelId = this.selectedLabel.id
+      } else {
+        delete query.labelId
+      }
+      this.filterDropdownOpen = false
+      this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
+    },
+    removeLabelFilter() {
+      const query = { ...this.$route.query }
+      delete query.labelId
+      this.selectedLabel = null
+      this.labelSearchKeyword = ''
+      this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
+    },
+    handleDocumentClick(e) {
+      const trigger = this.$el.querySelector('.filter-trigger')
+      const dropdown = this.$el.querySelector('.filter-dropdown')
+      if (trigger && !trigger.contains(e.target) && dropdown && !dropdown.contains(e.target)) {
+        this.filterDropdownOpen = false
+      }
+      
+      const labelSelect = this.$el.querySelector('.filter-label-select')
+      if (labelSelect && !labelSelect.contains(e.target)) {
+        this.labelDropdownOpen = false
+        this.labelSearchKeyword = this.selectedLabel ? this.selectedLabel.name : ''
+      }
     }
   }
 }
@@ -876,8 +1048,9 @@ export default {
   border-bottom: 1px solid #dee2e6;
   padding: 8px 15px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .filter-trigger {
@@ -901,6 +1074,187 @@ export default {
 .filter-trigger .arrow-down {
   font-size: 0.7rem;
   color: #1a507a;
+}
+
+/* Custom Dropdown Filters styling */
+.filter-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 15px;
+  background-color: #fff;
+  border: 1px solid #c5d5e2;
+  border-top: 3px solid #3498db;
+  border-radius: 0 0 4px 4px;
+  width: 280px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: visible; /* Allow option dropdown to spill over bottom */
+}
+
+.filter-dropdown-header {
+  background-color: #eef4f9;
+  border-bottom: 1px solid #dee2e6;
+  color: #1a507a;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.filter-dropdown-body {
+  padding: 12px;
+}
+
+.filter-field-group {
+  margin-bottom: 12px;
+}
+
+.filter-field-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #333;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.select-selected-container {
+  display: flex;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0 10px;
+  background-color: #fff;
+  position: relative;
+  height: 34px;
+}
+
+.select-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: #333;
+  width: 100%;
+  padding-right: 35px;
+  height: 100%;
+}
+
+.select-search-input::placeholder {
+  color: #8c8c8c;
+}
+
+.select-clear-btn {
+  position: absolute;
+  right: 22px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #8c8c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 4px;
+}
+
+.select-clear-btn:hover {
+  filter: brightness(0.8);
+}
+
+.select-arrow-icon {
+  position: absolute;
+  right: 8px;
+  font-size: 0.6rem;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.filter-label-select {
+  position: relative;
+}
+
+.filter-label-select .select-items {
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 5px;
+  padding: 5px;
+}
+
+.filter-label-select .select-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  font-weight: 500;
+  color: #333;
+  border: 1px solid transparent;
+}
+
+.filter-label-select .select-item:hover {
+  filter: brightness(0.9);
+}
+
+.filter-dropdown-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #dee2e6;
+  padding-top: 10px;
+  margin-top: 15px;
+}
+
+.btn-submit-filter {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.btn-submit-filter:hover {
+  background-color: #2980b9;
+}
+
+.active-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.active-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.remove-filter-btn {
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  margin-left: 2px;
+}
+
+.remove-filter-btn:hover {
+  filter: brightness(0.8);
 }
 
 @import "@/shared/assets/styles/custom.css";
