@@ -429,8 +429,6 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
-import iconGoUp from '@/assets/icon_svg/icon-go-up.svg'
-import iconGoDown from '@/assets/icon_svg/icon-go-down.svg'
 
 export default {
   name: 'CategoryView',
@@ -441,8 +439,8 @@ export default {
   },
   data() {
     return {
-      iconGoUp,
-      iconGoDown,
+      iconGoUp: '/icon-go-up.svg',
+      iconGoDown: '/icon-go-down.svg',
       category: null,
       categoryGroup: null,
       allCategories: [],
