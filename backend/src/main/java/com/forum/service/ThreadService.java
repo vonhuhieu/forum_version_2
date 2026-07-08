@@ -129,16 +129,46 @@ public class ThreadService {
         
         org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
         if (sortBy != null && !sortBy.trim().isEmpty()) {
-            org.springframework.data.domain.Sort.Direction direction = 
+            org.springframework.data.domain.Sort.Direction direction =
                 "desc".equalsIgnoreCase(sortOrder) ? org.springframework.data.domain.Sort.Direction.DESC : org.springframework.data.domain.Sort.Direction.ASC;
-            
+
             String property = sortBy;
             if ("author.username".equals(sortBy)) {
                 property = "author.username";
             } else if ("category.name".equals(sortBy)) {
                 property = "category.name";
             }
-            sort = org.springframework.data.domain.Sort.by(direction, property);
+
+            org.springframework.data.domain.Sort.Order contentOrder = direction == org.springframework.data.domain.Sort.Direction.DESC
+                ? org.springframework.data.domain.Sort.Order.desc(property)
+                : org.springframework.data.domain.Sort.Order.asc(property);
+
+            if (categoryId != null) {
+                // Khi duyệt theo chuyên mục: luôn ưu tiên bài ghim lên đầu,
+                // sau đó mới áp dụng chiều sắp xếp người dùng chọn.
+                // Nếu trùng giá trị, sử dụng thời gian phản hồi mới nhất (lastPostAt DESC) làm tiêu chí phụ.
+                if (!"lastPostAt".equals(property)) {
+                    sort = org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Order.desc("pinned"),
+                        contentOrder,
+                        org.springframework.data.domain.Sort.Order.desc("lastPostAt")
+                    );
+                } else {
+                    sort = org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Order.desc("pinned"),
+                        contentOrder
+                    );
+                }
+            } else {
+                if (!"lastPostAt".equals(property)) {
+                    sort = org.springframework.data.domain.Sort.by(
+                        contentOrder,
+                        org.springframework.data.domain.Sort.Order.desc("lastPostAt")
+                    );
+                } else {
+                    sort = org.springframework.data.domain.Sort.by(contentOrder);
+                }
+            }
         } else {
             if (categoryId != null) {
                 sort = org.springframework.data.domain.Sort.by(

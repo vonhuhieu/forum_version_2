@@ -120,6 +120,14 @@
                 Thread type: {{ appliedThreadType === 'discussion' ? 'Thảo luận' : 'Bình chọn' }}
                 <span class="remove-filter-btn" @click="removeThreadTypeFilter">&times;</span>
               </div>
+              <div 
+                v-if="!isDefaultSort" 
+                class="active-filter-badge"
+                style="background-color: #f5f5f5; color: #444; border-color: #ddd;"
+              >
+                Sắp xếp theo: {{ getSortByTextApplied() }}<img :src="appliedSortOrder === 'asc' ? iconGoUp : iconGoDown" class="sort-direction-icon" alt="sort direction" />
+                <span class="remove-filter-btn" @click="removeSortFilter">&times;</span>
+              </div>
             </div>
 
             <div class="filter-trigger-wrapper" style="position: relative;">
@@ -259,6 +267,50 @@
                     </div>
                   </div>
                   
+                  <div class="filter-field-group filter-sort-group">
+                    <label class="filter-field-label">Sắp xếp theo:</label>
+                    <div class="sort-two-col">
+                      <!-- Dropdown trái: tiêu chí sắp xếp -->
+                      <div class="custom-select filter-sort-by">
+                        <div 
+                          class="select-selected-container"
+                          @click.stop="toggleSortDropdown"
+                          style="cursor: pointer; justify-content: space-between;"
+                        >
+                          <div style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                            {{ getSortByText() }}
+                          </div>
+                          <span class="select-arrow-icon" style="position: static; font-size: 0.6rem; color: #8c8c8c; cursor: pointer;">&#9660;</span>
+                        </div>
+                        <div class="select-items" v-if="sortDropdownOpen">
+                          <div class="select-item" @click="selectSortBy('lastPostAt')">Last message</div>
+                          <div class="select-item" @click="selectSortBy('createdAt')">First message</div>
+                          <div class="select-item" @click="selectSortBy('replyCount')">Replies</div>
+                          <div class="select-item" @click="selectSortBy('viewCount')">Views</div>
+                          <div class="select-item" @click="selectSortBy('reactionCount')">First message reaction score</div>
+                        </div>
+                      </div>
+
+                      <!-- Dropdown phải: chiều sắp xếp -->
+                      <div class="custom-select filter-sort-order">
+                        <div 
+                          class="select-selected-container"
+                          @click.stop="toggleSortOrderDropdown"
+                          style="cursor: pointer; justify-content: space-between;"
+                        >
+                          <div style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                            {{ getSortOrderText() }}
+                          </div>
+                          <span class="select-arrow-icon" style="position: static; font-size: 0.6rem; color: #8c8c8c; cursor: pointer;">&#9660;</span>
+                        </div>
+                        <div class="select-items" v-if="sortOrderDropdownOpen">
+                          <div class="select-item" @click="selectSortOrder('desc')">Trên xuống</div>
+                          <div class="select-item" @click="selectSortOrder('asc')">Dưới lên</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="filter-dropdown-footer">
                     <button class="btn-submit-filter" @click="submitFilter">Lọc</button>
                   </div>
@@ -377,6 +429,8 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import iconGoUp from '@/assets/icon_svg/icon-go-up.svg'
+import iconGoDown from '@/assets/icon_svg/icon-go-down.svg'
 
 export default {
   name: 'CategoryView',
@@ -387,6 +441,8 @@ export default {
   },
   data() {
     return {
+      iconGoUp,
+      iconGoDown,
       category: null,
       categoryGroup: null,
       allCategories: [],
@@ -412,9 +468,16 @@ export default {
       userSearchResults: [],
       loadingUsers: false,
       userSearchTimeout: null,
+      userSearchRequestId: 0,
       selectedThreadType: null,
       appliedThreadType: null,
-      typeDropdownOpen: false
+      typeDropdownOpen: false,
+      selectedSortBy: 'lastPostAt',
+      selectedSortOrder: 'desc',
+      appliedSortBy: 'lastPostAt',
+      appliedSortOrder: 'desc',
+      sortDropdownOpen: false,
+      sortOrderDropdownOpen: false
     }
   },
   watch: {
@@ -479,6 +542,41 @@ export default {
           this.loading = false
         }
       }
+    },
+    '$route.query.sortBy': {
+      async handler(newVal, oldVal) {
+        if (this.isChangingCategory) return
+        this.currentPage = 1
+        this.loading = true
+        try {
+          this.syncSortFromQuery()
+          await this.fetchThreadsPaged()
+        } finally {
+          this.loading = false
+        }
+      }
+    },
+    '$route.query.sortOrder': {
+      async handler(newVal, oldVal) {
+        if (this.isChangingCategory) return
+        this.currentPage = 1
+        this.loading = true
+        try {
+          this.syncSortFromQuery()
+          await this.fetchThreadsPaged()
+        } finally {
+          this.loading = false
+        }
+      }
+    },
+    userSearchKeyword(newVal) {
+      // Watcher phản ứng tức thì: đóng dropdown ngay khi keyword trống
+      if (!newVal || !newVal.trim()) {
+        clearTimeout(this.userSearchTimeout)
+        this.userSearchRequestId++ // Vô hiệu hóa mọi response đang bay
+        this.userSearchResults = []
+        this.userDropdownOpen = false
+      }
     }
   },
   computed: {
@@ -515,7 +613,20 @@ export default {
          });
       }
       
-      items.push({ title: this.category ? this.category.name : 'Chuyên mục' })
+      const currentQuery = {}
+      if (this.$route.query.labelId) currentQuery.labelId = this.$route.query.labelId
+      if (this.$route.query.displayName) currentQuery.displayName = this.$route.query.displayName
+      if (this.$route.query.threadType) currentQuery.threadType = this.$route.query.threadType
+      if (this.$route.query.sortBy) currentQuery.sortBy = this.$route.query.sortBy
+      if (this.$route.query.sortOrder) currentQuery.sortOrder = this.$route.query.sortOrder
+
+      const hasQuery = Object.keys(currentQuery).length > 0
+      items.push({
+        title: this.category ? this.category.name : 'Chuyên mục',
+        ...(hasQuery && this.category
+          ? { to: { name: 'CategoryDetail', params: { id: this.category.id }, query: currentQuery } }
+          : {})
+      })
       return items
     },
     totalPages() {
@@ -534,6 +645,9 @@ export default {
       return this.allLabels.filter(label => 
         label.name.toLowerCase().includes(this.labelSearchKeyword.toLowerCase())
       )
+    },
+    isDefaultSort() {
+      return this.appliedSortBy === 'lastPostAt' && this.appliedSortOrder === 'desc'
     }
   },
   async mounted() {
@@ -621,6 +735,9 @@ export default {
         // Sync thread type from URL query parameters
         this.syncThreadTypeFromQuery()
 
+        // Sync sort from URL query parameters
+        this.syncSortFromQuery()
+
         // Fetch danh sách bài viết trang hiện tại
         await this.fetchThreadsPaged()
 
@@ -643,8 +760,10 @@ export default {
       const labelId = this.$route.query.labelId || null
       const displayName = this.$route.query.displayName || null
       const threadType = this.$route.query.threadType || null
+      const sortBy = this.$route.query.sortBy || null
+      const sortOrder = this.$route.query.sortOrder || null
       
-      const threadRes = await threadService.getAll({ categoryId, labelId, displayName, threadType, page, size })
+      const threadRes = await threadService.getAll({ categoryId, labelId, displayName, threadType, sortBy, sortOrder, page, size })
       if (threadRes.data && threadRes.data.content) {
         this.threads = threadRes.data.content
         this.totalPagesCount = threadRes.data.totalPages || 1
@@ -737,24 +856,34 @@ export default {
       this.userSearchKeyword = ''
     },
     onUserSearchFocus() {
-      this.userDropdownOpen = true
       if (this.userSearchKeyword && this.userSearchKeyword.trim()) {
+        this.userDropdownOpen = true
         this.handleUserSearchInput()
       }
     },
     handleUserSearchInput() {
+      // Luôn hủy timer cũ TRƯỚC, tránh race condition khi xóa nhanh
+      clearTimeout(this.userSearchTimeout)
       if (!this.userSearchKeyword || !this.userSearchKeyword.trim()) {
         this.userSearchResults = []
+        this.userDropdownOpen = false
         this.selectedUser = null
         return
       }
       this.userDropdownOpen = true
-      clearTimeout(this.userSearchTimeout)
       this.userSearchTimeout = setTimeout(() => {
         this.fetchUsers()
       }, 300)
     },
     async fetchUsers() {
+      // Guard: không bao giờ gọi API khi keyword rỗng
+      if (!this.userSearchKeyword || !this.userSearchKeyword.trim()) {
+        this.userSearchResults = []
+        this.userDropdownOpen = false
+        return
+      }
+      // Gán request ID để bỏ qua response cũ (stale response)
+      const requestId = ++this.userSearchRequestId
       this.loadingUsers = true
       try {
         const response = await userService.searchPublic({
@@ -762,13 +891,16 @@ export default {
           page: 0,
           size: 10
         })
-        if (response.data) {
+        // Chỉ cập nhật UI nếu đây vẫn là request mới nhất
+        if (requestId === this.userSearchRequestId && response.data) {
           this.userSearchResults = response.data.content || []
         }
       } catch (error) {
         console.error('Lỗi khi tìm kiếm người dùng:', error)
       } finally {
-        this.loadingUsers = false
+        if (requestId === this.userSearchRequestId) {
+          this.loadingUsers = false
+        }
       }
     },
     selectUser(user) {
@@ -800,6 +932,16 @@ export default {
         query.threadType = this.selectedThreadType
       } else {
         delete query.threadType
+      }
+
+      // Xử lý sort: chỉ đưa vào query khi khác mặc định
+      const isDefault = this.selectedSortBy === 'lastPostAt' && this.selectedSortOrder === 'desc'
+      if (!isDefault) {
+        query.sortBy = this.selectedSortBy
+        query.sortOrder = this.selectedSortOrder
+      } else {
+        delete query.sortBy
+        delete query.sortOrder
       }
       
       this.filterDropdownOpen = false
@@ -844,6 +986,16 @@ export default {
       if (typeSelect && !typeSelect.contains(e.target)) {
         this.typeDropdownOpen = false
       }
+
+      const sortBySelect = this.$el.querySelector('.filter-sort-by')
+      if (sortBySelect && !sortBySelect.contains(e.target)) {
+        this.sortDropdownOpen = false
+      }
+
+      const sortOrderSelect = this.$el.querySelector('.filter-sort-order')
+      if (sortOrderSelect && !sortOrderSelect.contains(e.target)) {
+        this.sortOrderDropdownOpen = false
+      }
     },
     toggleTypeDropdown() {
       this.typeDropdownOpen = !this.typeDropdownOpen
@@ -884,7 +1036,56 @@ export default {
       if (this.$route.query.threadType) {
         query.threadType = this.$route.query.threadType
       }
+      if (this.$route.query.sortBy) {
+        query.sortBy = this.$route.query.sortBy
+      }
+      if (this.$route.query.sortOrder) {
+        query.sortOrder = this.$route.query.sortOrder
+      }
       return query
+    },
+    toggleSortDropdown() {
+      this.sortDropdownOpen = !this.sortDropdownOpen
+    },
+    toggleSortOrderDropdown() {
+      this.sortOrderDropdownOpen = !this.sortOrderDropdownOpen
+    },
+    selectSortBy(val) {
+      this.selectedSortBy = val
+      this.sortDropdownOpen = false
+    },
+    selectSortOrder(val) {
+      this.selectedSortOrder = val
+      this.sortOrderDropdownOpen = false
+    },
+    getSortByText() {
+      const map = { lastPostAt: 'Last message', createdAt: 'First message', replyCount: 'Replies', viewCount: 'Views', reactionCount: 'First message reaction score' }
+      return map[this.selectedSortBy] || 'Last message'
+    },
+    getSortByTextApplied() {
+      const map = { lastPostAt: 'Last message', createdAt: 'First message', replyCount: 'Replies', viewCount: 'Views', reactionCount: 'First message reaction score' }
+      return map[this.appliedSortBy] || 'Last message'
+    },
+    getSortOrderText() {
+      return this.selectedSortOrder === 'asc' ? 'Dưới lên' : 'Trên xuống'
+    },
+    syncSortFromQuery() {
+      const sortBy = this.$route.query.sortBy || 'lastPostAt'
+      const sortOrder = this.$route.query.sortOrder || 'desc'
+      this.selectedSortBy = sortBy
+      this.appliedSortBy = sortBy
+      this.selectedSortOrder = sortOrder
+      this.appliedSortOrder = sortOrder
+    },
+    removeSortFilter() {
+      const query = { ...this.$route.query }
+      delete query.sortBy
+      delete query.sortOrder
+      this.selectedSortBy = 'lastPostAt'
+      this.selectedSortOrder = 'desc'
+      this.appliedSortBy = 'lastPostAt'
+      this.appliedSortOrder = 'desc'
+      this.$router.push({ name: 'CategoryDetail', params: { id: this.category.id }, query })
     }
   }
 }
@@ -1358,12 +1559,12 @@ export default {
 .filter-dropdown {
   position: absolute;
   top: 100%;
-  right: 15px;
+  right: -8px;
   background-color: #fff;
   border: 1px solid #c5d5e2;
   border-top: 3px solid #3498db;
   border-radius: 0 0 4px 4px;
-  width: 280px;
+  width: 327px;
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: visible; /* Allow option dropdown to spill over bottom */
@@ -1399,7 +1600,7 @@ export default {
   align-items: center;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  padding: 0 10px;
+  padding: 0 5px;
   background-color: #fff;
   position: relative;
   height: 34px;
@@ -1588,5 +1789,63 @@ export default {
   object-fit: cover;
 }
 
+
 @import "@/shared/assets/styles/custom.css";
+
+.sort-two-col {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-sort-by {
+  flex: 1.5;
+  position: relative;
+}
+
+.filter-sort-order {
+  flex: 1;
+  position: relative;
+}
+
+.filter-sort-by .select-items,
+.filter-sort-order .select-items {
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-top: 5px;
+  padding: 5px;
+}
+
+.filter-sort-by .select-item,
+.filter-sort-order .select-item {
+  padding: 8px 0px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  font-weight: 500;
+  color: #333;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+}
+
+.filter-sort-by .select-item:hover,
+.filter-sort-order .select-item:hover {
+  background-color: #f8f9fa;
+}
+
+.sort-direction-icon {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  margin-left: 4px;
+  display: inline-block;
+  opacity: 0.8;
+}
+
 </style>

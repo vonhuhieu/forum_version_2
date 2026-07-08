@@ -72,4 +72,7 @@ public class Thread {
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
+
+    @org.hibernate.annotations.Formula("(SELECT COUNT(*) FROM reactions r WHERE r.thread_id = id)")
+    private int reactionCount;
 }
