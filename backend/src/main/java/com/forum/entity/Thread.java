@@ -72,4 +72,7 @@ public class Thread {
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
+
+    @Column(name = "reaction_count", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int reactionCount = 0;
 }

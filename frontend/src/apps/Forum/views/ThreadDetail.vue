@@ -408,6 +408,12 @@ export default {
       if (this.$route.query.threadType) {
         query.threadType = this.$route.query.threadType
       }
+      if (this.$route.query.sortBy) {
+        query.sortBy = this.$route.query.sortBy
+      }
+      if (this.$route.query.sortOrder) {
+        query.sortOrder = this.$route.query.sortOrder
+      }
       
       if (this.thread && this.thread.category && this.thread.category.categoryGroupId) {
         if (this.categoryGroup) {
