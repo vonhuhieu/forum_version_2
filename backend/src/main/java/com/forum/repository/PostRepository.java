@@ -10,8 +10,12 @@ import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    // FIX HHH90003004: Tách JOIN FETCH collection (author.roles) ra khỏi paged query.
+    // Dùng @EntityGraph chỉ fetch các quan hệ many-to-one (author) để tránh in-memory pagination.
+    // Roles sẽ được load lazy theo batch (hibernate.default_batch_fetch_size=100).
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author"})
     @org.springframework.data.jpa.repository.Query(
-        value = "SELECT p FROM Post p LEFT JOIN FETCH p.author LEFT JOIN FETCH p.author.roles WHERE p.thread.id = :threadId ORDER BY p.createdAt ASC",
+        value = "SELECT p FROM Post p WHERE p.thread.id = :threadId ORDER BY p.createdAt ASC",
         countQuery = "SELECT COUNT(p) FROM Post p WHERE p.thread.id = :threadId"
     )
     org.springframework.data.domain.Page<Post> findByThreadIdOrderByCreatedAtAsc(@org.springframework.data.repository.query.Param("threadId") Long threadId, org.springframework.data.domain.Pageable pageable);
@@ -38,8 +42,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     long countByAuthorId(Long authorId);
 
+    // FIX HHH90003004: Dùng @EntityGraph thay vì JOIN FETCH nhiều bảng + Pageable.
+    // @EntityGraph với many-to-one associations không gây in-memory pagination.
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "thread", "thread.category", "thread.label"})
     @org.springframework.data.jpa.repository.Query(
-        value = "SELECT p FROM Post p LEFT JOIN FETCH p.author LEFT JOIN FETCH p.thread LEFT JOIN FETCH p.thread.category LEFT JOIN FETCH p.thread.label WHERE p.author.username = :username ORDER BY p.createdAt DESC",
+        value = "SELECT p FROM Post p WHERE p.author.username = :username ORDER BY p.createdAt DESC",
         countQuery = "SELECT COUNT(p) FROM Post p WHERE p.author.username = :username"
     )
     org.springframework.data.domain.Page<Post> findByAuthorUsernameOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("username") String username, org.springframework.data.domain.Pageable pageable);
