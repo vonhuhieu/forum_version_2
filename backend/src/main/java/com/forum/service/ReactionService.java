@@ -87,6 +87,9 @@ public class ReactionService {
             newReaction.setThread(thread);
             newReaction.setReactionIcon(icon);
             reactionRepository.save(newReaction);
+
+            thread.setReactionCount(thread.getReactionCount() + 1);
+            threadRepository.save(thread);
         }
 
         threadService.evictCache(threadId);
@@ -131,6 +134,9 @@ public class ReactionService {
             newReaction.setThread(thread);
             newReaction.setReactionIcon(icon);
             reactionRepository.save(newReaction);
+
+            thread.setReactionCount(thread.getReactionCount() + 1);
+            threadRepository.save(thread);
         }
 
         threadService.evictCache(threadId);
@@ -149,7 +155,14 @@ public class ReactionService {
         User currentUser = userRepository.findByUsername(username).orElse(null);
         if (currentUser == null) return;
 
-        reactionRepository.deleteByUserIdAndThreadId(currentUser.getId(), threadId);
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndThreadId(currentUser.getId(), threadId);
+        if (existing.isPresent()) {
+            reactionRepository.delete(existing.get());
+            threadRepository.findById(threadId).ifPresent(thread -> {
+                thread.setReactionCount(Math.max(0, thread.getReactionCount() - 1));
+                threadRepository.save(thread);
+            });
+        }
         threadService.evictCache(threadId);
     }
 
@@ -258,7 +271,14 @@ public class ReactionService {
 
     public void removeReactionFromThread(Long threadId) {
         User currentUser = getCurrentUser().orElseThrow(() -> new RuntimeException("Authentication required"));
-        reactionRepository.deleteByUserIdAndThreadId(currentUser.getId(), threadId);
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndThreadId(currentUser.getId(), threadId);
+        if (existing.isPresent()) {
+            reactionRepository.delete(existing.get());
+            threadRepository.findById(threadId).ifPresent(thread -> {
+                thread.setReactionCount(Math.max(0, thread.getReactionCount() - 1));
+                threadRepository.save(thread);
+            });
+        }
         threadService.evictCache(threadId);
     }
 
