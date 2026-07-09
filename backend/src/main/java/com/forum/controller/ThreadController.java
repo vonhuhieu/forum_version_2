@@ -67,7 +67,10 @@ public class ThreadController {
         try {
             return ResponseEntity.ok(threadService.updateThread(id, threadDTO));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            if ("Thread not found".equals(e.getMessage())) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
     }
 
