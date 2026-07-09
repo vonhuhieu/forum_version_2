@@ -36,6 +36,7 @@ public class ThreadService {
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
     private final ThreadViewIncrementer threadViewIncrementer;
     private final SearchDocumentRepository searchDocumentRepository;
+    private final SystemSettingService systemSettingService;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -432,6 +433,37 @@ public class ThreadService {
 
     public ResponseDTO<ThreadDTO> updateThread(Long id, ThreadDTO threadDTO) {
         return threadRepository.findById(id).map(thread -> {
+            // Lấy username của user hiện tại từ SecurityContext
+            String currentUsername = (String) org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .getAuthentication().getPrincipal();
+            
+            User currentUser = userRepository.findByUsername(currentUsername)
+                    .orElseThrow(() -> new RuntimeException("Current user not found"));
+            
+            boolean isAdmin = currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_ADMIN) 
+                    || currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_SUPER_ADMIN);
+            
+            if (!isAdmin) {
+                // 1. Kiểm tra quyền sở hữu bài viết
+                if (thread.getAuthor() == null || !thread.getAuthor().getUsername().equals(currentUsername)) {
+                    throw new RuntimeException("Bạn không có quyền chỉnh sửa bài đăng này");
+                }
+                
+                // 2. Kiểm tra giới hạn thời gian chỉnh sửa
+                int limitMinutes = Integer.parseInt(systemSettingService.getSetting(
+                        com.forum.utils.Constants.SETTING_THREAD_EDIT_LIMIT_MINUTES, 
+                        com.forum.utils.Constants.DEFAULT_THREAD_EDIT_LIMIT_MINUTES));
+                if (limitMinutes >= 0) {
+                    java.time.LocalDateTime createdAt = thread.getCreatedAt();
+                    if (createdAt != null) {
+                        java.time.Duration duration = java.time.Duration.between(createdAt, java.time.LocalDateTime.now());
+                        if (duration.toMinutes() > limitMinutes) {
+                            throw new RuntimeException("Đã hết thời gian cho phép chỉnh sửa bài viết (" + limitMinutes + " phút)");
+                        }
+                    }
+                }
+            }
+
             thread.setTitle(threadDTO.getTitle());
             thread.setContent(threadDTO.getContent());
             if (threadDTO.getScope() != null && !threadDTO.getScope().trim().isEmpty()) {

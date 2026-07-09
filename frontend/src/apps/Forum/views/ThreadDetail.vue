@@ -333,6 +333,8 @@ import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import settingService from '@/shared/services/setting.service'
+import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
 export default {
   name: 'ThreadDetail',
@@ -380,6 +382,7 @@ export default {
       highlightedPostId: null,
       currentUser: parsedUser,
       editingItemId: null,
+      threadEditLimitMinutes: SETTINGS.DEFAULT_THREAD_EDIT_LIMIT_MINUTES, // Mặc định nếu tải cấu hình lỗi
       editForm: {
         content: ''
       },
@@ -501,7 +504,8 @@ export default {
         this.fetchReactionIcons(),
         this.fetchThread(),
         this.fetchPosts(),
-        this.fetchFollowStatus()
+        this.fetchFollowStatus(),
+        this.fetchSettings()
       ]);
     } catch (e) {
       console.error('Lỗi khi tải dữ liệu trang:', e);
@@ -730,6 +734,16 @@ export default {
         this.isFollowing = res.data === true;
       } catch (e) {
         console.error('Lỗi khi tải trạng thái theo dõi:', e);
+      }
+    },
+    async fetchSettings() {
+      try {
+        const response = await settingService.getPublicSettings();
+        if (response && response.data && response.data.thread_edit_limit_minutes !== undefined) {
+          this.threadEditLimitMinutes = Number(response.data.thread_edit_limit_minutes);
+        }
+      } catch (e) {
+        console.error('Không thể tải cấu hình thời gian chỉnh sửa:', e);
       }
     },
     async handleFollowToggle() {
@@ -1187,7 +1201,28 @@ export default {
       if (!this.isLoggedIn || !this.currentUser) return false;
       const author = item.isMain ? this.thread.author : item.author;
       if (!author) return false;
-      return this.currentUser.username === author.username;
+      
+      // 1. Kiểm tra quyền sở hữu
+      const isOwner = this.currentUser.username === author.username;
+      if (!isOwner) return false;
+
+      // 2. Quyền Admin/Super Admin luôn được phép chỉnh sửa
+      const isServerAdmin = this.currentUser.roles?.includes(ROLES.ADMIN) || this.currentUser.roles?.includes(ROLES.SUPER_ADMIN);
+      if (isServerAdmin) return true;
+
+      // 3. Kiểm tra mốc thời gian giới hạn chỉnh sửa đối với bài gốc (isMain)
+      if (item.isMain) {
+        if (this.threadEditLimitMinutes !== SETTINGS.NO_LIMIT_VALUE) {
+          const createdAt = new Date(this.thread.createdAt);
+          const now = new Date();
+          const diffMinutes = (now - createdAt) / (1000 * 60);
+          if (diffMinutes > this.threadEditLimitMinutes) {
+            return false;
+          }
+        }
+      }
+
+      return true;
     },
     startEditing(item) {
       this.editingItemId = item.id;
@@ -1256,7 +1291,8 @@ export default {
         this.cancelEditing();
       } catch (error) {
         console.error('Lỗi cập nhật:', error);
-        alertError('Không thể cập nhật nội dung');
+        const errorMsg = error.response?.data?.message || 'Không thể cập nhật nội dung';
+        alertError(errorMsg);
       } finally {
         this.submittingEdit = false;
         this.loading = false; // Tắt loading hệ thống

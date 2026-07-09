@@ -12,6 +12,9 @@
           <router-link :to="{ name: 'AdminMenu' }" class="nav-item">
             <span class="icon">☰</span> Cấu hình Menu
           </router-link>
+          <router-link :to="{ name: 'AdminSettings' }" :class="['nav-item', { 'active': $route.name === 'AdminSettings' }]">
+            <span class="icon">⚙️</span> Cấu hình Hệ thống
+          </router-link>
         </div>
         
         <div class="nav-group">
@@ -78,6 +81,7 @@ export default {
     breadcrumbItems() {
       const mapping = {
         'AdminMenu': 'Cấu hình Menu',
+        'AdminSettings': 'Cấu hình Hệ thống',
         'AdminCategoryGroup': 'Quản lý Nhóm',
         'AdminCategory': 'Quản lý Chuyên mục',
         'AdminCategoryGroupDetail': 'Chuyên mục thuộc Nhóm',

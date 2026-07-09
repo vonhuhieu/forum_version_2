@@ -51,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/search", "/api/search/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/by-name/public").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/search/public").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/settings/public").permitAll()
                 // Cấu hình bảo vệ cho tác vụ ADMIN / SUPER_ADMIN
                 .requestMatchers("/api/menus/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/categories/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -58,6 +59,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/labels/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/reaction-icons/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/users/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/settings/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/notifications/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
                 .requestMatchers("/api/conversations/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
                 .requestMatchers("/api/users/search", "/api/users/by-name", "/api/users/me/active").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
