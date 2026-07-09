@@ -10,3 +10,9 @@ export const FORGOT_PASSWORD_STEPS = {
   RESET_PASSWORD: 2     // Bước 2: Nhập mã xác nhận + mật khẩu mới
 };
 
+export const SETTINGS = {
+  THREAD_EDIT_LIMIT_MINUTES_KEY: 'thread_edit_limit_minutes',
+  DEFAULT_THREAD_EDIT_LIMIT_MINUTES: 15,
+  NO_LIMIT_VALUE: -1
+};
+

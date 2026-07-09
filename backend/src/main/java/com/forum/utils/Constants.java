@@ -11,4 +11,7 @@ public class Constants {
 
     public static final String THREAD_TYPE_DISCUSSION = "discussion";
     public static final String THREAD_TYPE_POLL = "poll";
+
+    public static final String SETTING_THREAD_EDIT_LIMIT_MINUTES = "thread_edit_limit_minutes";
+    public static final String DEFAULT_THREAD_EDIT_LIMIT_MINUTES = "15";
 }
