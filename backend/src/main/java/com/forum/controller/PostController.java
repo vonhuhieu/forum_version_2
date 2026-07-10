@@ -53,7 +53,10 @@ public class PostController {
         try {
             return ResponseEntity.ok(postService.updatePost(id, postDTO));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(403).build();
+            if ("Post not found".equals(e.getMessage())) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
     }
 }
