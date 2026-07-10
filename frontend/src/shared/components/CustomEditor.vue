@@ -289,6 +289,243 @@ export default {
   methods: {
     onEditorReady(editor) {
       this.editorInstance = editor;
+
+      // Hàm kiểm tra xem ký tự tại một offset có thuộc về tag @ hợp lệ hay không (màu xanh #2577b1, bold và bắt đầu bằng @)
+      const isCharInsideMention = (parent, offset) => {
+        if (offset < 0 || offset >= parent.maxOffset) return false;
+        
+        const testRange = editor.model.createRange(
+          editor.model.createPositionAt(parent, offset),
+          editor.model.createPositionAt(parent, offset + 1)
+        );
+        let isMentionChar = false;
+        for (const item of testRange.getItems()) {
+          if (item.is('textProxy') || item.is('text')) {
+            if (item.getAttribute('fontColor') === '#2577b1' && item.getAttribute('bold') === true) {
+              isMentionChar = true;
+              break;
+            }
+          }
+        }
+        if (!isMentionChar) return false;
+
+        // Quét ngược về trước để tìm startOffset của khối màu xanh liên tục
+        let startOffset = offset;
+        while (startOffset > 0) {
+          const rangeBefore = editor.model.createRange(
+            editor.model.createPositionAt(parent, startOffset - 1),
+            editor.model.createPositionAt(parent, startOffset)
+          );
+          let isPrevMention = false;
+          for (const item of rangeBefore.getItems()) {
+            if (item.is('textProxy') || item.is('text')) {
+              if (item.getAttribute('fontColor') === '#2577b1' && item.getAttribute('bold') === true) {
+                isPrevMention = true;
+                break;
+              }
+            }
+          }
+          if (isPrevMention) {
+            startOffset--;
+          } else {
+            break;
+          }
+        }
+
+        // Kiểm tra xem khối màu xanh này có bắt đầu bằng '@' không
+        const firstCharRange = editor.model.createRange(
+          editor.model.createPositionAt(parent, startOffset),
+          editor.model.createPositionAt(parent, startOffset + 1)
+        );
+        let startsWithAt = false;
+        for (const item of firstCharRange.getItems()) {
+          if (item.is('textProxy') || item.is('text')) {
+            if (item.data && item.data.startsWith('@')) {
+              startsWithAt = true;
+              break;
+            }
+          }
+        }
+
+        return startsWithAt;
+      };
+
+      // Hàm kiểm tra xem con trỏ có thực sự nằm ở giữa tag @ hợp lệ hay không (sau dấu @ và trước ký tự cuối)
+      const checkIfSelectionIsInsideMention = (focus) => {
+        if (!focus || !focus.parent) return false;
+        const parent = focus.parent;
+        const offset = focus.offset;
+        return isCharInsideMention(parent, offset - 1) && isCharInsideMention(parent, offset);
+      };
+
+      // 1. Quản lý vùng chọn khi chỉnh sửa: Ngăn con trỏ đặt vào bên trong tag @ (mention)
+      editor.model.document.selection.on('change:range', (evt, data) => {
+        const selection = editor.model.document.selection;
+        const focus = selection.focus;
+        if (!focus || !focus.parent) return;
+
+        const isAtMention = checkIfSelectionIsInsideMention(focus);
+
+        // Chỉ thực hiện nhảy con trỏ ra ngoài tag khi ở chế độ CHỈNH SỬA (isEdit)
+        if (isAtMention && this.isEdit) {
+          editor.model.change(writer => {
+            const parent = focus.parent;
+            const offset = focus.offset;
+            
+            let endOffset = offset;
+            while (endOffset < parent.maxOffset) {
+              const nextPos = writer.createPositionAt(parent, endOffset + 1);
+              const testRange = editor.model.createRange(
+                writer.createPositionAt(parent, endOffset),
+                nextPos
+              );
+              let isNextTagChar = false;
+              for (const item of testRange.getItems()) {
+                if (item.is('textProxy') || item.is('text')) {
+                  if (item.getAttribute('fontColor') === '#2577b1' && item.getAttribute('bold') === true) {
+                    isNextTagChar = true;
+                    break;
+                  }
+                }
+              }
+              if (isNextTagChar) {
+                endOffset++;
+              } else {
+                break;
+              }
+            }
+            
+            const targetPos = writer.createPositionAt(parent, endOffset);
+            writer.setSelection(targetPos);
+          });
+        } else {
+          // Bất kể chế độ nào (viết mới hay sửa), nếu đứng ngoài tag nhưng selection tự động mang style tag, hãy xóa nó
+          const fontColor = selection.getAttribute('fontColor');
+          const isBold = selection.getAttribute('bold');
+          
+          if (fontColor === '#2577b1' && isBold === true) {
+            editor.model.change(writer => {
+              writer.removeSelectionAttribute('fontColor');
+              writer.removeSelectionAttribute('bold');
+            });
+          }
+        }
+      });
+
+      // 2. Quản lý thuộc tính vùng chọn: Ngăn kế thừa style tag @ khi ở rìa tag @ (tránh lỗi gõ trước/sau tag)
+      editor.model.document.selection.on('change:attribute', (evt, data) => {
+        const selection = editor.model.document.selection;
+        const focus = selection.focus;
+        if (!focus || !focus.parent) return;
+
+        const fontColor = selection.getAttribute('fontColor');
+        const isBold = selection.getAttribute('bold');
+        
+        if (fontColor === '#2577b1' && isBold === true) {
+          const isAtMention = checkIfSelectionIsInsideMention(focus);
+          if (!isAtMention) {
+            editor.model.change(writer => {
+              writer.removeSelectionAttribute('fontColor');
+              writer.removeSelectionAttribute('bold');
+            });
+          }
+        }
+      });
+
+      // 3. Quản lý gõ phím khi chỉnh sửa: Chặn xóa hoặc chỉnh sửa đè tag @
+      editor.editing.view.document.on('keydown', (evt, data) => {
+        const selection = editor.model.document.selection;
+        const focus = selection.focus;
+        if (!focus) return;
+
+        const keyCode = data.keyCode;
+
+        // Bổ sung: Dọn dẹp style xanh của selection TRƯỚC KHI ký tự đầu tiên được chèn (áp dụng cho mọi chế độ)
+        const isControlKey = [8, 46, 9, 13, 27, 37, 38, 39, 40, 33, 34, 35, 36, 16, 17, 18, 91, 92, 224].includes(keyCode) || data.ctrlKey || data.metaKey;
+        if (!isControlKey) {
+          const parent = focus.parent;
+          if (parent) {
+            // Nếu gõ sát rìa tag người dùng hợp lệ
+            const isAtEdge = isCharInsideMention(parent, focus.offset - 1) !== isCharInsideMention(parent, focus.offset);
+            if (isAtEdge) {
+              editor.model.change(writer => {
+                writer.removeSelectionAttribute('fontColor');
+                writer.removeSelectionAttribute('bold');
+              });
+            }
+          }
+        }
+
+        // CHỈ chặn các thao tác xóa/sửa tag khi ở chế độ CHỈNH SỬA (isEdit)
+        if (!this.isEdit) return;
+
+        const isSelectionContainingMention = () => {
+          if (selection.isCollapsed) return false;
+          for (const range of selection.getRanges()) {
+            for (const item of range.getItems()) {
+              if (item.is('textProxy') || item.is('text')) {
+                if (item.getAttribute('fontColor') === '#2577b1' && item.getAttribute('bold') === true) {
+                  // Chỉ coi là chứa mention nếu ký tự đó thực sự thuộc tag mention hợp lệ
+                  const parent = item.parent;
+                  const startPos = range.start;
+                  if (parent && startPos) {
+                    if (isCharInsideMention(parent, startPos.offset)) {
+                      return true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          return false;
+        };
+
+        const isMentionInSelection = isSelectionContainingMention();
+        
+        if (isMentionInSelection) {
+          const allowedKeys = [
+            37, 38, 39, 40, // Arrows
+            35, 36,         // End, Home
+            33, 34,         // PageUp, PageDown
+            16, 17, 18, 91, 92, 224 // Shift, Ctrl, Alt, Meta
+          ];
+          
+          const isCtrlOrMeta = data.ctrlKey || data.metaKey;
+          if (isCtrlOrMeta && (keyCode === 67 || keyCode === 65)) {
+            return;
+          }
+          
+          evt.stop();
+          data.preventDefault();
+          return;
+        }
+
+        if (selection.isCollapsed) {
+          if (keyCode === 8) { // Backspace
+            if (focus.offset > 0) {
+              const parent = focus.parent;
+              // Chỉ chặn khi ký tự bị xóa đứng trước thực sự là một phần của tag @
+              if (isCharInsideMention(parent, focus.offset - 1)) {
+                evt.stop();
+                data.preventDefault();
+                return;
+              }
+            }
+          }
+          
+          if (keyCode === 46) { // Delete
+            if (focus.offset < focus.parent.maxOffset) {
+              const parent = focus.parent;
+              // Chỉ chặn khi ký tự bị xóa đứng sau thực sự là một phần của tag @
+              if (isCharInsideMention(parent, focus.offset)) {
+                evt.stop();
+                data.preventDefault();
+                return;
+              }
+            }
+          }
+        }
+      }, { priority: 'highest' });
       
       editor.on('imageUploaded', (evt, data) => {
         this.$emit('image-uploaded', data);

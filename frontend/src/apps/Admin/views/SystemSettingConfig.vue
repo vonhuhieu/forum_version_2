@@ -50,6 +50,48 @@
           </div>
         </div>
 
+        <div class="form-group mb-4">
+          <label for="conversation_edit_limit" class="form-label fw-bold mb-2" style="font-size: 1.05rem;">
+            Giới hạn thời gian sửa nội dung bắt đầu đối thoại (phút)
+          </label>
+          <div class="input-group" style="max-width: 300px;">
+            <input 
+              type="number" 
+              id="conversation_edit_limit" 
+              v-model.number="settings.conversation_edit_limit_minutes" 
+              class="form-control" 
+              :min="noLimitValue" 
+              required 
+            />
+            <span class="input-group-text">phút</span>
+          </div>
+          <div class="form-text mt-2 text-muted" style="font-size: 0.9rem; line-height: 1.4;">
+            Nhập số phút tối đa cho phép tác giả tự chỉnh sửa nội dung bắt đầu đối thoại của mình sau khi tạo. <br/>
+            * Nhập <strong>{{ noLimitValue }}</strong> nếu muốn cho phép chỉnh sửa <strong>không giới hạn thời gian</strong>.
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label for="conversation_reply_edit_limit" class="form-label fw-bold mb-2" style="font-size: 1.05rem;">
+            Giới hạn thời gian sửa phản hồi đối thoại (phút)
+          </label>
+          <div class="input-group" style="max-width: 300px;">
+            <input 
+              type="number" 
+              id="conversation_reply_edit_limit" 
+              v-model.number="settings.conversation_reply_edit_limit_minutes" 
+              class="form-control" 
+              :min="noLimitValue" 
+              required 
+            />
+            <span class="input-group-text">phút</span>
+          </div>
+          <div class="form-text mt-2 text-muted" style="font-size: 0.9rem; line-height: 1.4;">
+            Nhập số phút tối đa cho phép tác giả tự chỉnh sửa tin nhắn phản hồi đối thoại của mình sau khi gửi. <br/>
+            * Nhập <strong>{{ noLimitValue }}</strong> nếu muốn cho phép chỉnh sửa <strong>không giới hạn thời gian</strong>.
+          </div>
+        </div>
+
         <hr class="my-4" style="border-top: 1px solid #eee;" />
 
         <div class="d-flex gap-2">
@@ -73,7 +115,9 @@ export default {
     return {
       settings: {
         thread_edit_limit_minutes: SETTINGS.DEFAULT_THREAD_EDIT_LIMIT_MINUTES,
-        post_edit_limit_minutes: SETTINGS.DEFAULT_POST_EDIT_LIMIT_MINUTES
+        post_edit_limit_minutes: SETTINGS.DEFAULT_POST_EDIT_LIMIT_MINUTES,
+        conversation_edit_limit_minutes: SETTINGS.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES,
+        conversation_reply_edit_limit_minutes: SETTINGS.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES
       },
       loading: true,
       saving: false,
@@ -97,6 +141,14 @@ export default {
           if (postVal !== undefined) {
             this.settings.post_edit_limit_minutes = Number(postVal)
           }
+          const convoVal = res.data[SETTINGS.CONVERSATION_EDIT_LIMIT_MINUTES_KEY]
+          if (convoVal !== undefined) {
+            this.settings.conversation_edit_limit_minutes = Number(convoVal)
+          }
+          const convoReplyVal = res.data[SETTINGS.CONVERSATION_REPLY_EDIT_LIMIT_MINUTES_KEY]
+          if (convoReplyVal !== undefined) {
+            this.settings.conversation_reply_edit_limit_minutes = Number(convoReplyVal)
+          }
         }
       } catch (err) {
         console.error('Không tải được cấu hình hệ thống:', err)
@@ -110,7 +162,9 @@ export default {
       try {
         const payload = {
           [SETTINGS.THREAD_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.thread_edit_limit_minutes),
-          [SETTINGS.POST_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.post_edit_limit_minutes)
+          [SETTINGS.POST_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.post_edit_limit_minutes),
+          [SETTINGS.CONVERSATION_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.conversation_edit_limit_minutes),
+          [SETTINGS.CONVERSATION_REPLY_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.conversation_reply_edit_limit_minutes)
         }
         await settingService.updateSettings(payload)
         alertSuccess('Lưu cấu hình hệ thống thành công')
