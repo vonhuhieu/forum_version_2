@@ -14,4 +14,7 @@ public class Constants {
 
     public static final String SETTING_THREAD_EDIT_LIMIT_MINUTES = "thread_edit_limit_minutes";
     public static final String DEFAULT_THREAD_EDIT_LIMIT_MINUTES = "15";
+
+    public static final String SETTING_POST_EDIT_LIMIT_MINUTES = "post_edit_limit_minutes";
+    public static final String DEFAULT_POST_EDIT_LIMIT_MINUTES = "15";
 }

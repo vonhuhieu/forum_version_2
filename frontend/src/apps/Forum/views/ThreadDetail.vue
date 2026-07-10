@@ -383,6 +383,7 @@ export default {
       currentUser: parsedUser,
       editingItemId: null,
       threadEditLimitMinutes: SETTINGS.DEFAULT_THREAD_EDIT_LIMIT_MINUTES, // Mặc định nếu tải cấu hình lỗi
+      postEditLimitMinutes: SETTINGS.DEFAULT_POST_EDIT_LIMIT_MINUTES,
       editForm: {
         content: ''
       },
@@ -739,8 +740,13 @@ export default {
     async fetchSettings() {
       try {
         const response = await settingService.getPublicSettings();
-        if (response && response.data && response.data.thread_edit_limit_minutes !== undefined) {
-          this.threadEditLimitMinutes = Number(response.data.thread_edit_limit_minutes);
+        if (response && response.data) {
+          if (response.data.thread_edit_limit_minutes !== undefined) {
+            this.threadEditLimitMinutes = Number(response.data.thread_edit_limit_minutes);
+          }
+          if (response.data.post_edit_limit_minutes !== undefined) {
+            this.postEditLimitMinutes = Number(response.data.post_edit_limit_minutes);
+          }
         }
       } catch (e) {
         console.error('Không thể tải cấu hình thời gian chỉnh sửa:', e);
@@ -1217,6 +1223,16 @@ export default {
           const now = new Date();
           const diffMinutes = (now - createdAt) / (1000 * 60);
           if (diffMinutes > this.threadEditLimitMinutes) {
+            return false;
+          }
+        }
+      } else {
+        // 4. Kiểm tra mốc thời gian giới hạn chỉnh sửa đối với bình luận/phản hồi (!isMain)
+        if (this.postEditLimitMinutes !== SETTINGS.NO_LIMIT_VALUE) {
+          const createdAt = new Date(item.createdAt);
+          const now = new Date();
+          const diffMinutes = (now - createdAt) / (1000 * 60);
+          if (diffMinutes > this.postEditLimitMinutes) {
             return false;
           }
         }
