@@ -47,6 +47,7 @@ public class ConversationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ReactionService reactionService;
     private final NotificationRepository notificationRepository;
+    private final SystemSettingService systemSettingService;
 
     public ResponseDTO<ConversationDTO> createConversation(ConversationCreateDTO createDTO) {
         String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -708,5 +709,76 @@ public class ConversationService {
             }
         }
         return mentionedIds;
+    }
+
+    public ResponseDTO<ConversationMessageDTO> updateMessage(Long messageId, String content) {
+        String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không hợp lệ"));
+        ConversationMessage message = conversationMessageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Tin nhắn không tồn tại"));
+
+        // Tìm tin nhắn đầu tiên của cuộc hội thoại để đối chiếu
+        ConversationMessage firstMessage = conversationMessageRepository
+                .findFirstByConversationIdOrderByCreatedAtAsc(message.getConversation().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Hội thoại không chứa tin nhắn nào"));
+
+        // Xác định loại tin nhắn (đầu tiên hay phản hồi)
+        boolean isFirstMessage = firstMessage.getId().equals(messageId);
+
+        boolean isAdmin = currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_ADMIN) 
+                || currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_SUPER_ADMIN);
+
+        if (!isAdmin) {
+            // Kiểm tra quyền sở hữu
+            if (message.getSender() == null || !message.getSender().getUsername().equals(currentUsername)) {
+                throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa tin nhắn này");
+            }
+
+            // Kiểm tra giới hạn thời gian chỉnh sửa tùy theo loại tin nhắn đối thoại
+            int limitMinutes;
+            String limitMsg;
+            if (isFirstMessage) {
+                limitMinutes = Integer.parseInt(systemSettingService.getSetting(
+                        com.forum.utils.Constants.SETTING_CONVERSATION_EDIT_LIMIT_MINUTES, 
+                        com.forum.utils.Constants.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES));
+                limitMsg = "đối thoại mở đầu (" + limitMinutes + " phút)";
+            } else {
+                limitMinutes = Integer.parseInt(systemSettingService.getSetting(
+                        com.forum.utils.Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, 
+                        com.forum.utils.Constants.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES));
+                limitMsg = "đối thoại phản hồi (" + limitMinutes + " phút)";
+            }
+
+            if (limitMinutes >= 0) {
+                java.time.LocalDateTime createdAt = message.getCreatedAt();
+                if (createdAt != null) {
+                    java.time.Duration duration = java.time.Duration.between(createdAt, java.time.LocalDateTime.now());
+                    if (duration.toMinutes() > limitMinutes) {
+                        throw new IllegalArgumentException("Đã hết thời gian cho phép chỉnh sửa " + limitMsg);
+                    }
+                }
+            }
+        }
+
+        message.setContent(content);
+        ConversationMessage savedMsg = conversationMessageRepository.save(message);
+
+        ConversationMessageDTO mDto = new ConversationMessageDTO();
+        mDto.setId(savedMsg.getId());
+        mDto.setContent(savedMsg.getContent());
+        mDto.setSender(mapUserToDTO(savedMsg.getSender()));
+        mDto.setCreatedAt(savedMsg.getCreatedAt());
+
+        // Đẩy WebSocket thông báo tin nhắn đã được cập nhật
+        try {
+            String dest = "/topic/conversations/" + message.getConversation().getId() + "/messages";
+            messagingTemplate.convertAndSend(dest, mDto);
+            log.info("WebSocket pushed updated conversation message to: {}", dest);
+        } catch (Exception e) {
+            log.warn("Failed to push websocket updated message, error: {}", e.getMessage());
+        }
+
+        return ResponseDTO.success(mDto);
     }
 }

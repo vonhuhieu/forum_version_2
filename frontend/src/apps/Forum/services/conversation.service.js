@@ -36,6 +36,10 @@ class ConversationService {
   clearAll() {
     return api.delete('/conversations/clear-all')
   }
+
+  updateMessage(messageId, payload) {
+    return api.put(`/conversations/messages/${messageId}`, payload)
+  }
 }
 
 export default new ConversationService()

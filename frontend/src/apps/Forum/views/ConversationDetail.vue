@@ -95,11 +95,23 @@
                     </div>
                   </div>
 
-                  <div class="content-body ql-editor" v-html="formatMessageContent(msg.content)"></div>
+                  <div v-if="editingMessageId === msg.id" class="inline-edit-box" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff; margin-bottom: 10px;">
+                    <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" />
+                    <div class="edit-actions-footer" style="margin-top: 10px; display: flex; gap: 10px;">
+                      <button class="btn-save" :disabled="submittingEdit" @click="submitEditMessage(msg)" style="padding: 6px 12px; background-color: #1a507a; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        {{ submittingEdit ? 'Đang lưu...' : 'Lưu' }}
+                      </button>
+                      <button class="btn-cancel-edit" @click="cancelEditingMessage" style="padding: 6px 12px; background-color: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer;">
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="content-body ql-editor" v-html="formatMessageContent(msg.content)"></div>
 
-                  <div class="post-meta-bottom">
+                  <div class="post-meta-bottom" v-if="editingMessageId !== msg.id">
                     <div class="left-actions">
                       <a href="#" class="action-link" @click.prevent>Báo cáo</a>
+                      <a href="#" class="action-link" v-if="canEditMessage(msg, index)" @click.prevent="startEditingMessage(msg)">Sửa</a>
                     </div>
                     <div class="right-actions">
                       <ReactionButton 
@@ -253,6 +265,8 @@ import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
+import settingService from '@/shared/services/setting.service'
+import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
 export default {
   name: 'ConversationDetail',
@@ -296,7 +310,14 @@ export default {
       },
       justClickedConvo: false,
       currentPage: 1,
-      itemsPerPage: 10
+      itemsPerPage: 10,
+      conversationEditLimitMinutes: SETTINGS.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES,
+      conversationReplyEditLimitMinutes: SETTINGS.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES,
+      editingMessageId: null,
+      editForm: {
+        content: ''
+      },
+      submittingEdit: false
     }
   },
   computed: {
@@ -334,6 +355,7 @@ export default {
   },
   async mounted() {
     window.addEventListener('conversation-clicked', this.handleConversationClicked)
+    await this.fetchSettings()
     await this.fetchReactionIcons()
     await this.fetchConversation()
     this.subscribeToMessages()
@@ -416,8 +438,12 @@ export default {
         `/topic/conversations/${this.conversation.id}/messages`,
         (newMsg) => {
           if (this.conversation && this.conversation.messages) {
-            // Tránh chèn trùng tin nhắn
-            if (!this.conversation.messages.some(m => m.id === newMsg.id)) {
+            const idx = this.conversation.messages.findIndex(m => m.id === newMsg.id)
+            if (idx !== -1) {
+              // Cập nhật tin nhắn đã tồn tại (Hot Update real-time qua WebSocket)
+              this.conversation.messages[idx].content = newMsg.content
+            } else {
+              // Thêm tin nhắn mới
               this.conversation.messages.push(newMsg)
               this.conversation.replyCount = this.conversation.messages.length
               this.conversation.lastReplyAt = newMsg.createdAt
@@ -583,7 +609,7 @@ export default {
       innerQuotes.forEach(q => q.remove())
 
       const trimmedContent = tempDiv.innerHTML.trim()
-      const quoteHtml = `<blockquote><p><strong>${authorName} đã viết:</strong></p>${trimmedContent}</blockquote><p>&nbsp;</p>`
+      const quoteHtml = `<blockquote data-source="${msgId}"><p><strong>${authorName} đã viết:</strong></p>${trimmedContent}</blockquote><p>&nbsp;</p>`
       
       this.replyForm.content = this.replyForm.content + quoteHtml
       this.replyForm.quotedMessageId = msgId
@@ -605,7 +631,52 @@ export default {
     formatMessageContent(content) {
       if (!content) return ''
       // Thay đổi "đã nói" thành "đã viết" nếu có quote cũ
-      return content.replace(/đã nói:<\/strong>/g, 'đã viết:</strong>')
+      let processed = content.replace(/đã nói:<\/strong>/g, 'đã viết:</strong>')
+
+      // Đồng bộ quote động từ dữ liệu tin nhắn mới nhất trong cuộc đối thoại
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(processed, 'text/html')
+        const blockquotes = doc.querySelectorAll('blockquote[data-source]')
+        
+        let hasChanges = false
+        
+        blockquotes.forEach(bq => {
+          const sourceId = bq.getAttribute('data-source')
+          if (!sourceId) return
+          
+          const msgId = parseInt(sourceId, 10)
+          if (!isNaN(msgId) && this.conversation && this.conversation.messages) {
+            const quotedMsg = this.conversation.messages.find(m => m.id === msgId)
+            if (quotedMsg) {
+              const authorName = quotedMsg.sender ? (quotedMsg.sender.displayName || quotedMsg.sender.username) : 'Ẩn danh'
+              const msgContentClean = this.stripBlockQuotes(quotedMsg.content || '')
+              bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${msgContentClean}`
+              hasChanges = true
+            }
+          }
+        })
+        
+        if (hasChanges) {
+          processed = doc.body.innerHTML
+        }
+      } catch (err) {
+        console.error('Lỗi khi tự động cập nhật nội dung trích dẫn đối thoại:', err)
+      }
+
+      return processed
+    },
+    stripBlockQuotes(html) {
+      if (!html) return ''
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, 'text/html')
+        const blockquotes = doc.querySelectorAll('blockquote')
+        blockquotes.forEach(bq => bq.remove())
+        return doc.body.innerHTML.trim()
+      } catch (e) {
+        return html
+      }
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)
@@ -663,6 +734,76 @@ export default {
             }, 4000)
           }
         }
+      }
+    },
+    async fetchSettings() {
+      try {
+        const response = await settingService.getPublicSettings();
+        if (response && response.data) {
+          if (response.data.conversation_edit_limit_minutes !== undefined) {
+            this.conversationEditLimitMinutes = Number(response.data.conversation_edit_limit_minutes);
+          }
+          if (response.data.conversation_reply_edit_limit_minutes !== undefined) {
+            this.conversationReplyEditLimitMinutes = Number(response.data.conversation_reply_edit_limit_minutes);
+          }
+        }
+      } catch (e) {
+        console.error('Không thể tải cấu hình thời gian chỉnh sửa đối thoại:', e);
+      }
+    },
+    canEditMessage(msg, index) {
+      if (!this.currentUser || !msg || !msg.sender) return false;
+
+      // Kiểm tra quyền sở hữu
+      const isOwner = this.currentUser.username === msg.sender.username;
+      if (!isOwner) return false;
+
+      // Quyền Admin/Super Admin luôn được phép chỉnh sửa
+      const isServerAdmin = this.currentUser.roles?.includes(ROLES.ADMIN) || this.currentUser.roles?.includes(ROLES.SUPER_ADMIN);
+      if (isServerAdmin) return true;
+
+      // Xác định loại tin nhắn để lấy cấu hình phù hợp
+      const isFirstMsg = index === 0 && this.currentPage === 1;
+      const limitMinutes = isFirstMsg ? this.conversationEditLimitMinutes : this.conversationReplyEditLimitMinutes;
+
+      // Kiểm tra mốc thời gian giới hạn chỉnh sửa đối với tin nhắn
+      if (limitMinutes !== SETTINGS.NO_LIMIT_VALUE) {
+        const createdAt = new Date(msg.createdAt);
+        const now = new Date();
+        const diffMinutes = (now - createdAt) / (1000 * 60);
+        if (diffMinutes > limitMinutes) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+    startEditingMessage(msg) {
+      this.editingMessageId = msg.id;
+      // Đồng bộ hóa nội dung quote động mới nhất trước khi đưa vào editor
+      this.editForm.content = this.formatMessageContent(msg.content);
+    },
+    cancelEditingMessage() {
+      this.editingMessageId = null;
+      this.editForm.content = '';
+    },
+    async submitEditMessage(msg) {
+      if (!this.editForm.content.trim()) {
+        alertError('Nội dung không được để trống');
+        return;
+      }
+      this.submittingEdit = true;
+      try {
+        await conversationService.updateMessage(msg.id, { content: this.editForm.content });
+        msg.content = this.editForm.content;
+        alertSuccess('Cập nhật tin nhắn thành công');
+        this.cancelEditingMessage();
+      } catch (error) {
+        console.error('Lỗi khi cập nhật tin nhắn:', error);
+        const errorMsg = error.response?.data?.message || 'Không thể cập nhật tin nhắn';
+        alertError(errorMsg);
+      } finally {
+        this.submittingEdit = false;
       }
     }
   }
