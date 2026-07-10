@@ -95,4 +95,19 @@ public class ConversationController {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
     }
+
+    @PutMapping("/messages/{messageId}")
+    public ResponseEntity<ResponseDTO<ConversationMessageDTO>> updateMessage(
+            @PathVariable Long messageId, 
+            @RequestBody Map<String, Object> payload) {
+        try {
+            String content = (String) payload.get("content");
+            if (content == null || content.trim().isEmpty()) {
+                throw new IllegalArgumentException("Nội dung tin nhắn không được để trống");
+            }
+            return ResponseEntity.ok(conversationService.updateMessage(messageId, content));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
 }

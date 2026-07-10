@@ -33,6 +33,16 @@ public class SystemSettingController {
                 Constants.DEFAULT_POST_EDIT_LIMIT_MINUTES));
         settings.put(Constants.SETTING_POST_EDIT_LIMIT_MINUTES, postLimit);
         
+        int convoLimit = Integer.parseInt(systemSettingService.getSetting(
+                Constants.SETTING_CONVERSATION_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES));
+        settings.put(Constants.SETTING_CONVERSATION_EDIT_LIMIT_MINUTES, convoLimit);
+        
+        int convoReplyLimit = Integer.parseInt(systemSettingService.getSetting(
+                Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES));
+        settings.put(Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, convoReplyLimit);
+        
         return ResponseEntity.ok(ResponseDTO.success(settings));
     }
 
@@ -45,6 +55,12 @@ public class SystemSettingController {
         systemSettingService.getSetting(
                 Constants.SETTING_POST_EDIT_LIMIT_MINUTES, 
                 Constants.DEFAULT_POST_EDIT_LIMIT_MINUTES);
+        systemSettingService.getSetting(
+                Constants.SETTING_CONVERSATION_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES);
+        systemSettingService.getSetting(
+                Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES);
         
         Map<String, String> map = systemSettingService.getAllSettings().stream()
                 .collect(Collectors.toMap(SystemSetting::getSettingKey, SystemSetting::getSettingValue));
