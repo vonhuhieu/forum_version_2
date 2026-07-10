@@ -43,6 +43,7 @@ public class PostService {
     private final ReactionService reactionService;
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
     private final SearchDocumentRepository searchDocumentRepository;
+    private final SystemSettingService systemSettingService;
 
     private SearchDocument mapPostToSearchDocument(Post post) {
         SearchDocument doc = new SearchDocument();
@@ -421,8 +422,31 @@ public class PostService {
         String currentUsername = (String) org.springframework.security.core.context.SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         
-        if (post.getAuthor() == null || !post.getAuthor().getUsername().equals(currentUsername)) {
-            throw new RuntimeException("You are not authorized to edit this post");
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+        
+        boolean isAdmin = currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_ADMIN) 
+                || currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_SUPER_ADMIN);
+        
+        if (!isAdmin) {
+            // 1. Kiểm tra quyền sở hữu
+            if (post.getAuthor() == null || !post.getAuthor().getUsername().equals(currentUsername)) {
+                throw new RuntimeException("You are not authorized to edit this post");
+            }
+            
+            // 2. Kiểm tra giới hạn thời gian chỉnh sửa
+            int limitMinutes = Integer.parseInt(systemSettingService.getSetting(
+                    com.forum.utils.Constants.SETTING_POST_EDIT_LIMIT_MINUTES, 
+                    com.forum.utils.Constants.DEFAULT_POST_EDIT_LIMIT_MINUTES));
+            if (limitMinutes >= 0) {
+                java.time.LocalDateTime createdAt = post.getCreatedAt();
+                if (createdAt != null) {
+                    java.time.Duration duration = java.time.Duration.between(createdAt, java.time.LocalDateTime.now());
+                    if (duration.toMinutes() > limitMinutes) {
+                        throw new RuntimeException("Đã hết thời gian cho phép chỉnh sửa bình luận (" + limitMinutes + " phút)");
+                    }
+                }
+            }
         }
 
         post.setContent(postDTO.getContent());

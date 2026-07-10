@@ -28,6 +28,11 @@ public class SystemSettingController {
                 Constants.DEFAULT_THREAD_EDIT_LIMIT_MINUTES));
         settings.put(Constants.SETTING_THREAD_EDIT_LIMIT_MINUTES, threadLimit);
         
+        int postLimit = Integer.parseInt(systemSettingService.getSetting(
+                Constants.SETTING_POST_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_POST_EDIT_LIMIT_MINUTES));
+        settings.put(Constants.SETTING_POST_EDIT_LIMIT_MINUTES, postLimit);
+        
         return ResponseEntity.ok(ResponseDTO.success(settings));
     }
 
@@ -37,6 +42,9 @@ public class SystemSettingController {
         systemSettingService.getSetting(
                 Constants.SETTING_THREAD_EDIT_LIMIT_MINUTES, 
                 Constants.DEFAULT_THREAD_EDIT_LIMIT_MINUTES);
+        systemSettingService.getSetting(
+                Constants.SETTING_POST_EDIT_LIMIT_MINUTES, 
+                Constants.DEFAULT_POST_EDIT_LIMIT_MINUTES);
         
         Map<String, String> map = systemSettingService.getAllSettings().stream()
                 .collect(Collectors.toMap(SystemSetting::getSettingKey, SystemSetting::getSettingValue));

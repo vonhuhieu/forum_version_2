@@ -13,6 +13,8 @@ export const FORGOT_PASSWORD_STEPS = {
 export const SETTINGS = {
   THREAD_EDIT_LIMIT_MINUTES_KEY: 'thread_edit_limit_minutes',
   DEFAULT_THREAD_EDIT_LIMIT_MINUTES: 15,
+  POST_EDIT_LIMIT_MINUTES_KEY: 'post_edit_limit_minutes',
+  DEFAULT_POST_EDIT_LIMIT_MINUTES: 15,
   NO_LIMIT_VALUE: -1
 };
 
