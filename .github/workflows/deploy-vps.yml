@@ -59,7 +59,7 @@ jobs:
           script: |
             echo "Waiting for backend to be ready..."
             for i in $(seq 1 24); do
-              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              if curl -sf http://localhost:8080/api/settings/public > /dev/null 2>&1; then
                 echo "Backend is up!"
                 exit 0
               fi
