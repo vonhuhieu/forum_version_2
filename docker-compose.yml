@@ -46,6 +46,8 @@ services:
       - ./app.jar:/app/app.jar
       - ./uploads:/var/www/forum/uploads
       - .env:/app/.env
+    env_file:
+      - .env
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/forum_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
       - OPENSEARCH_URIS=http://opensearch:9200
