@@ -78,11 +78,5 @@ jobs:
           port: 22
           script: |
             echo "Triggering OpenSearch reindex..."
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-              "http://localhost:8080/api/search/reindex")
-            if [ "$RESPONSE" = "200" ]; then
-              echo "Reindex triggered successfully (HTTP 200)"
-            else
-              echo "Reindex returned HTTP $RESPONSE — check backend logs"
-              exit 1
-            fi
+            # Chạy POST request bằng wget từ bên trong container để giữ IP nguồn là 127.0.0.1 (Local), tránh lỗi 401 do NAT của mạng Docker
+            docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
