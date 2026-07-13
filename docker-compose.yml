@@ -11,6 +11,7 @@ services:
       - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    restart: always
 
   opensearch:
     image: opensearchproject/opensearch:2.19.0
@@ -33,9 +34,28 @@ services:
         hard: 65536
     ports:
       - "127.0.0.1:9200:9200"
-      - "127.0.0.1:9600:9600"
     volumes:
       - opensearch_data:/usr/share/opensearch/data
+    restart: always
+
+  backend:
+    image: eclipse-temurin:17-jre-alpine
+    container_name: forum-backend
+    working_dir: /app
+    volumes:
+      - ./app.jar:/app/app.jar
+      - ./uploads:/var/www/forum/uploads
+      - .env:/app/.env
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/forum_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      - OPENSEARCH_URIS=http://opensearch:9200
+    command: java -Dspring.profiles.active=prod -Duser.timezone=Asia/Ho_Chi_Minh -jar app.jar
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - mysql
+      - opensearch
+    restart: always
 
 volumes:
   mysql_data:
