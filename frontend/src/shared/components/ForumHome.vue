@@ -162,7 +162,7 @@
               </user-profile-popup>
               <div v-else class="last-thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
               <div class="last-thread-info home-last-thread-info">
-                <router-link :to="{ name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
+                <router-link :to="lastThreadByCat[cat.id].lastPostId ? { name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id }, query: { postId: lastThreadByCat[cat.id].lastPostId } } : { name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
                   <span v-if="lastThreadByCat[cat.id].label" class="label-tag-mini" :style="{ backgroundColor: lastThreadByCat[cat.id].label.colorCode, color: lastThreadByCat[cat.id].label.textColor, borderColor: lastThreadByCat[cat.id].label.borderColor || 'transparent' }">
                     {{ lastThreadByCat[cat.id].label.name }}
                   </span>
@@ -209,7 +209,7 @@
             <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
             <div class="lt-content">
               <div class="lt-title">
-                <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
                   <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                     {{ thread.label.name }}
                   </span>

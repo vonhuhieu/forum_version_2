@@ -21,6 +21,7 @@ import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
 import ConversationList from '@/apps/Forum/views/ConversationList.vue'
 import UserManagement from '@/apps/Admin/views/UserManagement.vue'
 import SystemSettingConfig from '@/apps/Admin/views/SystemSettingConfig.vue'
+import ReportManagement from '@/apps/Admin/views/ReportManagement.vue'
 import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 import UserProfile from '@/apps/Forum/views/UserProfile.vue'
 import ChangePassword from '@/apps/Forum/views/ChangePassword.vue'
@@ -178,6 +179,11 @@ const routes = [
         path: 'settings',
         name: 'AdminSettings',
         component: SystemSettingConfig
+      },
+      {
+        path: 'reports',
+        name: 'AdminReports',
+        component: ReportManagement
       }
     ]
   }

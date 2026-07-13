@@ -56,7 +56,7 @@
                     </user-profile-popup>
                     <div v-else class="last-thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
                     <div class="last-thread-info">
-                      <router-link :to="{ name: 'ThreadDetail', params: { id: lastThreadByCat[sub.id].id } }" class="last-thread-title" :title="lastThreadByCat[sub.id].title">
+                      <router-link :to="lastThreadByCat[sub.id].lastPostId ? { name: 'ThreadDetail', params: { id: lastThreadByCat[sub.id].id }, query: { postId: lastThreadByCat[sub.id].lastPostId } } : { name: 'ThreadDetail', params: { id: lastThreadByCat[sub.id].id } }" class="last-thread-title" :title="lastThreadByCat[sub.id].title">
                         <span v-if="lastThreadByCat[sub.id].label" class="label-tag-mini" :style="{ backgroundColor: lastThreadByCat[sub.id].label.colorCode, color: lastThreadByCat[sub.id].label.textColor, borderColor: lastThreadByCat[sub.id].label.borderColor || 'transparent' }">
                           {{ lastThreadByCat[sub.id].label.name }}
                         </span>

@@ -110,7 +110,7 @@
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
                 <div class="left-actions">
-                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn && !isNonOfficial">Báo cáo</a>
+                  <a href="#" class="action-link" @click.prevent="openReportModal('THREAD', thread.id)" v-if="isLoggedIn && !isNonOfficial && (!thread.author || String(thread.author.id) !== String(currentUser?.id))">Báo cáo</a>
                   <a href="#" class="action-link" v-if="canEdit(item)" @click.prevent="startEditing(item)">Sửa</a>
                 </div>
                 <div class="right-actions">
@@ -198,7 +198,7 @@
 
               <div class="post-meta-bottom" v-if="editingItemId !== item.id">
                 <div class="left-actions">
-                  <a href="#" class="action-link" @click.prevent v-if="isLoggedIn && !isNonOfficial">Báo cáo</a>
+                  <a href="#" class="action-link" @click.prevent="openReportModal('POST', item.id)" v-if="isLoggedIn && !isNonOfficial && (!item.author || String(item.author.id) !== String(currentUser?.id))">Báo cáo</a>
                   <a href="#" class="action-link" v-if="canEdit(item)" @click.prevent="startEditing(item)">Sửa</a>
                 </div>
                 <div class="right-actions">
@@ -297,6 +297,12 @@
         :isMainPost="reactionPopupData.isMainPost" 
         :summary="reactionPopupData.summary" 
       />
+
+      <ReportModal 
+        v-model:show="showReportModal" 
+        :submitting="submittingReport"
+        @submit="handleReportSubmit"
+      />
     </main>
   </div>
   <Loading :visible="loading" />
@@ -319,12 +325,14 @@ import threadService from '@/apps/Forum/services/thread.service'
 import postService from '@/apps/Forum/services/post.service'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import categoryService from '@/apps/Forum/services/category.service'
+import reportService from '@/apps/Forum/services/report.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import PollDisplay from '@/shared/components/PollDisplay.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import ReportModal from '@/shared/components/ReportModal.vue'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import { formatForumDate } from '@/shared/utils/date'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
@@ -348,7 +356,8 @@ export default {
     ReactionSummary,
     ReactionListPopup,
     Loading,
-    UserProfilePopup
+    UserProfilePopup,
+    ReportModal
   },
   data() {
     const userStr = localStorage.getItem('user')
@@ -396,6 +405,12 @@ export default {
         targetId: null,
         isMainPost: true,
         summary: []
+      },
+      showReportModal: false,
+      submittingReport: false,
+      reportTarget: {
+        type: null,
+        id: null
       }
     }
   },
@@ -1182,6 +1197,30 @@ export default {
       this.showLightbox = false
       this.activeImageUrl = ''
       document.body.style.overflow = ''
+    },
+    openReportModal(targetType, targetId) {
+      this.reportTarget = { type: targetType, id: targetId }
+      this.showReportModal = true
+    },
+    async handleReportSubmit(reason) {
+      if (!this.reportTarget.type || !this.reportTarget.id) return
+      this.submittingReport = true
+      try {
+        const payload = {
+          reason: reason,
+          targetType: this.reportTarget.type,
+          targetId: this.reportTarget.id
+        }
+        await reportService.create(payload)
+        toastSuccess('Đã gửi báo cáo vi phạm thành công!')
+        this.showReportModal = false
+      } catch (e) {
+        console.error(e)
+        const errMsg = e.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.'
+        alertError(errMsg)
+      } finally {
+        this.submittingReport = false
+      }
     },
     stripAttachments(content) {
       if (!content) return ''

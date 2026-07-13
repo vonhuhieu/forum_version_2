@@ -43,7 +43,7 @@
                   <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
                   <div class="lt-content">
                     <div class="lt-title">
-                      <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                      <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
                         <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                           {{ thread.label.name }}
                         </span>
