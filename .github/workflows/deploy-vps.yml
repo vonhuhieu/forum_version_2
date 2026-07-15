@@ -54,17 +54,18 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           script: |
+            set -e
             echo "=== Current Directory and Files ==="
             pwd
             ls -la /var/www/forum/
             mv -f /var/www/forum/backend-0.0.1-SNAPSHOT.jar /var/www/forum/app.jar
             cd /var/www/forum
-            echo "=== Running docker-compose up -d ==="
-            docker-compose up -d
+            echo "=== Running docker compose up -d ==="
+            docker compose up -d
             echo "=== Restarting backend ==="
-            docker-compose restart backend
-            echo "=== docker-compose status ==="
-            docker-compose ps
+            docker compose restart backend
+            echo "=== docker compose status ==="
+            docker compose ps
 
       - name: Wait for Backend to Start
         uses: appleboy/ssh-action@master
@@ -102,6 +103,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           script: |
+            set -e
             echo "Triggering OpenSearch reindex..."
             # Chạy POST request bằng wget từ bên trong container để giữ IP nguồn là 127.0.0.1 (Local), tránh lỗi 401 do NAT của mạng Docker
             docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
