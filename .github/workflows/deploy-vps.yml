@@ -36,6 +36,16 @@ jobs:
           target: "/var/www/forum/"
           strip_components: 2
 
+      - name: Copy docker-compose.yml to VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "docker-compose.yml"
+          target: "/var/www/forum/"
+
       - name: Rename and Restart Backend via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -46,8 +56,9 @@ jobs:
           script: |
             mv -f /var/www/forum/backend-0.0.1-SNAPSHOT.jar /var/www/forum/app.jar
             cd /var/www/forum
-            docker-compose up -d backend
+            docker-compose up -d
             docker-compose restart backend
+            docker-compose ps
 
       - name: Wait for Backend to Start
         uses: appleboy/ssh-action@master
@@ -67,6 +78,12 @@ jobs:
               sleep 5
             done
             echo "Backend failed to start!"
+            echo "=== Docker Container Status ==="
+            docker ps -a
+            echo "=== Backend Container Logs ==="
+            docker logs forum-backend --tail 100
+            echo "=== MySQL Container Logs ==="
+            docker logs forum-mysql --tail 100
             exit 1
 
       - name: Reindex OpenSearch after Deploy
