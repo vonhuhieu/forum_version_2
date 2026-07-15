@@ -7,7 +7,7 @@
       </div>
       
       <div class="thread-list">
-        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8 min-height-100-on-pc">
+        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8 min-height-100-on-pc" @click="goToThread($event, thread)">
           <user-profile-popup :user="thread.author" v-if="thread.author">
             <div class="thread-avatar" :style="!isAvatarUrl(thread.author.avatar) ? { backgroundColor: thread.author.avatar || '#ccc', color: '#fff' } : {}">
               <img v-if="isAvatarUrl(thread.author.avatar)" :src="thread.author.avatar" />
@@ -37,9 +37,11 @@
               <span class="dot-divider">•</span>
               <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" class="meta-link white-space-nowrap">{{ formatDate(thread.createdAt) }}</router-link>
               <span v-if="thread.category" class="dot-divider home-category-dot">•</span>
-              <router-link v-if="thread.category" :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category home-category-link white-space-nowrap">
-                {{ thread.category.name }}
-              </router-link>
+              <span v-if="thread.category" class="home-category-link-wrapper">
+                <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category home-category-link white-space-nowrap">
+                  {{ thread.category.name }}
+                </router-link>
+              </span>
             </div>
             
             <div class="home-quick-pages-wrapper desktop-only" v-if="getThreadPages(thread.replyCount).length > 0">
@@ -57,8 +59,9 @@
             <div class="thread-meta-mobile mobile-only">
               <div class="thread-meta-row-2">
                 <span class="author-name">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
-                <span v-if="thread.category" class="dot-divider">·</span>
-                <router-link v-if="thread.category" :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category">
+              </div>
+              <div v-if="thread.category" class="thread-meta-row-2-category">
+                <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category mobile-category-link">
                   {{ thread.category.name }}
                 </router-link>
               </div>
@@ -197,7 +200,7 @@
           Đang tải...
         </div>
         <div v-else class="latest-threads-list">
-          <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item">
+          <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
               <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
                 <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
@@ -438,6 +441,19 @@ export default {
       
       // Last 3 pages
       return [totalPages - 2, totalPages - 1, totalPages];
+    },
+    goToThread(event, thread, targetLast = false) {
+      if (event.target.closest('a, button, .thread-avatar, .last-post-avatar, .lt-avatar, [role="button"]')) {
+        return
+      }
+      const route = {
+        name: 'ThreadDetail',
+        params: { id: thread.id }
+      }
+      if (targetLast && thread.lastPostId) {
+        route.query = { postId: thread.lastPostId }
+      }
+      this.$router.push(route)
     }
   }
 }
@@ -803,6 +819,13 @@ export default {
 
 .home-thread-row {
   align-items: flex-start;
+}
+.home-thread-row:hover {
+  cursor: pointer;
+}
+.mobile-con-so-block .latest-thread-item:hover {
+  cursor: pointer;
+  background-color: #f9f9f9;
 }
 
 .home-quick-pages-wrapper {

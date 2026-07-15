@@ -62,12 +62,21 @@
     font-weight: normal;
   }
   
-  #moi-ra-lo .thread-meta-row-2 .meta-category {
+  #moi-ra-lo .thread-meta-row-2-category {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+
+  #moi-ra-lo .mobile-category-link {
     color: #888;
     text-decoration: none;
+    display: inline-block;
+    width: auto;
   }
-  
-  #moi-ra-lo .thread-meta-row-2 .meta-category:hover {
+
+  #moi-ra-lo .mobile-category-link:hover {
     text-decoration: underline;
   }
   

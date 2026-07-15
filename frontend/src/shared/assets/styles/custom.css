@@ -68,9 +68,15 @@
         display: none !important;
     }
 
-    #moi-ra-lo .home-category-link {
+    #moi-ra-lo .home-category-link-wrapper {
         width: 100% !important;
         margin-top: 4px !important;
+        display: block;
+    }
+
+    #moi-ra-lo .home-category-link {
+        width: auto !important;
+        display: inline-block;
     }
 }
 
