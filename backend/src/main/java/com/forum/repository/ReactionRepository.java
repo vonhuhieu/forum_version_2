@@ -98,4 +98,8 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
            "LEFT JOIN r.post p " +
            "WHERE (t.author.id = :userId AND p.id IS NULL) OR (p.author.id = :userId)")
     long countReactionsReceivedByUserId(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Reaction r WHERE r.post.id = :postId")
+    void deleteByPostId(@Param("postId") Long postId);
 }

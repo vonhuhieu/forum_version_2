@@ -7,59 +7,59 @@
       <Breadcrumb :items="breadcrumbItems" />
 
       <div class="account-layout">
-        <!-- Cột trái: Sidebar -->
-        <AccountSidebar activeMenu="profile" />
-
-        <!-- Cột phải: Content chính -->
+        <!-- Cột chính: Content chính (Full-width) -->
         <div class="account-content">
           <!-- Thành phần 1: Profile Header & Details -->
-          <div class="profile-header-card card">
-            <!-- Vùng ảnh bìa (banner) -->
+          <div class="profile-header-card card" :class="{ 'no-banner': !userStats.profileBanner }">
+            <!-- Vùng ảnh bìa (banner) - Chỉ hiển thị nếu có ảnh bìa -->
             <div 
+              v-if="userStats.profileBanner"
               class="profile-banner-area" 
-              :class="{ 'has-banner': !!userStats.profileBanner }"
-              :style="userStats.profileBanner ? { backgroundImage: `url(${userStats.profileBanner})` } : {}"
+              :style="{ backgroundImage: `url(${userStats.profileBanner})` }"
             >
-              <div class="banner-overlay-gradient" v-if="userStats.profileBanner"></div>
-              
-              <!-- Thông tin tài khoản phía trên (nằm trong phạm vi banner) -->
-              <div class="profile-info-upper no-pt-mobile" :class="{ 'text-white': !!userStats.profileBanner }">
-                <div class="profile-avatar-wrapper" @click="openUploadModal('avatar')">
-                  <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" class="profile-avatar-img" />
-                  <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
-                    {{ userInitial }}
-                  </div>
-                  <div class="avatar-edit-overlay">
-                    <span>Sửa</span>
-                  </div>
+              <div class="banner-overlay-gradient"></div>
+            </div>
+            
+            <!-- Thông tin tài khoản phía trên (nằm ngoài banner) -->
+            <div 
+              class="profile-info-upper no-pt-mobile" 
+              :class="{ 'text-white': !!userStats.profileBanner, 'positioned-absolute': !!userStats.profileBanner }"
+            >
+              <div class="profile-avatar-wrapper" @click="openUploadModal('avatar')">
+                <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" class="profile-avatar-img" />
+                <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
+                  {{ userInitial }}
                 </div>
+                <div class="avatar-edit-overlay">
+                  <span>Sửa</span>
+                </div>
+              </div>
 
-                <div class="profile-meta-details">
-                  <h1 class="profile-displayname">{{ userStats.displayName || userStats.username }}</h1>
-                  <div class="profile-title-tag">Yếu sinh lý</div>
-                  <div class="profile-time-row">
-                    <span class="meta-item">Tham gia: {{ formatDate(userStats.createdAt) }}</span>
-                  </div>
-                  <div class="profile-time-row">
-                    <span class="meta-item text-dimmed">Thấy lần gần nhất: {{ formatDate(userStats.lastActiveAt) }}</span>
-                  </div>
-                  <!-- Nút hành động nằm dưới meta -->
-                  <div class="banner-actions">
-                    <button class="btn-banner-action fs-9" @click="triggerReport">Báo cáo</button>
-                    <button class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                      </svg>
-                      Đổi ảnh bìa
-                    </button>
-                  </div>
+              <div class="profile-meta-details">
+                <h1 class="profile-displayname">{{ userStats.displayName || userStats.username }}</h1>
+                <div class="profile-title-tag">Yếu sinh lý</div>
+                <div class="profile-time-row">
+                  <span class="meta-item">Tham gia: {{ formatDate(userStats.createdAt) }}</span>
+                </div>
+                <div class="profile-time-row">
+                  <span class="meta-item text-dimmed">Thấy lần gần nhất: {{ formatDate(userStats.lastActiveAt) }}</span>
+                </div>
+                <!-- Nút hành động nằm dưới meta -->
+                <div class="banner-actions">
+                  <button class="btn-banner-action fs-9" @click="triggerReport">Báo cáo</button>
+                  <button class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    Đổi ảnh bìa
+                  </button>
                 </div>
               </div>
             </div>
 
             <!-- Vùng thống kê phía dưới banner -->
-            <div class="profile-stats-bar pt-196">
+            <div class="profile-stats-bar">
               <div class="stat-box">
                 <span class="stat-label">Bài viết</span>
                 <span class="stat-val">{{ userStats.postCount || 0 }}</span>
@@ -199,7 +199,6 @@
 <script>
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
-import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
@@ -211,7 +210,6 @@ export default {
   components: {
     Breadcrumb,
     ForumPagination,
-    AccountSidebar,
     AvatarUploadModal,
     Loading
   },
@@ -1008,4 +1006,80 @@ export default {
 }
 
 @import "@/shared/assets/styles/custom.css";
+
+.profile-header-card {
+  position: relative;
+}
+
+.profile-info-upper.positioned-absolute {
+  position: absolute;
+  top: 220px;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+}
+
+/* No Banner Layout Styles */
+.profile-header-card.no-banner .profile-info-upper {
+  position: static;
+  padding: 24px 24px 0 24px;
+  background: #ffffff;
+  color: #1a507a;
+}
+
+.profile-header-card.no-banner .profile-avatar-wrapper {
+  margin-top: 0;
+  width: 150px;
+  height: 150px;
+}
+
+.profile-header-card.no-banner .profile-avatar-placeholder {
+  font-size: 3.5rem;
+}
+
+.profile-header-card.no-banner .profile-meta-details {
+  margin-top: 0;
+}
+
+.profile-header-card.no-banner .profile-stats-bar {
+  padding: 20px 24px;
+  border-top: 1px solid #d8dbe0;
+}
+
+@media (max-width: 767px) {
+  .profile-info-upper.positioned-absolute {
+    top: 180px;
+    left: 16px;
+    width: calc(100% - 32px);
+  }
+  
+  .profile-header-card.no-banner .profile-info-upper {
+    padding: 16px 16px 0 16px;
+  }
+  
+  .profile-header-card.no-banner .profile-avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .profile-header-card.no-banner .profile-avatar-placeholder {
+    font-size: 2.5rem;
+  }
+
+  .profile-header-card.no-banner .profile-stats-bar {
+    margin-top: 0;
+    padding: 12px 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .profile-info-upper.positioned-absolute {
+    top: 140px;
+  }
+  
+  .profile-header-card.no-banner .profile-stats-bar {
+    margin-top: 0;
+    padding: 10px 0.75rem;
+  }
+}
 </style>

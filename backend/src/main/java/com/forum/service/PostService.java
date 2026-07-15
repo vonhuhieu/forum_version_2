@@ -13,6 +13,8 @@ import com.forum.repository.PostRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
 import com.forum.repository.ThreadSubscriptionRepository;
+import com.forum.repository.NotificationRepository;
+import com.forum.repository.ReactionRepository;
 import com.forum.elasticsearch.repository.SearchDocumentRepository;
 import com.forum.elasticsearch.document.SearchDocument;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,8 @@ public class PostService {
     private final ThreadSubscriptionRepository threadSubscriptionRepository;
     private final SearchDocumentRepository searchDocumentRepository;
     private final SystemSettingService systemSettingService;
+    private final NotificationRepository notificationRepository;
+    private final ReactionRepository reactionRepository;
 
     private SearchDocument mapPostToSearchDocument(Post post) {
         SearchDocument doc = new SearchDocument();
@@ -465,5 +469,46 @@ public class PostService {
         PostDTO resultDto = postMapper.toDTO(saved);
         enrichPost(resultDto);
         return ResponseDTO.success(resultDto);
+    }
+
+    public ResponseDTO<Void> deletePost(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        Thread thread = post.getThread();
+        if (thread == null) {
+            throw new RuntimeException("Thread not found for this post");
+        }
+
+        // 1. Delete notifications related to this post
+        notificationRepository.deleteByPostId(id);
+
+        // 2. Delete reactions related to this post
+        reactionRepository.deleteByPostId(id);
+
+        // 3. Delete from Elasticsearch index
+        try {
+            searchDocumentRepository.deleteById("post_" + id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 4. Delete the post from DB
+        postRepository.delete(post);
+
+        // 5. Update thread statistics
+        thread.setReplyCount(Math.max(0, thread.getReplyCount() - 1));
+        
+        // Recalculate lastPostAt
+        Optional<Post> latestPostOpt = postRepository.findFirstByThreadIdOrderByCreatedAtDesc(thread.getId());
+        if (latestPostOpt.isPresent()) {
+            thread.setLastPostAt(latestPostOpt.get().getCreatedAt());
+        } else {
+            thread.setLastPostAt(thread.getCreatedAt());
+        }
+        threadRepository.save(thread);
+        com.forum.service.ThreadService.clearListCache();
+
+        return ResponseDTO.success(null);
     }
 }

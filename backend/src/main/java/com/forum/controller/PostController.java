@@ -5,6 +5,7 @@ import com.forum.dto.ResponseDTO;
 import com.forum.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,6 +57,16 @@ public class PostController {
             if ("Post not found".equals(e.getMessage())) {
                 return ResponseEntity.notFound().build();
             }
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<Void>> deletePost(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(postService.deletePost(id));
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
     }
