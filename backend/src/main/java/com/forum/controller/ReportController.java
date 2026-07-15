@@ -2,6 +2,7 @@ package com.forum.controller;
 
 import com.forum.dto.PageResponseDTO;
 import com.forum.dto.ReportDTO;
+import com.forum.dto.ReportGroupDTO;
 import com.forum.dto.ResponseDTO;
 import com.forum.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +31,27 @@ public class ReportController {
 
     @GetMapping("/api/admin/reports")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<ResponseDTO<PageResponseDTO<ReportDTO>>> getReports(
+    public ResponseEntity<ResponseDTO<PageResponseDTO<ReportGroupDTO>>> getReports(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            return ResponseEntity.ok(reportService.getReportsPaged(status, page, size));
+            return ResponseEntity.ok(reportService.getGroupedReportsPaged(status, page, size));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/api/admin/reports/detail")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<PageResponseDTO<ReportDTO>>> getReportDetails(
+            @RequestParam String targetType,
+            @RequestParam Long targetId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            return ResponseEntity.ok(reportService.getReportsByTargetPaged(targetType, targetId, status, page, size));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
@@ -51,6 +67,22 @@ public class ReportController {
             Boolean deleteContent = (Boolean) payload.getOrDefault("deleteContent", false);
             String adminUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             return ResponseEntity.ok(reportService.resolveReport(id, status, deleteContent != null && deleteContent, adminUsername));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
+
+    @PutMapping("/api/admin/reports/resolve-group")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<Void>> resolveReportGroup(
+            @RequestBody Map<String, Object> payload) {
+        try {
+            String targetType = (String) payload.get("targetType");
+            Long targetId = ((Number) payload.get("targetId")).longValue();
+            String status = (String) payload.get("status");
+            Boolean deleteContent = (Boolean) payload.getOrDefault("deleteContent", false);
+            String adminUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            return ResponseEntity.ok(reportService.resolveReportGroup(targetType, targetId, status, deleteContent != null && deleteContent, adminUsername));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }

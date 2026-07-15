@@ -23,7 +23,7 @@
           </div>
           
           <div class="thread-list">
-            <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center">
+            <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center min-height-100-on-pc">
               <user-profile-popup :user="thread.author" v-if="thread.author">
                 <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
                   <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />

@@ -693,3 +693,7 @@ div.thread-title span {
   flex-shrink: 0;
 }
 
+/* Đảm bảo popup SweetAlert2 hiển thị trên cùng, không bị đè bởi modal upload ảnh (có z-index: 99999) */
+.swal2-container {
+  z-index: 1000000 !important;
+}

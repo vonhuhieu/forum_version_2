@@ -2,6 +2,7 @@ package com.forum.service;
 
 import com.forum.dto.PageResponseDTO;
 import com.forum.dto.ReportDTO;
+import com.forum.dto.ReportGroupDTO;
 import com.forum.dto.ResponseDTO;
 import com.forum.entity.Post;
 import com.forum.entity.Report;
@@ -100,6 +101,85 @@ public class ReportService {
         return ResponseDTO.success(pageResponse);
     }
 
+    @Transactional(readOnly = true)
+    public ResponseDTO<PageResponseDTO<ReportGroupDTO>> getGroupedReportsPaged(String status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        String searchStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
+        
+        Page<ReportGroupDTO> groupPage = reportRepository.findGroupedReports(searchStatus, pageable);
+        
+        // Populate additional details
+        for (ReportGroupDTO dto : groupPage.getContent()) {
+            if ("THREAD".equals(dto.getTargetType())) {
+                Optional<Thread> threadOpt = threadRepository.findById(dto.getTargetId());
+                if (threadOpt.isPresent()) {
+                    Thread t = threadOpt.get();
+                    dto.setThreadId(t.getId());
+                    dto.setTargetAuthorUsername(t.getAuthor() != null ? t.getAuthor().getUsername() : "Ẩn danh");
+                    dto.setTargetContentSnippet("Chủ đề: " + t.getTitle());
+                } else {
+                    dto.setTargetAuthorUsername("N/A (Đã xóa)");
+                    dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
+                }
+            } else {
+                Optional<Post> postOpt = postRepository.findById(dto.getTargetId());
+                if (postOpt.isPresent()) {
+                    Post p = postOpt.get();
+                    dto.setThreadId(p.getThread() != null ? p.getThread().getId() : null);
+                    dto.setTargetAuthorUsername(p.getAuthor() != null ? p.getAuthor().getUsername() : "Ẩn danh");
+
+                    String cleanContent = p.getContent() != null ? p.getContent().replaceAll("<[^>]*>", "") : "";
+                    if (cleanContent.length() > 80) {
+                        cleanContent = cleanContent.substring(0, 80) + "...";
+                    }
+                    dto.setTargetContentSnippet("Bình luận: " + cleanContent);
+                } else {
+                    dto.setTargetAuthorUsername("N/A (Đã xóa)");
+                    dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
+                }
+            }
+        }
+
+        PageResponseDTO<ReportGroupDTO> pageResponse = new PageResponseDTO<>(
+                groupPage.getContent(),
+                groupPage.getTotalPages(),
+                groupPage.getTotalElements(),
+                groupPage.getNumber(),
+                groupPage.getSize()
+        );
+
+        return ResponseDTO.success(pageResponse);
+      }
+
+      @Transactional(readOnly = true)
+      public ResponseDTO<PageResponseDTO<ReportDTO>> getReportsByTargetPaged(String targetType, Long targetId, String status, int page, int size) {
+          Pageable pageable = PageRequest.of(page, size);
+          Page<Report> reportPage;
+          
+          String searchStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
+          if (searchStatus != null) {
+              reportPage = reportRepository.findByTargetTypeAndTargetIdAndStatusOrderByCreatedAtDesc(
+                      targetType.toUpperCase(), targetId, searchStatus, pageable);
+          } else {
+              reportPage = reportRepository.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(
+                      targetType.toUpperCase(), targetId, pageable);
+          }
+
+          List<ReportDTO> dtos = reportPage.getContent().stream()
+                  .map(this::convertToDTO)
+                  .collect(Collectors.toList());
+
+          PageResponseDTO<ReportDTO> pageResponse = new PageResponseDTO<>(
+                  dtos,
+                  reportPage.getTotalPages(),
+                  reportPage.getTotalElements(),
+                  reportPage.getNumber(),
+                  reportPage.getSize()
+          );
+
+          return ResponseDTO.success(pageResponse);
+      }
+
     public ResponseDTO<Void> resolveReport(Long reportId, String status, boolean deleteContent, String adminUsername) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
@@ -129,6 +209,41 @@ public class ReportService {
         }
 
         reportRepository.save(report);
+        return ResponseDTO.success(null);
+    }
+
+    public ResponseDTO<Void> resolveReportGroup(String targetType, Long targetId, String status, boolean deleteContent, String adminUsername) {
+        User admin = userRepository.findByUsername(adminUsername)
+                .orElseThrow(() -> new RuntimeException("Admin user not found"));
+
+        String nextStatus = status.trim().toUpperCase();
+        if (!"RESOLVED".equals(nextStatus) && !"REJECTED".equals(nextStatus)) {
+            throw new RuntimeException("Invalid status update");
+        }
+
+        // Find all reports in PENDING status for this target
+        List<Report> reports = reportRepository.findByTargetTypeAndTargetIdAndStatusOrderByCreatedAtDesc(
+                targetType.toUpperCase(), targetId, "PENDING");
+
+        for (Report report : reports) {
+            report.setStatus(nextStatus);
+            report.setResolvedBy(admin);
+            report.setResolvedAt(LocalDateTime.now());
+            reportRepository.save(report);
+        }
+
+        if ("RESOLVED".equals(nextStatus) && deleteContent) {
+            if ("THREAD".equals(targetType.toUpperCase())) {
+                if (threadRepository.existsById(targetId)) {
+                    threadService.deleteThread(targetId);
+                }
+            } else if ("POST".equals(targetType.toUpperCase())) {
+                if (postRepository.existsById(targetId)) {
+                    postService.deletePost(targetId);
+                }
+            }
+        }
+
         return ResponseDTO.success(null);
     }
 

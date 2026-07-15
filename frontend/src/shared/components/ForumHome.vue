@@ -7,7 +7,7 @@
       </div>
       
       <div class="thread-list">
-        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8">
+        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8 min-height-100-on-pc">
           <user-profile-popup :user="thread.author" v-if="thread.author">
             <div class="thread-avatar" :style="!isAvatarUrl(thread.author.avatar) ? { backgroundColor: thread.author.avatar || '#ccc', color: '#fff' } : {}">
               <img v-if="isAvatarUrl(thread.author.avatar)" :src="thread.author.avatar" />
