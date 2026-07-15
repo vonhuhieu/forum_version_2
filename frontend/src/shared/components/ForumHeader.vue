@@ -2,7 +2,7 @@
   <header>
     <div class="header-top">
       <div class="container">
-        <div class="logo" style="cursor: pointer;" @click="$router.push({ name: 'Home' })">HTXSL</div>
+        <div class="logo" style="cursor: pointer;" @click="goToHome">HTXSL</div>
       </div>
     </div>
     <div class="header-nav">
@@ -16,7 +16,7 @@
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <div class="mobile-logo logo" @click="$router.push({ name: 'Home' })">HTXSL</div>
+          <div class="mobile-logo logo" @click="goToHome">HTXSL</div>
         </div>
 
         <div class="nav-scroll-wrapper">
@@ -37,6 +37,7 @@
               :key="menu.id"
               :to="menu.url"
               active-class="active"
+              @click="handleMenuClick($event, menu.url)"
             >
               {{ menu.title }}
             </router-link>
@@ -376,7 +377,7 @@
       <div class="sidebar-backdrop" @click="isSidebarOpen = false"></div>
       <div class="sidebar-content">
         <div class="sidebar-header">
-          <div class="sidebar-logo" @click="$router.push({ name: 'Home' }); isSidebarOpen = false">HTXSL</div>
+          <div class="sidebar-logo" @click="goToHome(); isSidebarOpen = false">HTXSL</div>
           <button class="btn-close-sidebar" @click="isSidebarOpen = false" aria-label="Đóng menu">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -390,7 +391,7 @@
             :key="menu.id"
             :to="menu.url"
             active-class="active"
-            @click="isSidebarOpen = false"
+            @click="handleMenuClick($event, menu.url, true)"
           >
             {{ menu.title }}
           </router-link>
@@ -563,6 +564,21 @@ export default {
       const { username, avatar } = event.detail
       if (this.currentUser && this.currentUser.username === username) {
         this.currentUser.avatar = avatar
+      }
+    },
+    goToHome() {
+      if (this.$route.name === 'Home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        this.$router.push({ name: 'Home' })
+      }
+    },
+    handleMenuClick(event, url, closeSidebar = false) {
+      if (closeSidebar) {
+        this.isSidebarOpen = false
+      }
+      if (this.$route.path === url || (url === '/' && this.$route.name === 'Home')) {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     },
     async syncUserProfile() {

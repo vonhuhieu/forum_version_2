@@ -27,7 +27,7 @@
 
           <!-- Danh sách item đối thoại -->
           <div class="thread-list">
-            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center">
+            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center min-height-100-on-pc">
               
               <!-- Block trái (Avatar) -->
               <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">

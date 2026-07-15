@@ -47,7 +47,7 @@
 
         <!-- Results List -->
         <div class="search-results-list" v-if="!loading && results.length > 0">
-          <div v-for="item in results" :key="item.type + '-' + item.id" class="search-result-item">
+          <div v-for="item in results" :key="item.type + '-' + item.id" class="search-result-item" @click="goToResult($event, item)">
             <!-- Title Link -->
             <h3 class="result-title">
               <a href="#" @click.prevent="navigateToResult(item)" class="result-link">
@@ -300,6 +300,12 @@ export default {
           })
         }
       }
+    },
+    goToResult(event, item) {
+      if (event.target.closest('a, button, [role="button"]')) {
+        return
+      }
+      this.navigateToResult(item)
     }
   }
 }
@@ -480,13 +486,14 @@ export default {
 }
 
 .search-result-item:hover {
+  background-color: #f8f9fa;
   border-color: #cbd5e1;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  cursor: pointer;
 }
 
 .result-breadcrumb-wrapper {
   margin-bottom: 8px;
-  cursor: text;               /* Đổi cursor thành chữ I */
   user-select: text;          /* Cho phép chọn text */
 }
 
@@ -495,7 +502,6 @@ export default {
   margin-bottom: 0;
   padding: 0;
   background-color: transparent;
-  cursor: text;
 }
 
 .result-breadcrumb-wrapper :deep(.breadcrumb-item) {
@@ -511,7 +517,6 @@ export default {
   color: #6c757d !important;   /* Đổi màu link thành màu text thường */
   stroke: #6c757d !important;
   text-decoration: none !important;
-  cursor: text;
   pointer-events: none;
 }
 

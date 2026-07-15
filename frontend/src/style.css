@@ -304,6 +304,7 @@ main.container {
 
 .thread-row:hover {
   background-color: #f8f9fa;
+  cursor: pointer;
 }
 
 .thread-avatar {
@@ -625,31 +626,35 @@ main.container {
 
 /* Truncate thread titles and sidebar titles on a single line with ellipsis to prevent layout breaks */
 a.thread-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: inline;
   max-width: 100%;
+  word-break: break-word;
 }
 
 div.thread-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   min-width: 0;
   max-width: 100%;
 }
 
 div.thread-title a {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: inline;
+  word-break: break-word;
 }
 
 div.thread-title span {
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+div.thread-title .label-tag {
+  margin-right: 6px;
 }
 
 .label-tag, .label-tag-mini {
@@ -693,3 +698,7 @@ div.thread-title span {
   flex-shrink: 0;
 }
 
+/* Đảm bảo popup SweetAlert2 hiển thị trên cùng, không bị đè bởi modal upload ảnh (có z-index: 99999) */
+.swal2-container {
+  z-index: 1000000 !important;
+}

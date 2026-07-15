@@ -7,7 +7,7 @@
       </div>
       
       <div class="thread-list">
-        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8">
+        <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8 min-height-100-on-pc" @click="goToThread($event, thread)">
           <user-profile-popup :user="thread.author" v-if="thread.author">
             <div class="thread-avatar" :style="!isAvatarUrl(thread.author.avatar) ? { backgroundColor: thread.author.avatar || '#ccc', color: '#fff' } : {}">
               <img v-if="isAvatarUrl(thread.author.avatar)" :src="thread.author.avatar" />
@@ -37,9 +37,11 @@
               <span class="dot-divider">•</span>
               <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" class="meta-link white-space-nowrap">{{ formatDate(thread.createdAt) }}</router-link>
               <span v-if="thread.category" class="dot-divider home-category-dot">•</span>
-              <router-link v-if="thread.category" :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category home-category-link white-space-nowrap">
-                {{ thread.category.name }}
-              </router-link>
+              <span v-if="thread.category" class="home-category-link-wrapper">
+                <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category home-category-link white-space-nowrap">
+                  {{ thread.category.name }}
+                </router-link>
+              </span>
             </div>
             
             <div class="home-quick-pages-wrapper desktop-only" v-if="getThreadPages(thread.replyCount).length > 0">
@@ -57,8 +59,9 @@
             <div class="thread-meta-mobile mobile-only">
               <div class="thread-meta-row-2">
                 <span class="author-name">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
-                <span v-if="thread.category" class="dot-divider">·</span>
-                <router-link v-if="thread.category" :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category">
+              </div>
+              <div v-if="thread.category" class="thread-meta-row-2-category">
+                <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category mobile-category-link">
                   {{ thread.category.name }}
                 </router-link>
               </div>
@@ -113,7 +116,7 @@
       </div>
       
       <div class="category-list">
-        <div v-for="cat in group.categories.filter(c => !c.parentCategoryId)" :key="cat.id" class="category-row home-category-row">
+        <div v-for="cat in group.categories.filter(c => !c.parentCategoryId)" :key="cat.id" class="category-row home-category-row" @click="handleCategoryRowClick($event, cat)">
           <div class="category-icon home-category-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-msg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           </div>
@@ -162,7 +165,7 @@
               </user-profile-popup>
               <div v-else class="last-thread-avatar" style="background-color: #ccc; color: #fff;">A</div>
               <div class="last-thread-info home-last-thread-info">
-                <router-link :to="{ name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
+                <router-link :to="lastThreadByCat[cat.id].lastPostId ? { name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id }, query: { postId: lastThreadByCat[cat.id].lastPostId } } : { name: 'ThreadDetail', params: { id: lastThreadByCat[cat.id].id } }" class="last-thread-title home-last-thread-title">
                   <span v-if="lastThreadByCat[cat.id].label" class="label-tag-mini" :style="{ backgroundColor: lastThreadByCat[cat.id].label.colorCode, color: lastThreadByCat[cat.id].label.textColor, borderColor: lastThreadByCat[cat.id].label.borderColor || 'transparent' }">
                     {{ lastThreadByCat[cat.id].label.name }}
                   </span>
@@ -197,7 +200,7 @@
           Đang tải...
         </div>
         <div v-else class="latest-threads-list">
-          <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item">
+          <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
               <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
                 <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
@@ -209,7 +212,7 @@
             <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
             <div class="lt-content">
               <div class="lt-title">
-                <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
                   <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                     {{ thread.label.name }}
                   </span>
@@ -438,6 +441,40 @@ export default {
       
       // Last 3 pages
       return [totalPages - 2, totalPages - 1, totalPages];
+    },
+    goToThread(event, thread, targetLast = false) {
+      if (event.target.closest('a, button, .thread-avatar, .last-post-avatar, .lt-avatar, [role="button"]')) {
+        return
+      }
+      const route = {
+        name: 'ThreadDetail',
+        params: { id: thread.id }
+      }
+      if (targetLast && thread.lastPostId) {
+        route.query = { postId: thread.lastPostId }
+      }
+      this.$router.push(route)
+    },
+    handleCategoryRowClick(event, cat) {
+      if (event.target.closest('a, button, .last-thread-avatar, .sub-categories-dropdown, [role="button"]')) {
+        return
+      }
+      const lastThreadBlock = event.target.closest('.category-last-thread')
+      if (lastThreadBlock) {
+        const thread = this.lastThreadByCat[cat.id]
+        if (thread) {
+          const route = {
+            name: 'ThreadDetail',
+            params: { id: thread.id }
+          }
+          if (thread.lastPostId) {
+            route.query = { postId: thread.lastPostId }
+          }
+          this.$router.push(route)
+        }
+      } else {
+        this.$router.push({ name: 'CategoryDetail', params: { id: cat.id } })
+      }
     }
   }
 }
@@ -510,6 +547,11 @@ export default {
   padding: 12px 15px;
   border-bottom: 1px solid #f0f2f5;
   align-items: center;
+  transition: background-color 0.2s;
+}
+.category-row:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
 }
 
 .category-icon {
@@ -744,15 +786,18 @@ export default {
 
 .thread-title-wrapper {
   margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   min-width: 0;
   max-width: 100%;
 }
 
 .thread-title-wrapper span {
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.thread-title-wrapper .label-tag {
+  margin-right: 6px;
 }
 
 .thread-title {
@@ -762,12 +807,10 @@ export default {
   text-decoration: none;
   margin-bottom: 0;
   line-height: 1.5;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
+  display: inline;
+  white-space: normal;
+  vertical-align: middle;
+  word-break: break-word;
 }
 
 .thread-title:hover {
@@ -803,6 +846,13 @@ export default {
 
 .home-thread-row {
   align-items: flex-start;
+}
+.home-thread-row:hover {
+  cursor: pointer;
+}
+.mobile-con-so-block .latest-thread-item:hover {
+  cursor: pointer;
+  background-color: #f9f9f9;
 }
 
 .home-quick-pages-wrapper {

@@ -123,6 +123,14 @@
           <button class="btn-save" @click="saveAvatar" :disabled="!imageSrc || isUploading">
             {{ mode === 'banner' ? 'Lưu ảnh bìa' : 'Lưu ảnh đại diện' }}
           </button>
+          <button 
+            v-if="mode === 'banner' && currentUser && currentUser.profileBanner"
+            class="btn-delete-banner" 
+            @click="deleteBanner" 
+            :disabled="isUploading"
+          >
+            Xóa ảnh
+          </button>
           <button class="btn-cancel" @click="close" :disabled="isUploading">Hủy</button>
         </div>
 
@@ -136,6 +144,7 @@
 <script>
 import api from '@/shared/services/api.service'
 import Loading from '@/shared/components/Loading.vue'
+import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 
 export default {
   name: 'AvatarUploadModal',
@@ -403,6 +412,27 @@ export default {
       this.previewDataUrl = ''
     },
     resetAll() { this.resetImage(); this.isUploading = false },
+
+    async deleteBanner() {
+      const confirmRes = await alertConfirm(
+        'Xác nhận xóa',
+        'Bạn có chắc chắn muốn xóa ảnh bìa hiện tại không?'
+      )
+      if (confirmRes.isConfirmed) {
+        this.isUploading = true
+        try {
+          await api.put('/users/me/banner', { banner: null })
+          toastSuccess('Xóa ảnh bìa thành công!')
+          this.$emit('banner-updated', null)
+          this.close()
+        } catch (err) {
+          console.error('Delete banner error:', err)
+          toastError('Không thể xóa ảnh bìa. Vui lòng thử lại.')
+        } finally {
+          this.isUploading = false
+        }
+      }
+    },
 
     async saveAvatar() {
       if (!this.image) return
@@ -734,4 +764,26 @@ export default {
 
 @keyframes spin { to { transform: rotate(360deg) } }
 .spin-icon { animation: spin 0.8s linear infinite; }
+
+.btn-delete-banner {
+  padding: 8px 16px;
+  border: 1px solid #e74c3c;
+  border-radius: 8px;
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.btn-delete-banner:hover:not(:disabled) {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.btn-delete-banner:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>

@@ -31,7 +31,7 @@
                 Đang tải...
               </div>
               <div v-else class="latest-threads-list">
-                <div v-for="thread in latestThreads" :key="thread.id" class="latest-thread-item">
+                <div v-for="thread in latestThreads" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
                   <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
                     <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
                       <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
@@ -43,7 +43,7 @@
                   <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
                   <div class="lt-content">
                     <div class="lt-title">
-                      <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                      <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
                         <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
                           {{ thread.label.name }}
                         </span>
@@ -322,6 +322,19 @@ export default {
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)
+    },
+    goToThread(event, thread, targetLast = false) {
+      if (event.target.closest('a, button, .lt-avatar, [role="button"]')) {
+        return
+      }
+      const route = {
+        name: 'ThreadDetail',
+        params: { id: thread.id }
+      }
+      if (targetLast && thread.lastPostId) {
+        route.query = { postId: thread.lastPostId }
+      }
+      this.$router.push(route)
     }
   }
 }
@@ -356,6 +369,7 @@ export default {
 
 .latest-thread-item:hover {
   background-color: #f9f9f9;
+  cursor: pointer;
 }
 
 .lt-avatar {

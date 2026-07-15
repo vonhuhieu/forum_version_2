@@ -44,7 +44,7 @@ services:
     working_dir: /app
     volumes:
       - ./app.jar:/app/app.jar
-      - ./uploads:/var/www/forum/uploads
+      - ./uploads:/app/uploads
       - .env:/app/.env
     env_file:
       - .env
