@@ -486,6 +486,7 @@ export default {
 }
 
 .search-result-item:hover {
+  background-color: #f8f9fa;
   border-color: #cbd5e1;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   cursor: pointer;

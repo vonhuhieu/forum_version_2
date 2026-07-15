@@ -320,7 +320,7 @@
           </div>
           
           <div class="thread-list">
-            <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center min-height-100-on-pc">
+            <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center min-height-100-on-pc" @click="goToThread($event, thread)">
               <user-profile-popup :user="thread.author" v-if="thread.author">
                 <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
                   <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
@@ -1041,6 +1041,16 @@ export default {
         query.sortOrder = this.$route.query.sortOrder
       }
       return query
+    },
+    goToThread(event, thread) {
+      if (event.target.closest('a, button, .thread-avatar, .last-post-avatar, [role="button"]')) {
+        return
+      }
+      this.$router.push({
+        name: 'ThreadDetail',
+        params: { id: thread.id },
+        query: this.getThreadDetailQuery()
+      })
     },
     toggleSortDropdown() {
       this.sortDropdownOpen = !this.sortDropdownOpen

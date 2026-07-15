@@ -116,7 +116,7 @@
       </div>
       
       <div class="category-list">
-        <div v-for="cat in group.categories.filter(c => !c.parentCategoryId)" :key="cat.id" class="category-row home-category-row">
+        <div v-for="cat in group.categories.filter(c => !c.parentCategoryId)" :key="cat.id" class="category-row home-category-row" @click="handleCategoryRowClick($event, cat)">
           <div class="category-icon home-category-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-msg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           </div>
@@ -454,6 +454,27 @@ export default {
         route.query = { postId: thread.lastPostId }
       }
       this.$router.push(route)
+    },
+    handleCategoryRowClick(event, cat) {
+      if (event.target.closest('a, button, .last-thread-avatar, .sub-categories-dropdown, [role="button"]')) {
+        return
+      }
+      const lastThreadBlock = event.target.closest('.category-last-thread')
+      if (lastThreadBlock) {
+        const thread = this.lastThreadByCat[cat.id]
+        if (thread) {
+          const route = {
+            name: 'ThreadDetail',
+            params: { id: thread.id }
+          }
+          if (thread.lastPostId) {
+            route.query = { postId: thread.lastPostId }
+          }
+          this.$router.push(route)
+        }
+      } else {
+        this.$router.push({ name: 'CategoryDetail', params: { id: cat.id } })
+      }
     }
   }
 }
@@ -526,6 +547,11 @@ export default {
   padding: 12px 15px;
   border-bottom: 1px solid #f0f2f5;
   align-items: center;
+  transition: background-color 0.2s;
+}
+.category-row:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
 }
 
 .category-icon {
@@ -760,15 +786,18 @@ export default {
 
 .thread-title-wrapper {
   margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   min-width: 0;
   max-width: 100%;
 }
 
 .thread-title-wrapper span {
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.thread-title-wrapper .label-tag {
+  margin-right: 6px;
 }
 
 .thread-title {
@@ -778,12 +807,10 @@ export default {
   text-decoration: none;
   margin-bottom: 0;
   line-height: 1.5;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
+  display: inline;
+  white-space: normal;
+  vertical-align: middle;
+  word-break: break-word;
 }
 
 .thread-title:hover {
