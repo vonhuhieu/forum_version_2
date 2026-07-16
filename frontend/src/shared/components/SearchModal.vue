@@ -13,14 +13,18 @@
           <div class="search-input-container" ref="searchContainer">
             <div class="search-input-box">
               <input
-                type="text"
+                type="search"
                 v-model="searchQuery"
                 placeholder="Nhập từ khóa cần tìm..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
                 @keydown.enter="confirmSelection"
                 @keydown.down.prevent="navigateSearchDropdown('down')"
                 @keydown.up.prevent="navigateSearchDropdown('up')"
                 @keydown.esc="closeSearchDropdown"
-                @focus="handleSearchFocus"
+                @click="handleSearchFocus"
                 @input="handleSearchInput"
                 ref="searchInput"
                 :class="['modal-search-input', { 'preview-selected': isPreviewSelected }]"
