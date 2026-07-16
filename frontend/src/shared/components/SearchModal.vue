@@ -14,15 +14,15 @@
             <div class="search-input-box">
               <input
                 type="text"
-                v-model="localQuery"
+                v-model="searchQuery"
                 placeholder="Nhập từ khóa cần tìm..."
                 @keydown.enter="confirmSelection"
-                @keydown.down.prevent="navigateDropdown('down')"
-                @keydown.up.prevent="navigateDropdown('up')"
-                @keydown.esc="closeDropdown"
-                @click="handleFocus"
-                @input="handleInput"
-                ref="modalSearchInput"
+                @keydown.down.prevent="navigateSearchDropdown('down')"
+                @keydown.up.prevent="navigateSearchDropdown('up')"
+                @keydown.esc="closeSearchDropdown"
+                @click="handleSearchFocus"
+                @input="handleSearchInput"
+                ref="searchInput"
                 :class="['modal-search-input', { 'preview-selected': isPreviewSelected }]"
               />
               <button class="btn-modal-search" @click="confirmSelection" :disabled="loading" aria-label="Tìm kiếm">
@@ -34,14 +34,14 @@
             <div 
               v-show="showHistoryDropdown && filteredHistory.length > 0" 
               class="search-history-dropdown"
-              @mouseleave="resetHover"
+              @mouseleave="resetSearchHover"
             >
               <div
                 v-for="(keyword, idx) in filteredHistory"
                 :key="keyword"
                 :class="['history-item', { active: idx === selectedIndex }]"
-                @click="selectKeyword(keyword)"
-                @mouseenter="hoverKeyword(keyword, idx)"
+                @click="selectSearchKeyword(keyword)"
+                @mouseenter="hoverSearchKeyword(keyword, idx)"
               >
                 <span class="history-keyword">{{ keyword }}</span>
               </div>
@@ -123,9 +123,11 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
+import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
   name: 'SearchModal',
+  mixins: [searchHistoryMixin],
   components: {
     Breadcrumb,
     ForumPagination,
@@ -143,7 +145,6 @@ export default {
   },
   data() {
     return {
-      localQuery: '',
       lastSearchedQuery: '',
       sortBy: 'relevance',
       currentPage: 0,
@@ -155,33 +156,13 @@ export default {
       groups: [],
       loading: false,
       searched: false,
-      searchTimeSeconds: '0.000',
-      searchHistory: [],
-      showHistoryDropdown: false,
-      selectedIndex: -1,
-      originalQuery: '',
-      filterQuery: '',
-      isPreviewSelected: false
-    }
-  },
-  computed: {
-    filteredHistory() {
-      if (typeof this.filterQuery !== 'string') {
-        return this.searchHistory.slice(0, 10)
-      }
-      const q = this.filterQuery.trim().toLowerCase()
-      if (!q) {
-        return this.searchHistory.slice(0, 10)
-      }
-      return this.searchHistory
-        .filter(item => item.toLowerCase().startsWith(q))
-        .slice(0, 10)
+      searchTimeSeconds: '0.000'
     }
   },
   watch: {
     show(newVal) {
       if (newVal) {
-        this.localQuery = this.initialQuery
+        this.searchQuery = this.initialQuery
         this.lastSearchedQuery = ''
         this.results = []
         this.searched = false
@@ -192,175 +173,37 @@ export default {
         this.loadCategoriesAndGroups()
         this.loadSearchHistory()
         this.$nextTick(() => {
-          if (this.$refs.modalSearchInput) {
-            this.$refs.modalSearchInput.focus()
+          if (this.$refs.searchInput) {
+            this.$refs.searchInput.focus()
           }
-          if (this.localQuery.trim()) {
+          if (this.searchQuery.trim()) {
             this.handleSearch()
           }
         })
 
         // Trì hoãn việc đăng ký sự kiện click outside để tránh bắt ngay sự kiện click mở modal đang bubble
         setTimeout(() => {
-          document.addEventListener('click', this.handleClickOutside)
+          document.addEventListener('click', this.handleDocumentClick)
         }, 0)
       } else {
-        document.removeEventListener('click', this.handleClickOutside)
+        document.removeEventListener('click', this.handleDocumentClick)
       }
     }
   },
-  mounted() {
-    this.loadSearchHistory()
-  },
   beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
     close() {
       this.$emit('update:show', false)
       this.$emit('close')
     },
-    loadSearchHistory() {
-      try {
-        const historyStr = localStorage.getItem('forum_search_history')
-        this.searchHistory = historyStr ? JSON.parse(historyStr) : []
-      } catch (e) {
-        console.error('Error loading search history:', e)
-        this.searchHistory = []
-      }
-    },
-    saveToHistory(query) {
-      if (!query || !query.trim()) return
-      const cleaned = query.trim()
-      let history = [...this.searchHistory]
-      history = history.filter(item => item.toLowerCase() !== cleaned.toLowerCase())
-      history.unshift(cleaned)
-      this.searchHistory = history
-      localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
-    },
-    navigateDropdown(direction) {
-      if (!this.showHistoryDropdown || this.filteredHistory.length === 0) return
-      const len = this.filteredHistory.length
-      if (direction === 'down') {
-        if (this.selectedIndex === -1) {
-          this.originalQuery = this.localQuery
-        }
-        this.selectedIndex = (this.selectedIndex + 1) % (len + 1)
-        if (this.selectedIndex === len) {
-          this.selectedIndex = -1
-        }
-      } else if (direction === 'up') {
-        if (this.selectedIndex === -1) {
-          this.originalQuery = this.localQuery
-          this.selectedIndex = len - 1
-        } else {
-          this.selectedIndex--
-        }
-      }
-
-      if (this.selectedIndex !== -1) {
-        this.localQuery = this.filteredHistory[this.selectedIndex]
-        this.isPreviewSelected = true
-      } else {
-        this.localQuery = this.originalQuery
-        this.isPreviewSelected = false
-      }
-      this.scrollHistoryDropdown()
-    },
-    scrollHistoryDropdown() {
-      this.$nextTick(() => {
-        const dropdown = this.$refs.searchContainer?.querySelector('.search-history-dropdown')
-        if (!dropdown) return
-        const activeItem = dropdown.querySelector('.history-item.active')
-        if (!activeItem) return
-
-        const dropdownTop = dropdown.scrollTop
-        const dropdownBottom = dropdownTop + dropdown.clientHeight
-        const itemTop = activeItem.offsetTop
-        const itemBottom = itemTop + activeItem.clientHeight
-
-        if (itemTop < dropdownTop) {
-          dropdown.scrollTop = itemTop
-        } else if (itemBottom > dropdownBottom) {
-          dropdown.scrollTop = itemBottom - dropdown.clientHeight
-        }
-      })
-    },
-    hoverKeyword(keyword, idx) {
-      if (this.selectedIndex === -1) {
-        this.originalQuery = this.localQuery
-      }
-      this.selectedIndex = idx
-      this.localQuery = keyword
-      this.isPreviewSelected = true
-    },
-    resetHover() {
-      if (!this.showHistoryDropdown) return
-      this.selectedIndex = -1
-      this.localQuery = this.originalQuery
-      this.isPreviewSelected = false
-    },
-    selectKeyword(keyword) {
-      this.localQuery = keyword
-      this.filterQuery = keyword
-      this.showHistoryDropdown = false
-      this.selectedIndex = -1
-      this.isPreviewSelected = false
-      this.$nextTick(() => {
-        const input = this.$refs.modalSearchInput
-        if (input) {
-          input.focus()
-          const len = input.value.length
-          input.setSelectionRange(len, len)
-        }
-      })
-    },
     confirmSelection() {
-      if (this.showHistoryDropdown && this.selectedIndex !== -1) {
-        this.localQuery = this.filteredHistory[this.selectedIndex]
-        this.filterQuery = this.localQuery
-        this.showHistoryDropdown = false
-        this.isPreviewSelected = false
-        this.selectedIndex = -1
-        this.$nextTick(() => {
-          const input = this.$refs.modalSearchInput
-          if (input) {
-            input.focus()
-            const len = input.value.length
-            input.setSelectionRange(len, len)
-          }
-        })
-        return
-      }
-      this.isPreviewSelected = false
-      this.handleSearch()
+      this.confirmSearchSelection(this.handleSearch)
     },
-    closeDropdown() {
-      this.showHistoryDropdown = false
-      this.selectedIndex = -1
-      this.isPreviewSelected = false
-    },
-    handleFocus() {
-      this.showHistoryDropdown = true
-      this.selectedIndex = -1
-      this.originalQuery = this.localQuery
-      this.filterQuery = this.localQuery
-      this.isPreviewSelected = false
-    },
-    handleInput() {
-      this.showHistoryDropdown = true
-      this.selectedIndex = -1
-      this.originalQuery = this.localQuery
-      this.filterQuery = this.localQuery
-      this.isPreviewSelected = false
-    },
-    handleClickOutside(e) {
+    handleDocumentClick(e) {
       if (!this.show) return
-      if (this.$refs.searchContainer && !this.$refs.searchContainer.contains(e.target)) {
-        this.showHistoryDropdown = false
-        this.selectedIndex = -1
-        this.isPreviewSelected = false
-      }
+      this.handleSearchClickOutside(e)
     },
     async loadCategoriesAndGroups() {
       if (this.categories.length > 0) return
@@ -376,8 +219,8 @@ export default {
       }
     },
     async handleSearch() {
-      if (!this.localQuery.trim()) return
-      this.saveToHistory(this.localQuery.trim())
+      if (!this.searchQuery.trim()) return
+      this.saveToHistory(this.searchQuery.trim())
       this.showHistoryDropdown = false
       this.currentPage = 0
       await this.executeSearch()
@@ -386,7 +229,7 @@ export default {
       this.loading = true
       this.searched = true
       const startTime = performance.now()
-      this.lastSearchedQuery = this.localQuery.trim()
+      this.lastSearchedQuery = this.searchQuery.trim()
 
       try {
         const params = {
