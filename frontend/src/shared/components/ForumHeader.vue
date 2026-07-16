@@ -358,13 +358,35 @@
                   type="text" 
                   v-model="searchQuery" 
                   placeholder="Tìm kiếm..." 
-                  @keyup.enter="triggerSearch" 
-                  ref="headerSearchInput"
-                  class="search-input"
+                  @keydown.enter="confirmHeaderSearch" 
+                  @keydown.down.prevent="navigateSearchDropdown('down')"
+                  @keydown.up.prevent="navigateSearchDropdown('up')"
+                  @keydown.esc="closeSearchDropdown"
+                  @click="handleSearchFocus"
+                  @input="handleSearchInput"
+                  ref="searchInput"
+                  :class="['search-input', { 'preview-selected': isPreviewSelected }]"
                 />
-                <button class="btn-search-submit" @click="triggerSearch" aria-label="Tìm kiếm">
+                <button class="btn-search-submit" @click="confirmHeaderSearch" aria-label="Tìm kiếm">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
+              </div>
+
+              <!-- Dropdown lịch sử tìm kiếm -->
+              <div 
+                v-show="showHistoryDropdown && filteredHistory.length > 0" 
+                class="search-history-dropdown"
+                @mouseleave="resetSearchHover"
+              >
+                <div
+                  v-for="(keyword, idx) in filteredHistory"
+                  :key="keyword"
+                  :class="['history-item', { active: idx === selectedIndex }]"
+                  @click="selectSearchKeyword(keyword)"
+                  @mouseenter="hoverSearchKeyword(keyword, idx)"
+                >
+                  <span class="history-keyword">{{ keyword }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -419,9 +441,11 @@ import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
   name: 'ForumHeader',
+  mixins: [searchHistoryMixin],
   components: {
     PendingApprovalBanner,
     SearchModal,
@@ -454,7 +478,6 @@ export default {
       canScrollRight: false,
       showSearchDropdown: false,
       showSearchModal: false,
-      searchQuery: '',
       activeUserTab: 'account',
       showAvatarModal: false
     }
@@ -910,6 +933,13 @@ export default {
       const searchContainer = this.$refs.searchContainer
       if (searchContainer && !searchContainer.contains(e.target)) {
         this.showSearchDropdown = false
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
+      }
+      const headerSearchContainer = this.$refs.headerSearchContainer
+      if (headerSearchContainer && !headerSearchContainer.contains(e.target)) {
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
       }
     },
     
@@ -1035,18 +1065,29 @@ export default {
       this.showNotifDropdown = false
       this.showUserDropdown = false
       this.showMailDropdown = false
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
       if (this.showSearchDropdown) {
+        this.originalQuery = this.searchQuery
+        this.filterQuery = this.searchQuery
+        this.loadSearchHistory()
         this.$nextTick(() => {
-          if (this.$refs.headerSearchInput) {
-            this.$refs.headerSearchInput.focus()
+          if (this.$refs.searchInput) {
+            this.$refs.searchInput.focus()
           }
         })
       }
     },
     triggerSearch() {
       if (!this.searchQuery.trim()) return
+      this.saveToHistory(this.searchQuery.trim())
       this.showSearchDropdown = false
       this.showSearchModal = true
+      this.isPreviewSelected = false
+    },
+    confirmHeaderSearch() {
+      this.confirmSearchSelection(this.triggerSearch)
     }
   }
 }
@@ -1842,6 +1883,45 @@ export default {
   box-sizing: border-box;
 }
 
+/* Lịch sử tìm kiếm & Gợi ý từ khóa */
+.search-history-dropdown {
+  position: relative;
+  margin-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 0;
+  transition: background-color 0.15s, color 0.15s;
+  font-size: 0.9rem;
+  color: #475569;
+  text-align: left;
+}
+
+.history-item.active {
+  background-color: rgba(26, 80, 122, 0.08);
+  color: #1a507a;
+  font-weight: 500;
+}
+
+.history-keyword {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+
 .search-dropdown::before {
   content: '';
   position: absolute;
@@ -1869,6 +1949,11 @@ export default {
   background: transparent;
   color: #333;
   width: 100%;
+  transition: font-size 0.15s ease;
+}
+
+.search-input.preview-selected {
+  font-size: 0.74rem;
 }
 
 .btn-search-submit {
