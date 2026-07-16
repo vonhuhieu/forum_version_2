@@ -353,27 +353,33 @@
             
             <!-- Search Dropdown Popup -->
             <div class="search-dropdown" v-show="showSearchDropdown" @click.stop>
-              <div class="search-input-wrapper">
-                <input 
-                  type="text" 
-                  v-model="searchQuery" 
-                  placeholder="Tìm kiếm..." 
-                  @keydown.enter="confirmHeaderSearch" 
-                  @keydown.down.prevent="navigateSearchDropdown('down')"
-                  @keydown.up.prevent="navigateSearchDropdown('up')"
-                  @keydown.esc="closeSearchDropdown"
-                  @focus="handleSearchFocus"
-                  @blur="handleSearchInputBlur"
-                  @input="handleSearchInput"
-                  ref="searchInput"
-                  :class="['search-input', { 'preview-selected': isPreviewSelected }]"
-                  enterkeyhint="search"
-                  inputmode="search"
-                />
-                <button class="btn-search-submit" @click="confirmHeaderSearch" aria-label="Tìm kiếm">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </button>
-              </div>
+              <form @submit.prevent="confirmHeaderSearch" action="" style="width: 100%;">
+                <div class="search-input-wrapper">
+                  <input 
+                    type="search" 
+                    v-model="searchQuery" 
+                    name="search"
+                    placeholder="Tìm kiếm..." 
+                    autocomplete="on"
+                    autocorrect="on"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    @keydown.enter="confirmHeaderSearch" 
+                    @keydown.down.prevent="navigateSearchDropdown('down')"
+                    @keydown.up.prevent="navigateSearchDropdown('up')"
+                    @keydown.esc="closeSearchDropdown"
+                    @click="handleSearchFocus"
+                    @input="handleSearchInput"
+                    ref="searchInput"
+                    :class="['search-input', { 'preview-selected': isPreviewSelected }]"
+                    enterkeyhint="search"
+                    inputmode="search"
+                  />
+                  <button type="submit" class="btn-search-submit" aria-label="Tìm kiếm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </button>
+                </div>
+              </form>
 
               <!-- Dropdown lịch sử tìm kiếm (desktop only) -->
               <div 
@@ -428,24 +434,6 @@
   <PendingApprovalBanner v-if="isNonOfficial" />
   <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
   <AvatarUploadModal :show="showAvatarModal" :current-user="currentUser" @close="showAvatarModal = false" @avatar-updated="onAvatarUpdated" />
-
-  <!-- Mobile Keyboard Suggestion Bar: hiển ngay phía trên bàn phím nhờ visualViewport API -->
-  <Teleport to="body">
-    <div
-      v-if="showMobileSuggestions && mobileSuggestedKeywords.length > 0"
-      class="mobile-keyboard-suggestion-bar"
-      :style="{ bottom: keyboardOffset + 'px' }"
-    >
-      <div class="mobile-keyboard-suggestion-inner">
-        <span
-          v-for="keyword in mobileSuggestedKeywords"
-          :key="keyword"
-          class="mobile-keyboard-suggestion-chip"
-          @mousedown.prevent="selectMobileSuggestion(keyword)"
-        >{{ keyword }}</span>
-      </div>
-    </div>
-  </Teleport>
 </template>
 
 <script>
@@ -500,21 +488,12 @@ export default {
       showSearchDropdown: false,
       showSearchModal: false,
       activeUserTab: 'account',
-      showAvatarModal: false,
-      showMobileSuggestions: false,
-      keyboardOffset: 0
+      showAvatarModal: false
     }
   },
   computed: {
     isMobile() {
       return window.innerWidth < 768
-    },
-    mobileSuggestedKeywords() {
-      if (!this.searchQuery || !this.searchQuery.trim()) {
-        return this.searchHistory.slice(0, 6)
-      }
-      const q = this.searchQuery.trim().toLowerCase()
-      return this.searchHistory.filter(k => k.toLowerCase().includes(q))
     },
     activeMenus() {
       return this.menus.filter(menu => menu.active)
@@ -599,11 +578,6 @@ export default {
     this.$nextTick(() => {
       setTimeout(this.updateScrollArrows, 500)
     })
-
-    // visualViewport API: theo dõi chiều cao bàn phím ảo để định vị suggestion bar
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', this.onViewportResize)
-    }
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside)
@@ -619,18 +593,8 @@ export default {
     }
     window.removeEventListener('resize', this.updateScrollArrows)
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
-    if (window.visualViewport) {
-      window.visualViewport.removeEventListener('resize', this.onViewportResize)
-    }
   },
   methods: {
-    // Tính chi\u1ec1u cao b\u00e0n ph\u00edm \u1ea3o qua visualViewport API \u0111\u1ec3 offset suggestion bar
-    onViewportResize() {
-      if (!this.isMobile || !window.visualViewport) return
-      // Keyboard height = t\u1ed5ng chi\u1ec1u cao window - chi\u1ec1u cao visual viewport - offset
-      const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
-      this.keyboardOffset = Math.max(0, keyboardHeight)
-    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       if (this.currentUser && this.currentUser.username === username) {
@@ -1115,7 +1079,6 @@ export default {
       this.showUserDropdown = false
       this.showMailDropdown = false
       this.showHistoryDropdown = false
-      this.showMobileSuggestions = false
       this.selectedIndex = -1
       this.isPreviewSelected = false
       if (this.showSearchDropdown) {
@@ -1125,11 +1088,6 @@ export default {
         this.$nextTick(() => {
           if (this.$refs.searchInput) {
             this.$refs.searchInput.focus()
-            // Trên mobile browser, programmatic focus() KHÔNG bắn @focus event
-            // nên phải set showMobileSuggestions trực tiếp thay vì chờ event handler
-            if (this.isMobile) {
-              this.showMobileSuggestions = true
-            }
           }
         })
       }
@@ -1141,62 +1099,12 @@ export default {
       if (this.isMobile && this.$refs.searchInput) {
         this.$refs.searchInput.blur()
       }
-      this.showMobileSuggestions = false
       this.showSearchDropdown = false
       this.showSearchModal = true
       this.isPreviewSelected = false
     },
     confirmHeaderSearch() {
       this.confirmSearchSelection(this.triggerSearch)
-    },
-    // Override mixin's handleSearchFocus: tách mobile vs desktop
-    handleSearchFocus() {
-      this.selectedIndex = -1
-      this.originalQuery = this.searchQuery
-      this.filterQuery = this.searchQuery
-      this.isPreviewSelected = false
-      if (this.isMobile) {
-        this.showMobileSuggestions = true
-        this.showHistoryDropdown = false
-      } else {
-        this.showHistoryDropdown = true
-        this.showMobileSuggestions = false
-      }
-    },
-    // Override mixin's handleSearchInput: tách mobile vs desktop
-    handleSearchInput() {
-      this.selectedIndex = -1
-      this.originalQuery = this.searchQuery
-      this.filterQuery = this.searchQuery
-      this.isPreviewSelected = false
-      if (this.isMobile) {
-        this.showMobileSuggestions = true
-        this.showHistoryDropdown = false
-      } else {
-        this.showHistoryDropdown = true
-        this.showMobileSuggestions = false
-      }
-    },
-    // Ẩn thanh gợi ý mobile khi blur (delay để cho mousedown chip kịp fire)
-    handleSearchInputBlur() {
-      if (this.isMobile) {
-        setTimeout(() => {
-          this.showMobileSuggestions = false
-        }, 200)
-      }
-    },
-    // Chọn keyword từ thanh gợi ý mobile
-    selectMobileSuggestion(keyword) {
-      this.searchQuery = keyword
-      this.filterQuery = keyword
-      this.showMobileSuggestions = false
-      this.$nextTick(() => {
-        if (this.$refs.searchInput) {
-          this.$refs.searchInput.focus()
-          const len = this.$refs.searchInput.value.length
-          this.$refs.searchInput.setSelectionRange(len, len)
-        }
-      })
     }
   }
 }
@@ -2099,63 +2007,4 @@ export default {
   }
 }
 
-/* ========================================
-   Mobile Keyboard Suggestion Bar
-   Fixed phía trên bàn phím, offset tính bằng visualViewport API
-   CSS đặt ngoài scoped vì element được Teleport ra body
-======================================== */
-</style>
-
-<style>
-/* Global styles cho keyboard suggestion bar (Teleport ra body) */
-@media (max-width: 767px) {
-  .mobile-keyboard-suggestion-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0; /* bị override bởi :style binding */
-    z-index: 99999;
-    background: #2b2b2b;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 6px 10px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .mobile-keyboard-suggestion-inner {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    white-space: nowrap;
-    align-items: center;
-  }
-
-  .mobile-keyboard-suggestion-inner::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mobile-keyboard-suggestion-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 14px;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: #e8e8e8;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    transition: background-color 0.12s;
-  }
-
-  .mobile-keyboard-suggestion-chip:active {
-    background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-  }
-}
 </style>
