@@ -10,18 +10,42 @@
       <!-- Search Input Section -->
       <div class="search-modal-body">
         <div class="search-form-wrapper">
-          <div class="search-input-box">
-            <input
-              type="text"
-              v-model="localQuery"
-              placeholder="Nhập từ khóa cần tìm..."
-              @keyup.enter="handleSearch"
-              ref="modalSearchInput"
-              class="modal-search-input"
-            />
-            <button class="btn-modal-search" @click="handleSearch" :disabled="loading" aria-label="Tìm kiếm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </button>
+          <div class="search-input-container" ref="searchContainer">
+            <div class="search-input-box">
+              <input
+                type="text"
+                v-model="localQuery"
+                placeholder="Nhập từ khóa cần tìm..."
+                @keydown.enter="confirmSelection"
+                @keydown.down.prevent="navigateDropdown('down')"
+                @keydown.up.prevent="navigateDropdown('up')"
+                @keydown.esc="closeDropdown"
+                @click="handleFocus"
+                @input="handleInput"
+                ref="modalSearchInput"
+                :class="['modal-search-input', { 'preview-selected': isPreviewSelected }]"
+              />
+              <button class="btn-modal-search" @click="confirmSelection" :disabled="loading" aria-label="Tìm kiếm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </button>
+            </div>
+
+            <!-- Dropdown lịch sử tìm kiếm -->
+            <div 
+              v-show="showHistoryDropdown && filteredHistory.length > 0" 
+              class="search-history-dropdown"
+              @mouseleave="resetHover"
+            >
+              <div
+                v-for="(keyword, idx) in filteredHistory"
+                :key="keyword"
+                :class="['history-item', { active: idx === selectedIndex }]"
+                @click="selectKeyword(keyword)"
+                @mouseenter="hoverKeyword(keyword, idx)"
+              >
+                <span class="history-keyword">{{ keyword }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="search-filters">
@@ -131,7 +155,27 @@ export default {
       groups: [],
       loading: false,
       searched: false,
-      searchTimeSeconds: '0.000'
+      searchTimeSeconds: '0.000',
+      searchHistory: [],
+      showHistoryDropdown: false,
+      selectedIndex: -1,
+      originalQuery: '',
+      filterQuery: '',
+      isPreviewSelected: false
+    }
+  },
+  computed: {
+    filteredHistory() {
+      if (typeof this.filterQuery !== 'string') {
+        return this.searchHistory.slice(0, 10)
+      }
+      const q = this.filterQuery.trim().toLowerCase()
+      if (!q) {
+        return this.searchHistory.slice(0, 10)
+      }
+      return this.searchHistory
+        .filter(item => item.toLowerCase().startsWith(q))
+        .slice(0, 10)
     }
   },
   watch: {
@@ -142,7 +186,11 @@ export default {
         this.results = []
         this.searched = false
         this.currentPage = 0
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
+        this.isPreviewSelected = false
         this.loadCategoriesAndGroups()
+        this.loadSearchHistory()
         this.$nextTick(() => {
           if (this.$refs.modalSearchInput) {
             this.$refs.modalSearchInput.focus()
@@ -151,13 +199,168 @@ export default {
             this.handleSearch()
           }
         })
+
+        // Trì hoãn việc đăng ký sự kiện click outside để tránh bắt ngay sự kiện click mở modal đang bubble
+        setTimeout(() => {
+          document.addEventListener('click', this.handleClickOutside)
+        }, 0)
+      } else {
+        document.removeEventListener('click', this.handleClickOutside)
       }
     }
+  },
+  mounted() {
+    this.loadSearchHistory()
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
     close() {
       this.$emit('update:show', false)
       this.$emit('close')
+    },
+    loadSearchHistory() {
+      try {
+        const historyStr = localStorage.getItem('forum_search_history')
+        this.searchHistory = historyStr ? JSON.parse(historyStr) : []
+      } catch (e) {
+        console.error('Error loading search history:', e)
+        this.searchHistory = []
+      }
+    },
+    saveToHistory(query) {
+      if (!query || !query.trim()) return
+      const cleaned = query.trim()
+      let history = [...this.searchHistory]
+      history = history.filter(item => item.toLowerCase() !== cleaned.toLowerCase())
+      history.unshift(cleaned)
+      this.searchHistory = history
+      localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+    },
+    navigateDropdown(direction) {
+      if (!this.showHistoryDropdown || this.filteredHistory.length === 0) return
+      const len = this.filteredHistory.length
+      if (direction === 'down') {
+        if (this.selectedIndex === -1) {
+          this.originalQuery = this.localQuery
+        }
+        this.selectedIndex = (this.selectedIndex + 1) % (len + 1)
+        if (this.selectedIndex === len) {
+          this.selectedIndex = -1
+        }
+      } else if (direction === 'up') {
+        if (this.selectedIndex === -1) {
+          this.originalQuery = this.localQuery
+          this.selectedIndex = len - 1
+        } else {
+          this.selectedIndex--
+        }
+      }
+
+      if (this.selectedIndex !== -1) {
+        this.localQuery = this.filteredHistory[this.selectedIndex]
+        this.isPreviewSelected = true
+      } else {
+        this.localQuery = this.originalQuery
+        this.isPreviewSelected = false
+      }
+      this.scrollHistoryDropdown()
+    },
+    scrollHistoryDropdown() {
+      this.$nextTick(() => {
+        const dropdown = this.$refs.searchContainer?.querySelector('.search-history-dropdown')
+        if (!dropdown) return
+        const activeItem = dropdown.querySelector('.history-item.active')
+        if (!activeItem) return
+
+        const dropdownTop = dropdown.scrollTop
+        const dropdownBottom = dropdownTop + dropdown.clientHeight
+        const itemTop = activeItem.offsetTop
+        const itemBottom = itemTop + activeItem.clientHeight
+
+        if (itemTop < dropdownTop) {
+          dropdown.scrollTop = itemTop
+        } else if (itemBottom > dropdownBottom) {
+          dropdown.scrollTop = itemBottom - dropdown.clientHeight
+        }
+      })
+    },
+    hoverKeyword(keyword, idx) {
+      if (this.selectedIndex === -1) {
+        this.originalQuery = this.localQuery
+      }
+      this.selectedIndex = idx
+      this.localQuery = keyword
+      this.isPreviewSelected = true
+    },
+    resetHover() {
+      if (!this.showHistoryDropdown) return
+      this.selectedIndex = -1
+      this.localQuery = this.originalQuery
+      this.isPreviewSelected = false
+    },
+    selectKeyword(keyword) {
+      this.localQuery = keyword
+      this.filterQuery = keyword
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
+      this.$nextTick(() => {
+        const input = this.$refs.modalSearchInput
+        if (input) {
+          input.focus()
+          const len = input.value.length
+          input.setSelectionRange(len, len)
+        }
+      })
+    },
+    confirmSelection() {
+      if (this.showHistoryDropdown && this.selectedIndex !== -1) {
+        this.localQuery = this.filteredHistory[this.selectedIndex]
+        this.filterQuery = this.localQuery
+        this.showHistoryDropdown = false
+        this.isPreviewSelected = false
+        this.selectedIndex = -1
+        this.$nextTick(() => {
+          const input = this.$refs.modalSearchInput
+          if (input) {
+            input.focus()
+            const len = input.value.length
+            input.setSelectionRange(len, len)
+          }
+        })
+        return
+      }
+      this.isPreviewSelected = false
+      this.handleSearch()
+    },
+    closeDropdown() {
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
+    },
+    handleFocus() {
+      this.showHistoryDropdown = true
+      this.selectedIndex = -1
+      this.originalQuery = this.localQuery
+      this.filterQuery = this.localQuery
+      this.isPreviewSelected = false
+    },
+    handleInput() {
+      this.showHistoryDropdown = true
+      this.selectedIndex = -1
+      this.originalQuery = this.localQuery
+      this.filterQuery = this.localQuery
+      this.isPreviewSelected = false
+    },
+    handleClickOutside(e) {
+      if (!this.show) return
+      if (this.$refs.searchContainer && !this.$refs.searchContainer.contains(e.target)) {
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
+        this.isPreviewSelected = false
+      }
     },
     async loadCategoriesAndGroups() {
       if (this.categories.length > 0) return
@@ -174,6 +377,8 @@ export default {
     },
     async handleSearch() {
       if (!this.localQuery.trim()) return
+      this.saveToHistory(this.localQuery.trim())
+      this.showHistoryDropdown = false
       this.currentPage = 0
       await this.executeSearch()
     },
@@ -418,6 +623,11 @@ export default {
   padding: 12px 16px;
   font-size: 1rem;
   font-family: inherit;
+  transition: font-size 0.15s ease;
+}
+
+.modal-search-input.preview-selected {
+  font-size: 0.82rem;
 }
 
 .btn-modal-search {
@@ -435,6 +645,65 @@ export default {
 
 .btn-modal-search:hover {
   background: #236395;
+}
+
+/* Lịch sử tìm kiếm & Gợi ý từ khóa */
+.search-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-history-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
+  z-index: 999;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: historySlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 6px 0;
+}
+
+@keyframes historySlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  font-size: 0.95rem;
+  color: #334155;
+  text-align: left;
+}
+
+.history-item.active {
+  background-color: rgba(26, 80, 122, 0.08);
+  color: #1a507a;
+  font-weight: 500;
+}
+
+.history-keyword {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 12px;
 }
 
 .search-filters {

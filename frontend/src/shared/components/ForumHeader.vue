@@ -352,19 +352,41 @@
             </div>
             
             <!-- Search Dropdown Popup -->
-            <div class="search-dropdown" v-show="showSearchDropdown" @click.stop>
+            <div class="search-dropdown" v-show="showSearchDropdown" @click.stop ref="headerSearchContainer">
               <div class="search-input-wrapper">
                 <input 
                   type="text" 
                   v-model="searchQuery" 
                   placeholder="Tìm kiếm..." 
-                  @keyup.enter="triggerSearch" 
+                  @keydown.enter="confirmHeaderSearch" 
+                  @keydown.down.prevent="navigateHeaderDropdown('down')"
+                  @keydown.up.prevent="navigateHeaderDropdown('up')"
+                  @keydown.esc="closeHeaderDropdown"
+                  @click="handleHeaderFocus"
+                  @input="handleHeaderInput"
                   ref="headerSearchInput"
-                  class="search-input"
+                  :class="['search-input', { 'preview-selected': isPreviewSelected }]"
                 />
-                <button class="btn-search-submit" @click="triggerSearch" aria-label="Tìm kiếm">
+                <button class="btn-search-submit" @click="confirmHeaderSearch" aria-label="Tìm kiếm">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
+              </div>
+
+              <!-- Dropdown lịch sử tìm kiếm -->
+              <div 
+                v-show="showHistoryDropdown && filteredHistory.length > 0" 
+                class="search-history-dropdown"
+                @mouseleave="resetHover"
+              >
+                <div
+                  v-for="(keyword, idx) in filteredHistory"
+                  :key="keyword"
+                  :class="['history-item', { active: idx === selectedIndex }]"
+                  @click="selectKeyword(keyword)"
+                  @mouseenter="hoverKeyword(keyword, idx)"
+                >
+                  <span class="history-keyword">{{ keyword }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -455,6 +477,12 @@ export default {
       showSearchDropdown: false,
       showSearchModal: false,
       searchQuery: '',
+      searchHistory: [],
+      showHistoryDropdown: false,
+      selectedIndex: -1,
+      originalQuery: '',
+      filterQuery: '',
+      isPreviewSelected: false,
       activeUserTab: 'account',
       showAvatarModal: false
     }
@@ -462,6 +490,18 @@ export default {
   computed: {
     activeMenus() {
       return this.menus.filter(menu => menu.active)
+    },
+    filteredHistory() {
+      if (typeof this.filterQuery !== 'string') {
+        return this.searchHistory.slice(0, 10)
+      }
+      const q = this.filterQuery.trim().toLowerCase()
+      if (!q) {
+        return this.searchHistory.slice(0, 10)
+      }
+      return this.searchHistory
+        .filter(item => item.toLowerCase().startsWith(q))
+        .slice(0, 10)
     },
     isNonOfficial() {
       return isNonOfficialUser()
@@ -509,6 +549,7 @@ export default {
   },
   async mounted() {
     this.checkAuth()
+    this.loadSearchHistory()
     
     if (this.isLoggedIn && this.currentUser) {
       try {
@@ -910,6 +951,13 @@ export default {
       const searchContainer = this.$refs.searchContainer
       if (searchContainer && !searchContainer.contains(e.target)) {
         this.showSearchDropdown = false
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
+      }
+      const headerSearchContainer = this.$refs.headerSearchContainer
+      if (headerSearchContainer && !headerSearchContainer.contains(e.target)) {
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
       }
     },
     
@@ -1035,7 +1083,13 @@ export default {
       this.showNotifDropdown = false
       this.showUserDropdown = false
       this.showMailDropdown = false
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
       if (this.showSearchDropdown) {
+        this.originalQuery = this.searchQuery
+        this.filterQuery = this.searchQuery
+        this.loadSearchHistory()
         this.$nextTick(() => {
           if (this.$refs.headerSearchInput) {
             this.$refs.headerSearchInput.focus()
@@ -1045,8 +1099,144 @@ export default {
     },
     triggerSearch() {
       if (!this.searchQuery.trim()) return
+      this.saveToHistory(this.searchQuery.trim())
       this.showSearchDropdown = false
       this.showSearchModal = true
+      this.isPreviewSelected = false
+    },
+    loadSearchHistory() {
+      try {
+        const historyStr = localStorage.getItem('forum_search_history')
+        this.searchHistory = historyStr ? JSON.parse(historyStr) : []
+      } catch (e) {
+        console.error('Error loading search history:', e)
+        this.searchHistory = []
+      }
+    },
+    saveToHistory(query) {
+      if (!query || !query.trim()) return
+      const cleaned = query.trim()
+      let history = [...this.searchHistory]
+      history = history.filter(item => item.toLowerCase() !== cleaned.toLowerCase())
+      history.unshift(cleaned)
+      this.searchHistory = history
+      localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+    },
+    navigateHeaderDropdown(direction) {
+      if (!this.showHistoryDropdown || this.filteredHistory.length === 0) return
+      const len = this.filteredHistory.length
+      if (direction === 'down') {
+        if (this.selectedIndex === -1) {
+          this.originalQuery = this.searchQuery
+        }
+        this.selectedIndex = (this.selectedIndex + 1) % (len + 1)
+        if (this.selectedIndex === len) {
+          this.selectedIndex = -1
+        }
+      } else if (direction === 'up') {
+        if (this.selectedIndex === -1) {
+          this.originalQuery = this.searchQuery
+          this.selectedIndex = len - 1
+        } else {
+          this.selectedIndex--
+        }
+      }
+
+      if (this.selectedIndex !== -1) {
+        this.searchQuery = this.filteredHistory[this.selectedIndex]
+        this.isPreviewSelected = true
+      } else {
+        this.searchQuery = this.originalQuery
+        this.isPreviewSelected = false
+      }
+      this.scrollHistoryDropdown()
+    },
+    scrollHistoryDropdown() {
+      this.$nextTick(() => {
+        const dropdown = this.$refs.headerSearchContainer?.querySelector('.search-history-dropdown')
+        if (!dropdown) return
+        const activeItem = dropdown.querySelector('.history-item.active')
+        if (!activeItem) return
+
+        const dropdownTop = dropdown.scrollTop
+        const dropdownBottom = dropdownTop + dropdown.clientHeight
+        const itemTop = activeItem.offsetTop
+        const itemBottom = itemTop + activeItem.clientHeight
+
+        if (itemTop < dropdownTop) {
+          dropdown.scrollTop = itemTop
+        } else if (itemBottom > dropdownBottom) {
+          dropdown.scrollTop = itemBottom - dropdown.clientHeight
+        }
+      })
+    },
+    hoverKeyword(keyword, idx) {
+      if (this.selectedIndex === -1) {
+        this.originalQuery = this.searchQuery
+      }
+      this.selectedIndex = idx
+      this.searchQuery = keyword
+      this.isPreviewSelected = true
+    },
+    resetHover() {
+      if (!this.showHistoryDropdown) return
+      this.selectedIndex = -1
+      this.searchQuery = this.originalQuery
+      this.isPreviewSelected = false
+    },
+    selectKeyword(keyword) {
+      this.searchQuery = keyword
+      this.filterQuery = keyword
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
+      this.$nextTick(() => {
+        const input = this.$refs.headerSearchInput
+        if (input) {
+          input.focus()
+          const len = input.value.length
+          input.setSelectionRange(len, len)
+        }
+      })
+    },
+    confirmHeaderSearch() {
+      if (this.showHistoryDropdown && this.selectedIndex !== -1) {
+        this.searchQuery = this.filteredHistory[this.selectedIndex]
+        this.filterQuery = this.searchQuery
+        this.showHistoryDropdown = false
+        this.isPreviewSelected = false
+        this.selectedIndex = -1
+        this.$nextTick(() => {
+          const input = this.$refs.headerSearchInput
+          if (input) {
+            input.focus()
+            const len = input.value.length
+            input.setSelectionRange(len, len)
+          }
+        })
+        return
+      }
+      this.isPreviewSelected = false
+      this.triggerSearch()
+    },
+    closeHeaderDropdown() {
+      this.showHistoryDropdown = false
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
+    },
+    handleHeaderFocus() {
+      this.showHistoryDropdown = true
+      this.selectedIndex = -1
+      this.originalQuery = this.searchQuery
+      this.filterQuery = this.searchQuery
+      this.isPreviewSelected = false
+    },
+    handleHeaderInput() {
+      this.showHistoryDropdown = true
+      this.selectedIndex = -1
+      this.originalQuery = this.searchQuery
+      this.filterQuery = this.searchQuery
+      this.isPreviewSelected = false
     }
   }
 }
@@ -1842,6 +2032,45 @@ export default {
   box-sizing: border-box;
 }
 
+/* Lịch sử tìm kiếm & Gợi ý từ khóa */
+.search-history-dropdown {
+  position: relative;
+  margin-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 0;
+  transition: background-color 0.15s, color 0.15s;
+  font-size: 0.9rem;
+  color: #475569;
+  text-align: left;
+}
+
+.history-item.active {
+  background-color: rgba(26, 80, 122, 0.08);
+  color: #1a507a;
+  font-weight: 500;
+}
+
+.history-keyword {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+
 .search-dropdown::before {
   content: '';
   position: absolute;
@@ -1869,6 +2098,11 @@ export default {
   background: transparent;
   color: #333;
   width: 100%;
+  transition: font-size 0.15s ease;
+}
+
+.search-input.preview-selected {
+  font-size: 0.74rem;
 }
 
 .btn-search-submit {
