@@ -21,8 +21,8 @@
         <!-- Block 3: Chuyên mục con (Tách riêng thành 1 Card độc lập và nằm dưới Tiêu đề chuyên mục) -->
         <div v-if="category && category.subCategories && category.subCategories.length > 0" class="card" style="margin-bottom: 2rem; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
           <div class="sub-categories-block" style="border-bottom: none;">
-            <div class="sub-categories-list">
-              <div v-for="sub in category.subCategories" :key="sub.id" class="category-row">
+             <div class="sub-categories-list">
+              <div v-for="sub in category.subCategories" :key="sub.id" class="category-row home-category-row min-height-100-on-pc" @click="handleCategoryRowClick($event, sub)">
                 <div class="category-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </div>
@@ -429,9 +429,11 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
   name: 'CategoryView',
+  mixins: [categoryNavigationMixin],
   components: {
     Breadcrumb,
     ForumPagination,
@@ -1854,6 +1856,15 @@ export default {
   margin-left: 4px;
   display: inline-block;
   opacity: 0.8;
+}
+
+.sub-categories-list .category-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sub-categories-list .category-row:hover {
+  background-color: #f8f9fa;
 }
 
 </style>

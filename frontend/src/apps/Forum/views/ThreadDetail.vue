@@ -313,7 +313,7 @@
       <button class="btn-close-lightbox" @click="closeLightbox">&times;</button>
       <div class="lightbox-main">
         <div class="lightbox-image-wrapper">
-          <img :src="activeImageUrl" class="main-lightbox-img" @click.stop />
+          <img :src="activeImageUrl" class="main-lightbox-img lightbox-img-custom" @click.stop />
         </div>
       </div>
     </div>
