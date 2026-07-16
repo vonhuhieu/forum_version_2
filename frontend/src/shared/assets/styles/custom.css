@@ -102,3 +102,13 @@
         font-size: 9px !important;
     }
 }
+
+@media (min-width: 768px) {
+    .lightbox-img-custom {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: calc(100vh - 100px) !important;
+        object-fit: contain !important;
+    }
+}

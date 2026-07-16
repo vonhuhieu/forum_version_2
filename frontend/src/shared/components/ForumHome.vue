@@ -293,10 +293,12 @@ import categoryService from '@/apps/Forum/services/category.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
   name: 'ForumHome',
   emits: ['loaded'],
+  mixins: [categoryNavigationMixin],
   props: {
     stats: {
       type: Object,
@@ -454,27 +456,6 @@ export default {
         route.query = { postId: thread.lastPostId }
       }
       this.$router.push(route)
-    },
-    handleCategoryRowClick(event, cat) {
-      if (event.target.closest('a, button, .last-thread-avatar, .sub-categories-dropdown, [role="button"]')) {
-        return
-      }
-      const lastThreadBlock = event.target.closest('.category-last-thread')
-      if (lastThreadBlock) {
-        const thread = this.lastThreadByCat[cat.id]
-        if (thread) {
-          const route = {
-            name: 'ThreadDetail',
-            params: { id: thread.id }
-          }
-          if (thread.lastPostId) {
-            route.query = { postId: thread.lastPostId }
-          }
-          this.$router.push(route)
-        }
-      } else {
-        this.$router.push({ name: 'CategoryDetail', params: { id: cat.id } })
-      }
     }
   }
 }
