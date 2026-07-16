@@ -1105,8 +1105,12 @@ export default {
         this.loadSearchHistory()
         this.$nextTick(() => {
           if (this.$refs.searchInput) {
-            // focus() sẽ trigger @focus → handleSearchFocus tự động
             this.$refs.searchInput.focus()
+            // Trên mobile browser, programmatic focus() KHÔNG bắn @focus event
+            // nên phải set showMobileSuggestions trực tiếp thay vì chờ event handler
+            if (this.isMobile) {
+              this.showMobileSuggestions = true
+            }
           }
         })
       }
