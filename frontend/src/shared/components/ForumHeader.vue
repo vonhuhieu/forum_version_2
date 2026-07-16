@@ -362,10 +362,13 @@
                   @keydown.down.prevent="navigateSearchDropdown('down')"
                   @keydown.up.prevent="navigateSearchDropdown('up')"
                   @keydown.esc="closeSearchDropdown"
-                  @click="handleSearchFocus"
+                  @focus="handleSearchFocus"
+                  @blur="handleSearchInputBlur"
                   @input="handleSearchInput"
                   ref="searchInput"
                   :class="['search-input', { 'preview-selected': isPreviewSelected }]"
+                  enterkeyhint="search"
+                  inputmode="search"
                 />
                 <button class="btn-search-submit" @click="confirmHeaderSearch" aria-label="Tìm kiếm">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -425,6 +428,21 @@
   <PendingApprovalBanner v-if="isNonOfficial" />
   <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
   <AvatarUploadModal :show="showAvatarModal" :current-user="currentUser" @close="showAvatarModal = false" @avatar-updated="onAvatarUpdated" />
+
+  <!-- Mobile Search Suggestion Bar -->
+  <div
+    v-if="showMobileSuggestions && mobileSuggestedKeywords.length > 0"
+    class="mobile-search-suggestions"
+  >
+    <div class="mobile-suggestions-inner">
+      <span
+        v-for="keyword in mobileSuggestedKeywords"
+        :key="keyword"
+        class="mobile-suggestion-chip"
+        @mousedown.prevent="selectMobileSuggestion(keyword)"
+      >{{ keyword }}</span>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -479,10 +497,21 @@ export default {
       showSearchDropdown: false,
       showSearchModal: false,
       activeUserTab: 'account',
-      showAvatarModal: false
+      showAvatarModal: false,
+      showMobileSuggestions: false
     }
   },
   computed: {
+    isMobile() {
+      return window.innerWidth < 768
+    },
+    mobileSuggestedKeywords() {
+      if (!this.searchQuery || !this.searchQuery.trim()) {
+        return this.searchHistory.slice(0, 6)
+      }
+      const q = this.searchQuery.trim().toLowerCase()
+      return this.searchHistory.filter(k => k.toLowerCase().includes(q))
+    },
     activeMenus() {
       return this.menus.filter(menu => menu.active)
     },
@@ -934,6 +963,7 @@ export default {
       if (searchContainer && !searchContainer.contains(e.target)) {
         this.showSearchDropdown = false
         this.showHistoryDropdown = false
+        this.showMobileSuggestions = false
         this.selectedIndex = -1
       }
       const headerSearchContainer = this.$refs.headerSearchContainer
@@ -1066,6 +1096,7 @@ export default {
       this.showUserDropdown = false
       this.showMailDropdown = false
       this.showHistoryDropdown = false
+      this.showMobileSuggestions = false
       this.selectedIndex = -1
       this.isPreviewSelected = false
       if (this.showSearchDropdown) {
@@ -1074,6 +1105,7 @@ export default {
         this.loadSearchHistory()
         this.$nextTick(() => {
           if (this.$refs.searchInput) {
+            // focus() sẽ trigger @focus → handleSearchFocus tự động
             this.$refs.searchInput.focus()
           }
         })
@@ -1082,12 +1114,66 @@ export default {
     triggerSearch() {
       if (!this.searchQuery.trim()) return
       this.saveToHistory(this.searchQuery.trim())
+      // Chỉ blur trên mobile để đóng bàn phím ảo
+      if (this.isMobile && this.$refs.searchInput) {
+        this.$refs.searchInput.blur()
+      }
+      this.showMobileSuggestions = false
       this.showSearchDropdown = false
       this.showSearchModal = true
       this.isPreviewSelected = false
     },
     confirmHeaderSearch() {
       this.confirmSearchSelection(this.triggerSearch)
+    },
+    // Override mixin's handleSearchFocus: tách mobile vs desktop
+    handleSearchFocus() {
+      this.selectedIndex = -1
+      this.originalQuery = this.searchQuery
+      this.filterQuery = this.searchQuery
+      this.isPreviewSelected = false
+      if (this.isMobile) {
+        this.showMobileSuggestions = true
+        this.showHistoryDropdown = false
+      } else {
+        this.showHistoryDropdown = true
+        this.showMobileSuggestions = false
+      }
+    },
+    // Override mixin's handleSearchInput: tách mobile vs desktop
+    handleSearchInput() {
+      this.selectedIndex = -1
+      this.originalQuery = this.searchQuery
+      this.filterQuery = this.searchQuery
+      this.isPreviewSelected = false
+      if (this.isMobile) {
+        this.showMobileSuggestions = true
+        this.showHistoryDropdown = false
+      } else {
+        this.showHistoryDropdown = true
+        this.showMobileSuggestions = false
+      }
+    },
+    // Ẩn thanh gợi ý mobile khi blur (delay để cho mousedown chip kịp fire)
+    handleSearchInputBlur() {
+      if (this.isMobile) {
+        setTimeout(() => {
+          this.showMobileSuggestions = false
+        }, 200)
+      }
+    },
+    // Chọn keyword từ thanh gợi ý mobile
+    selectMobileSuggestion(keyword) {
+      this.searchQuery = keyword
+      this.filterQuery = keyword
+      this.showMobileSuggestions = false
+      this.$nextTick(() => {
+        if (this.$refs.searchInput) {
+          this.$refs.searchInput.focus()
+          const len = this.$refs.searchInput.value.length
+          this.$refs.searchInput.setSelectionRange(len, len)
+        }
+      })
     }
   }
 }
@@ -1983,6 +2069,85 @@ export default {
   }
   .search-dropdown::before {
     right: 20px !important;
+  }
+  /* Ẩn dropdown lịch sử kiểu desktop trên mobile */
+  .search-history-dropdown {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   Mobile Search Suggestion Bar
+   Chỉ hiển thị trên mobile (≤ 768px)
+======================================== */
+.mobile-search-suggestions {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-search-suggestions {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.10);
+    z-index: 99999;
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    animation: suggestionSlideUp 0.18s ease-out;
+  }
+
+  @keyframes suggestionSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-suggestions-inner {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap;
+    align-items: center;
+    padding: 2px 0;
+  }
+
+  .mobile-suggestions-inner::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 16px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    color: #334155;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .mobile-suggestion-chip:active {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
   }
 }
 </style>
