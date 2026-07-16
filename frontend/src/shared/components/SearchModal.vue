@@ -20,10 +20,12 @@
                 @keydown.down.prevent="navigateSearchDropdown('down')"
                 @keydown.up.prevent="navigateSearchDropdown('up')"
                 @keydown.esc="closeSearchDropdown"
-                @click="handleSearchFocus"
+                @focus="handleSearchFocus"
                 @input="handleSearchInput"
                 ref="searchInput"
                 :class="['modal-search-input', { 'preview-selected': isPreviewSelected }]"
+                enterkeyhint="search"
+                inputmode="search"
               />
               <button class="btn-modal-search" @click="confirmSelection" :disabled="loading" aria-label="Tìm kiếm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -159,6 +161,11 @@ export default {
       searchTimeSeconds: '0.000'
     }
   },
+  computed: {
+    isMobile() {
+      return typeof window !== 'undefined' && window.innerWidth < 768
+    }
+  },
   watch: {
     show(newVal) {
       if (newVal) {
@@ -223,6 +230,10 @@ export default {
       this.saveToHistory(this.searchQuery.trim())
       this.showHistoryDropdown = false
       this.currentPage = 0
+      // Chỉ blur trên mobile để đóng bàn phím ảo sau khi tìm kiếm
+      if (this.isMobile && this.$refs.searchInput) {
+        this.$refs.searchInput.blur()
+      }
       await this.executeSearch()
     },
     async executeSearch() {
