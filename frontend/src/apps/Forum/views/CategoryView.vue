@@ -22,7 +22,7 @@
         <div v-if="category && category.subCategories && category.subCategories.length > 0" class="card" style="margin-bottom: 2rem; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
           <div class="sub-categories-block" style="border-bottom: none;">
             <div class="sub-categories-list">
-              <div v-for="sub in category.subCategories" :key="sub.id" class="category-row">
+              <div v-for="sub in category.subCategories" :key="sub.id" class="category-row min-height-100-on-pc">
                 <div class="category-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </div>
