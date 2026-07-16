@@ -10,18 +10,42 @@
       <!-- Search Input Section -->
       <div class="search-modal-body">
         <div class="search-form-wrapper">
-          <div class="search-input-box">
-            <input
-              type="text"
-              v-model="localQuery"
-              placeholder="Nhập từ khóa cần tìm..."
-              @keyup.enter="handleSearch"
-              ref="modalSearchInput"
-              class="modal-search-input"
-            />
-            <button class="btn-modal-search" @click="handleSearch" :disabled="loading" aria-label="Tìm kiếm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </button>
+          <div class="search-input-container" ref="searchContainer">
+            <div class="search-input-box">
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Nhập từ khóa cần tìm..."
+                @keydown.enter="confirmSelection"
+                @keydown.down.prevent="navigateSearchDropdown('down')"
+                @keydown.up.prevent="navigateSearchDropdown('up')"
+                @keydown.esc="closeSearchDropdown"
+                @click="handleSearchFocus"
+                @input="handleSearchInput"
+                ref="searchInput"
+                :class="['modal-search-input', { 'preview-selected': isPreviewSelected }]"
+              />
+              <button class="btn-modal-search" @click="confirmSelection" :disabled="loading" aria-label="Tìm kiếm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </button>
+            </div>
+
+            <!-- Dropdown lịch sử tìm kiếm -->
+            <div 
+              v-show="showHistoryDropdown && filteredHistory.length > 0" 
+              class="search-history-dropdown"
+              @mouseleave="resetSearchHover"
+            >
+              <div
+                v-for="(keyword, idx) in filteredHistory"
+                :key="keyword"
+                :class="['history-item', { active: idx === selectedIndex }]"
+                @click="selectSearchKeyword(keyword)"
+                @mouseenter="hoverSearchKeyword(keyword, idx)"
+              >
+                <span class="history-keyword">{{ keyword }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="search-filters">
@@ -99,9 +123,11 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
+import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
   name: 'SearchModal',
+  mixins: [searchHistoryMixin],
   components: {
     Breadcrumb,
     ForumPagination,
@@ -119,7 +145,6 @@ export default {
   },
   data() {
     return {
-      localQuery: '',
       lastSearchedQuery: '',
       sortBy: 'relevance',
       currentPage: 0,
@@ -137,27 +162,48 @@ export default {
   watch: {
     show(newVal) {
       if (newVal) {
-        this.localQuery = this.initialQuery
+        this.searchQuery = this.initialQuery
         this.lastSearchedQuery = ''
         this.results = []
         this.searched = false
         this.currentPage = 0
+        this.showHistoryDropdown = false
+        this.selectedIndex = -1
+        this.isPreviewSelected = false
         this.loadCategoriesAndGroups()
+        this.loadSearchHistory()
         this.$nextTick(() => {
-          if (this.$refs.modalSearchInput) {
-            this.$refs.modalSearchInput.focus()
+          if (this.$refs.searchInput) {
+            this.$refs.searchInput.focus()
           }
-          if (this.localQuery.trim()) {
+          if (this.searchQuery.trim()) {
             this.handleSearch()
           }
         })
+
+        // Trì hoãn việc đăng ký sự kiện click outside để tránh bắt ngay sự kiện click mở modal đang bubble
+        setTimeout(() => {
+          document.addEventListener('click', this.handleDocumentClick)
+        }, 0)
+      } else {
+        document.removeEventListener('click', this.handleDocumentClick)
       }
     }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
     close() {
       this.$emit('update:show', false)
       this.$emit('close')
+    },
+    confirmSelection() {
+      this.confirmSearchSelection(this.handleSearch)
+    },
+    handleDocumentClick(e) {
+      if (!this.show) return
+      this.handleSearchClickOutside(e)
     },
     async loadCategoriesAndGroups() {
       if (this.categories.length > 0) return
@@ -173,7 +219,9 @@ export default {
       }
     },
     async handleSearch() {
-      if (!this.localQuery.trim()) return
+      if (!this.searchQuery.trim()) return
+      this.saveToHistory(this.searchQuery.trim())
+      this.showHistoryDropdown = false
       this.currentPage = 0
       await this.executeSearch()
     },
@@ -181,7 +229,7 @@ export default {
       this.loading = true
       this.searched = true
       const startTime = performance.now()
-      this.lastSearchedQuery = this.localQuery.trim()
+      this.lastSearchedQuery = this.searchQuery.trim()
 
       try {
         const params = {
@@ -418,6 +466,11 @@ export default {
   padding: 12px 16px;
   font-size: 1rem;
   font-family: inherit;
+  transition: font-size 0.15s ease;
+}
+
+.modal-search-input.preview-selected {
+  font-size: 0.82rem;
 }
 
 .btn-modal-search {
@@ -435,6 +488,65 @@ export default {
 
 .btn-modal-search:hover {
   background: #236395;
+}
+
+/* Lịch sử tìm kiếm & Gợi ý từ khóa */
+.search-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-history-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
+  z-index: 999;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: historySlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 6px 0;
+}
+
+@keyframes historySlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  font-size: 0.95rem;
+  color: #334155;
+  text-align: left;
+}
+
+.history-item.active {
+  background-color: rgba(26, 80, 122, 0.08);
+  color: #1a507a;
+  font-weight: 500;
+}
+
+.history-keyword {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 12px;
 }
 
 .search-filters {
