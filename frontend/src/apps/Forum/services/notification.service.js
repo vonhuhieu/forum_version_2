@@ -16,6 +16,10 @@ class NotificationService {
   markAsRead(id) {
     return api.put(`/notifications/${id}/read`)
   }
+
+  clearAll() {
+    return api.delete('/notifications/clear-all')
+  }
 }
 
 export default new NotificationService()

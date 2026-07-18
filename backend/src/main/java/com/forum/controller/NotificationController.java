@@ -35,4 +35,9 @@ public class NotificationController {
     public ResponseEntity<ResponseDTO<Void>> markAllRead() {
         return ResponseEntity.ok(notificationService.markAllAsRead());
     }
+
+    @DeleteMapping("/clear-all")
+    public ResponseEntity<ResponseDTO<Void>> clearAll() {
+        return ResponseEntity.ok(notificationService.clearAll());
+    }
 }

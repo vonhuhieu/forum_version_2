@@ -280,7 +280,10 @@
                        <button class="mail-tab-btn" :class="{ 'active': activeNotifTab === 'all' }" @click="activeNotifTab = 'all'">Tất cả</button>
                        <button class="mail-tab-btn" :class="{ 'active': activeNotifTab === 'unread' }" @click="activeNotifTab = 'unread'">Chưa đọc</button>
                     </div>
-                    <button class="btn-mark-mail-read-header" @click.stop="markAllRead">Đánh dấu đã xem</button>
+                    <div class="mail-tabs-actions">
+                      <button class="btn-mark-all-read" @click.stop="markAllRead">Đánh dấu đã xem</button>
+                      <button class="btn-mark-all-read btn-clear-mail-header" @click.stop="clearAllNotifications">Xóa</button>
+                    </div>
                  </div>
                  
                  <div class="notif-list" v-if="paginatedNotifications.length > 0">
@@ -1041,6 +1044,16 @@ export default {
         this.notifications.forEach(n => n.isRead = true)
       } catch (e) {
         console.error(e)
+      }
+    },
+    async clearAllNotifications() {
+      try {
+        await notificationService.clearAll()
+        this.notifications = []
+        this.unreadCount = 0
+        alertSuccess('Đã xóa toàn bộ thông báo.')
+      } catch (e) {
+        console.error('Lỗi khi xóa toàn bộ thông báo:', e)
       }
     },
     

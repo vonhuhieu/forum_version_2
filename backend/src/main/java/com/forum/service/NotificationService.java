@@ -165,6 +165,12 @@ public class NotificationService {
         return ResponseDTO.success(null);
     }
 
+    public ResponseDTO<Void> clearAll() {
+        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        notificationRepository.deleteAllNonConversationNotificationsForUser(username);
+        return ResponseDTO.success(null);
+    }
+
     @Async
     @Transactional
     public void sendMentionNotification(User actor, User recipient, Thread thread, Post post) {
