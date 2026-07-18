@@ -322,10 +322,14 @@ export default {
   },
   computed: {
     breadcrumbItems() {
-      return [
+      const items = [
         { title: 'Trang chủ', to: { name: 'Home' } },
-        { title: 'Đối thoại' }
+        { title: 'Đối thoại', to: { name: 'ConversationList' } }
       ]
+      if (this.conversation && this.conversation.title) {
+        items.push({ title: this.conversation.title })
+      }
+      return items
     },
     participantListString() {
       if (!this.conversation || !this.conversation.participants) return ''

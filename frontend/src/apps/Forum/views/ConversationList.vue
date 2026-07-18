@@ -27,7 +27,7 @@
 
           <!-- Danh sách item đối thoại -->
           <div class="thread-list">
-            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center min-height-100-on-pc">
+            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center min-height-100-on-pc" @click="goToConversation($event, convo)">
               
               <!-- Block trái (Avatar) -->
               <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
@@ -44,11 +44,11 @@
               <div class="thread-main">
                 <div class="thread-title">
                   <router-link 
-                    :to="{ name: 'ConversationDetail', params: { id: convo.id } }"
+                    :to="convo.lastMessageId ? { name: 'ConversationDetail', params: { id: convo.id }, query: { messageId: convo.lastMessageId } } : { name: 'ConversationDetail', params: { id: convo.id } }"
                     :style="{ fontWeight: !convo.isRead ? 'bold' : 'normal' }"
                   >
-                    <span v-if="!convo.isRead" class="unread-dot"></span>
                     {{ convo.title }}
+                    <span v-if="!convo.isRead" class="unread-dot"></span>
                   </router-link>
                 </div>
                 
@@ -260,6 +260,19 @@ export default {
       if (totalPages === 3) return [2, 3];
       
       return [totalPages - 2, totalPages - 1, totalPages];
+    },
+    goToConversation(event, convo) {
+      if (event.target.closest('a, button, .thread-avatar, .last-post-avatar, [role="button"]')) {
+        return
+      }
+      const route = {
+        name: 'ConversationDetail',
+        params: { id: convo.id }
+      }
+      if (convo.lastMessageId) {
+        route.query = { messageId: convo.lastMessageId }
+      }
+      this.$router.push(route)
     }
   }
 }
@@ -297,7 +310,7 @@ export default {
   border-radius: 50%;
   background-color: #3498db;
   display: inline-block;
-  margin-right: 8px;
+  margin-left: 8px;
   flex-shrink: 0;
 }
 
