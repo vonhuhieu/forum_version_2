@@ -5,6 +5,10 @@ class NotificationService {
     return api.get('/notifications')
   }
 
+  getPage(params) {
+    return api.get('/notifications/page', { params })
+  }
+
   getUnreadCount() {
     return api.get('/notifications/unread-count')
   }

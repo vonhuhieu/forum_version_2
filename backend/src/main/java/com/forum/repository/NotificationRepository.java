@@ -46,4 +46,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("DELETE FROM Notification n WHERE n.post.id = :postId")
     void deleteByPostId(@org.springframework.data.repository.query.Param("postId") Long postId);
+
+    org.springframework.data.domain.Page<Notification> findByRecipientUsernameAndTypeNotIn(
+        String username,
+        java.util.List<com.forum.entity.NotificationType> types,
+        org.springframework.data.domain.Pageable pageable
+    );
 }

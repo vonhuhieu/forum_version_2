@@ -141,6 +141,22 @@ public class NotificationService {
         return ResponseDTO.success(notificationMapper.toDTOList(filtered));
     }
 
+    public ResponseDTO<org.springframework.data.domain.Page<NotificationDTO>> getMyNotificationsPage(org.springframework.data.domain.Pageable pageable) {
+        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        org.springframework.data.domain.Page<Notification> page = notificationRepository.findByRecipientUsernameAndTypeNotIn(
+            username,
+            List.of(
+                NotificationType.CONVERSATION_REACTION,
+                NotificationType.CONVERSATION_REPLY,
+                NotificationType.CONVERSATION_QUOTE,
+                NotificationType.CONVERSATION_MENTION
+            ),
+            pageable
+        );
+        org.springframework.data.domain.Page<NotificationDTO> dtoPage = page.map(notificationMapper::toDTO);
+        return ResponseDTO.success(dtoPage);
+    }
+
     public ResponseDTO<Long> getMyUnreadCount() {
         String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         long count = notificationRepository.countByRecipientUsernameAndTypeNotInAndIsReadFalse(username, List.of(NotificationType.CONVERSATION_REACTION, NotificationType.CONVERSATION_REPLY, NotificationType.CONVERSATION_QUOTE, NotificationType.CONVERSATION_MENTION));

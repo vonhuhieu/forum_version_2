@@ -36,13 +36,14 @@
             >
               Trang cá nhân
             </router-link>
-            <a 
-              href="#" 
+            <router-link 
+              :to="{ name: 'NotificationsList' }" 
               class="menu-item" 
-              @click.prevent="isOpen = false"
+              :class="{ 'is-active': activeMenu === 'notifications' }"
+              @click="isOpen = false"
             >
               Thông báo
-            </a>
+            </router-link>
             <router-link 
               :to="{ name: 'ReceivedReactions' }" 
               class="menu-item" 

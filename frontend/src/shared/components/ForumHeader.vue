@@ -342,7 +342,7 @@
                 <div class="notif-footer">
                     <a href="#" class="btn-load-more" :class="{ 'disabled': !hasMoreNotif }" @click.prevent="loadMoreNotif">Xem thêm</a>
                     <span style="color: #ccc;">·</span>
-                    <a href="#" @click.prevent>Xem tất cả</a>
+                    <router-link :to="{ name: 'NotificationsList' }" @click="showNotifDropdown = false">Xem tất cả</router-link>
                  </div>
              </div>
           </div>
@@ -577,6 +577,7 @@ export default {
     }
     window.addEventListener('resize', this.updateScrollArrows)
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    window.addEventListener('notifications-updated', this.fetchNotifSummary)
 
     try {
       const response = await menuService.getAll()
@@ -606,6 +607,7 @@ export default {
     }
     window.removeEventListener('resize', this.updateScrollArrows)
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    window.removeEventListener('notifications-updated', this.fetchNotifSummary)
   },
   methods: {
     handleAvatarUpdated(event) {

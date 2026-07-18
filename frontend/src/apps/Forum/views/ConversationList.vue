@@ -27,7 +27,7 @@
 
           <!-- Danh sách item đối thoại -->
           <div class="thread-list">
-            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center min-height-100-on-pc" @click="goToConversation($event, convo)">
+            <div v-for="convo in paginatedConversations" :key="convo.id" class="thread-row thread-row-center min-height-100-on-pc" :class="{ 'unread': !convo.isRead }" @click="goToConversation($event, convo)">
               
               <!-- Block trái (Avatar) -->
               <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
@@ -412,6 +412,10 @@ export default {
   flex-shrink: 0;
   border: 1px solid #dee2e6;
   margin-top: 3px;
+}
+
+.thread-row.unread {
+  background-color: #f0f7fb !important;
 }
 
 @import "@/shared/assets/styles/custom.css";

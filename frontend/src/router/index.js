@@ -25,6 +25,7 @@ import ReportManagement from '@/apps/Admin/views/ReportManagement.vue'
 import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 import UserProfile from '@/apps/Forum/views/UserProfile.vue'
 import ChangePassword from '@/apps/Forum/views/ChangePassword.vue'
+import NotificationsList from '@/apps/Forum/views/NotificationsList.vue'
 import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
@@ -81,6 +82,12 @@ const routes = [
         path: 'account/received-reactions',
         name: 'ReceivedReactions',
         component: ReceivedReactions,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account/notifications',
+        name: 'NotificationsList',
+        component: NotificationsList,
         meta: { requiresAuth: true }
       },
       {
