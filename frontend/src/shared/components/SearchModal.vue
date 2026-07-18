@@ -23,6 +23,8 @@
                 @keydown.enter="confirmSelection"
                 @keydown.down.prevent="navigateSearchDropdown('down')"
                 @keydown.up.prevent="navigateSearchDropdown('up')"
+                @keydown.right="handleArrowRight"
+                @keydown.left="handleArrowLeft"
                 @keydown.esc="closeSearchDropdown"
                 @click="handleSearchFocus"
                 @input="handleSearchInput"
@@ -50,6 +52,14 @@
                 @mouseenter="hoverSearchKeyword(keyword, idx)"
               >
                 <span class="history-keyword">{{ keyword }}</span>
+                <button 
+                  type="button" 
+                  :class="['delete-history-btn', { 'focused-delete': isDeleteFocused && idx === selectedIndex }]"
+                  @click.stop="removeFromHistory(keyword)"
+                  aria-label="Xóa từ khóa"
+                >
+                  &times;
+                </button>
               </div>
             </div>
           </div>
@@ -562,6 +572,35 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 12px;
+}
+
+.delete-history-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+}
+
+@media (min-width: 768px) {
+  .history-item:hover .delete-history-btn,
+  .history-item.active .delete-history-btn {
+    opacity: 1;
+  }
+}
+
+.delete-history-btn:hover,
+.delete-history-btn.focused-delete {
+  background-color: #f1f5f9;
+  color: #ef4444;
 }
 
 .search-filters {
