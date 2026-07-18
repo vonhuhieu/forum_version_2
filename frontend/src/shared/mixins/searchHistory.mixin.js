@@ -7,7 +7,8 @@ export default {
       selectedIndex: -1,
       originalQuery: '',
       filterQuery: '',
-      isPreviewSelected: false
+      isPreviewSelected: false,
+      isDeleteFocused: false
     }
   },
   computed: {
@@ -46,8 +47,24 @@ export default {
       this.searchHistory = history
       localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
     },
+    removeFromHistory(keyword) {
+      if (!keyword) return
+      const cleaned = keyword.trim().toLowerCase()
+      this.searchHistory = this.searchHistory.filter(
+        item => item.trim().toLowerCase() !== cleaned
+      )
+      try {
+        localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+      } catch (e) {
+        console.error('Error saving search history after removal:', e)
+      }
+      this.selectedIndex = -1
+      this.isPreviewSelected = false
+      this.isDeleteFocused = false
+    },
     navigateSearchDropdown(direction) {
       if (!this.showHistoryDropdown || this.filteredHistory.length === 0) return
+      this.isDeleteFocused = false
       const len = this.filteredHistory.length
       if (direction === 'down') {
         if (this.selectedIndex === -1) {
@@ -75,6 +92,20 @@ export default {
       }
       this.scrollSearchHistoryDropdown()
     },
+    handleArrowRight(e) {
+      if (this.showHistoryDropdown && this.selectedIndex !== -1 && !this.isDeleteFocused) {
+        e.preventDefault()
+        this.isDeleteFocused = true
+        this.searchQuery = this.originalQuery
+      }
+    },
+    handleArrowLeft(e) {
+      if (this.showHistoryDropdown && this.selectedIndex !== -1 && this.isDeleteFocused) {
+        e.preventDefault()
+        this.isDeleteFocused = false
+        this.searchQuery = this.filteredHistory[this.selectedIndex]
+      }
+    },
     hoverSearchKeyword(keyword, idx) {
       if (this.selectedIndex === -1) {
         this.originalQuery = this.searchQuery
@@ -82,12 +113,14 @@ export default {
       this.selectedIndex = idx
       this.searchQuery = keyword
       this.isPreviewSelected = true
+      this.isDeleteFocused = false
     },
     resetSearchHover() {
       if (!this.showHistoryDropdown) return
       this.selectedIndex = -1
       this.searchQuery = this.originalQuery
       this.isPreviewSelected = false
+      this.isDeleteFocused = false
     },
     selectSearchKeyword(keyword) {
       this.searchQuery = keyword
@@ -95,6 +128,7 @@ export default {
       this.showHistoryDropdown = false
       this.selectedIndex = -1
       this.isPreviewSelected = false
+      this.isDeleteFocused = false
       this.$nextTick(() => {
         const input = this.$refs.searchInput
         if (input) {
@@ -106,6 +140,12 @@ export default {
     },
     confirmSearchSelection(onConfirmSearch) {
       if (this.showHistoryDropdown && this.selectedIndex !== -1) {
+        if (this.isDeleteFocused) {
+          const targetKeyword = this.filteredHistory[this.selectedIndex]
+          this.removeFromHistory(targetKeyword)
+          this.isDeleteFocused = false
+          return
+        }
         this.searchQuery = this.filteredHistory[this.selectedIndex]
         this.filterQuery = this.searchQuery
         this.showHistoryDropdown = false
@@ -130,6 +170,7 @@ export default {
       this.showHistoryDropdown = false
       this.selectedIndex = -1
       this.isPreviewSelected = false
+      this.isDeleteFocused = false
     },
     handleSearchFocus() {
       this.showHistoryDropdown = true
@@ -137,6 +178,7 @@ export default {
       this.originalQuery = this.searchQuery
       this.filterQuery = this.searchQuery
       this.isPreviewSelected = false
+      this.isDeleteFocused = false
     },
     handleSearchInput() {
       this.showHistoryDropdown = true
@@ -144,12 +186,14 @@ export default {
       this.originalQuery = this.searchQuery
       this.filterQuery = this.searchQuery
       this.isPreviewSelected = false
+      this.isDeleteFocused = false
     },
     handleSearchClickOutside(e) {
       if (this.$refs.searchContainer && !this.$refs.searchContainer.contains(e.target)) {
         this.showHistoryDropdown = false
         this.selectedIndex = -1
         this.isPreviewSelected = false
+        this.isDeleteFocused = false
       }
     },
     scrollSearchHistoryDropdown() {
