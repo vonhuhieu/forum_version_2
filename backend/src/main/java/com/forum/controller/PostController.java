@@ -40,6 +40,15 @@ public class PostController {
         return ResponseEntity.ok(postService.getMyPostsPaged(currentUsername, page, size));
     }
 
+    @GetMapping("/user/{username}")
+    public ResponseEntity<ResponseDTO<com.forum.dto.PageResponseDTO<PostDTO>>> getUserPosts(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(postService.getMyPostsPaged(username, page, size));
+    }
+
+
     @PostMapping
     public ResponseEntity<ResponseDTO<PostDTO>> createPost(@RequestBody PostDTO postDTO) {
         try {
