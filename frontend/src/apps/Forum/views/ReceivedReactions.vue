@@ -115,9 +115,11 @@ import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
+import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
   name: 'ReceivedReactions',
+  mixins: [userMixin],
   components: {
     Breadcrumb,
     ReactionIcon,
@@ -138,7 +140,7 @@ export default {
   computed: {
     breadcrumbItems() {
       return [
-        { title: 'Tài khoản của bạn' },
+        { title: 'Tài khoản của bạn', to: this.currentUserProfileLink },
         { title: 'Điểm tương tác nhận được' }
       ]
     },
