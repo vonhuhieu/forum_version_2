@@ -28,7 +28,7 @@
                   ref="searchInput"
                   type="text" 
                   class="recipient-search-input" 
-                  v-model="searchQuery" 
+                  :value="searchQuery" 
                   @focus="showDropdown = true"
                   @input="handleSearchInput"
                   @keydown.delete="handleBackspace"
@@ -115,6 +115,7 @@
 import userService from '@/apps/Forum/services/user.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
+import { getImeValue } from '@/shared/utils/utils'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Loading from '@/shared/components/Loading.vue'
@@ -177,7 +178,8 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
-    handleSearchInput() {
+    handleSearchInput(e) {
+      this.searchQuery = getImeValue(e)
       if (!this.searchQuery || !this.searchQuery.trim()) {
         this.searchResults = []
         return

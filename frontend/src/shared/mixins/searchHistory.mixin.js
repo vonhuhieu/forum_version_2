@@ -1,4 +1,5 @@
 import searchService from '@/shared/services/search.service'
+import { getImeValue } from '@/shared/utils/utils'
 
 export default {
   data() {
@@ -229,7 +230,8 @@ export default {
       this.isPreviewSelected = false
       this.isDeleteFocused = false
     },
-    handleSearchInput() {
+    handleSearchInput(e) {
+      this.searchQuery = getImeValue(e)
       this.showHistoryDropdown = true
       this.selectedIndex = -1
       this.originalQuery = this.searchQuery
