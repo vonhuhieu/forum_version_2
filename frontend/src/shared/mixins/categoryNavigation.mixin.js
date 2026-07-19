@@ -17,7 +17,9 @@ export default {
       const lastThreadBlock = event.target.closest('.category-last-thread')
       const thread = this.lastThreadByCat[cat.id]
 
-      if ((lastThreadBlock || isRightSide) && thread) {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+
+      if (!isMobile && (lastThreadBlock || isRightSide) && thread) {
         const route = {
           name: 'ThreadDetail',
           params: { id: thread.id }
