@@ -1276,15 +1276,14 @@ export default {
 
 .thread-title {
   margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   min-width: 0;
   max-width: 100%;
 }
 
 .thread-title span {
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .thread-title a {
@@ -1293,12 +1292,9 @@ export default {
   font-weight: 500;
   font-size: 1.05rem;
   line-height: 1.5;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
+  display: inline;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .thread-meta {
@@ -1487,13 +1483,14 @@ export default {
     min-width: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    align-items: flex-start !important;
     gap: 2px !important;
   }
 
   .sub-categories-block .last-thread-title {
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
-    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     gap: 6px !important;
     font-size: 0.85rem !important;

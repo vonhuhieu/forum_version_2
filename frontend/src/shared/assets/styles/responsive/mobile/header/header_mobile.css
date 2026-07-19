@@ -73,6 +73,12 @@
   }
 }
 
+@media (max-width: 320px) {
+  .mobile-logo {
+    font-size: 1.1rem !important;
+  }
+}
+
 .mobile-sidebar {
   position: fixed;
   top: 0;
