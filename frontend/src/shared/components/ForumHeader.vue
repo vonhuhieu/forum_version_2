@@ -363,8 +363,8 @@
                     v-model="searchQuery" 
                     name="search"
                     placeholder="Tìm kiếm..." 
-                    autocomplete="on"
-                    autocorrect="on"
+                    autocomplete="off"
+                    autocorrect="off"
                     autocapitalize="off"
                     spellcheck="false"
                     @keydown.enter="confirmHeaderSearch" 
@@ -477,6 +477,7 @@ export default {
   },
   data() {
     return {
+      windowWidth: window.innerWidth,
       menus: [],
       isLoggedIn: false,
       currentUser: null,
@@ -506,7 +507,7 @@ export default {
   },
   computed: {
     isMobile() {
-      return window.innerWidth < 768
+      return this.windowWidth < 768
     },
     activeMenus() {
       return this.menus.filter(menu => menu.active)
@@ -575,7 +576,7 @@ export default {
     if (nav) {
       nav.addEventListener('scroll', this.updateScrollArrows)
     }
-    window.addEventListener('resize', this.updateScrollArrows)
+    window.addEventListener('resize', this.handleResize)
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
     window.addEventListener('notifications-updated', this.fetchNotifSummary)
 
@@ -605,11 +606,15 @@ export default {
     if (nav) {
       nav.removeEventListener('scroll', this.updateScrollArrows)
     }
-    window.removeEventListener('resize', this.updateScrollArrows)
+    window.removeEventListener('resize', this.handleResize)
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
     window.removeEventListener('notifications-updated', this.fetchNotifSummary)
   },
   methods: {
+    handleResize() {
+      this.windowWidth = window.innerWidth
+      this.updateScrollArrows()
+    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       if (this.currentUser && this.currentUser.username === username) {
@@ -2056,9 +2061,13 @@ export default {
   .search-dropdown::before {
     right: 20px !important;
   }
-  /* Ẩn dropdown lịch sử kiểu desktop trên mobile */
+  /* Cho phép hiển thị dropdown lịch sử trên mobile */
   .search-history-dropdown {
-    display: none !important;
+    display: block !important;
+  }
+  /* Đảm bảo nút xóa lịch sử luôn hiển thị trên di động để chạm bấm */
+  .delete-history-btn {
+    opacity: 1 !important;
   }
 }
 
