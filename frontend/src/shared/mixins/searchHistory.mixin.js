@@ -1,3 +1,5 @@
+import searchService from '@/shared/services/search.service'
+
 export default {
   data() {
     return {
@@ -29,38 +31,85 @@ export default {
     this.loadSearchHistory()
   },
   methods: {
-    loadSearchHistory() {
-      try {
-        const historyStr = localStorage.getItem('forum_search_history')
-        this.searchHistory = historyStr ? JSON.parse(historyStr) : []
-      } catch (e) {
-        console.error('Error loading search history:', e)
-        this.searchHistory = []
+    async loadSearchHistory() {
+      const loggedIn = !!localStorage.getItem('token')
+      if (loggedIn) {
+        try {
+          // Kiểm tra xem có lịch sử vãng lai trong localStorage cần đồng bộ không
+          const historyStr = localStorage.getItem('forum_search_history')
+          if (historyStr) {
+            try {
+              const localHistory = JSON.parse(historyStr) || []
+              if (localHistory.length > 0) {
+                await searchService.syncHistory(localHistory)
+              }
+            } catch (err) {
+              console.error('Error parsing or syncing local history:', err)
+            }
+            // Xóa lịch sử vãng lai để tránh sync lặp lại ở các lần load sau
+            localStorage.removeItem('forum_search_history')
+          }
+
+          // Load lịch sử chính thức từ database
+          const res = await searchService.getHistory()
+          console.log("check", res);
+          if (res.data && res.status === 200) {
+            this.searchHistory = res.data || []
+          } else {
+            this.searchHistory = []
+          }
+        } catch (e) {
+          console.error('Error loading search history from API:', e)
+          this.searchHistory = []
+        }
+      } else {
+        try {
+          const historyStr = localStorage.getItem('forum_search_history')
+          this.searchHistory = historyStr ? JSON.parse(historyStr) : []
+        } catch (e) {
+          console.error('Error loading search history:', e)
+          this.searchHistory = []
+        }
       }
     },
-    saveToHistory(query) {
+    async saveToHistory(query) {
       if (!query || !query.trim()) return
       const cleaned = query.trim()
       let history = [...this.searchHistory]
       history = history.filter(item => item.toLowerCase() !== cleaned.toLowerCase())
       history.unshift(cleaned)
-      this.searchHistory = history
-      localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+      this.searchHistory = history.slice(0, 200)
+
+      const loggedIn = !!localStorage.getItem('token')
+      if (!loggedIn) {
+        localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+      }
     },
-    removeFromHistory(keyword) {
+    async removeFromHistory(keyword) {
       if (!keyword) return
       const cleaned = keyword.trim().toLowerCase()
       this.searchHistory = this.searchHistory.filter(
         item => item.trim().toLowerCase() !== cleaned
       )
-      try {
-        localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
-      } catch (e) {
-        console.error('Error saving search history after removal:', e)
-      }
+      
       this.selectedIndex = -1
       this.isPreviewSelected = false
       this.isDeleteFocused = false
+
+      const loggedIn = !!localStorage.getItem('token')
+      if (loggedIn) {
+        try {
+          await searchService.deleteHistory(keyword)
+        } catch (e) {
+          console.error('Error deleting search history from API:', e)
+        }
+      } else {
+        try {
+          localStorage.setItem('forum_search_history', JSON.stringify(this.searchHistory))
+        } catch (e) {
+          console.error('Error saving search history after removal:', e)
+        }
+      }
     },
     navigateSearchDropdown(direction) {
       if (!this.showHistoryDropdown || this.filteredHistory.length === 0) return
