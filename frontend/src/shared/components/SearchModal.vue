@@ -14,7 +14,7 @@
             <div class="search-input-box">
               <input
                 type="search"
-                v-model="searchQuery"
+                :value="searchQuery"
                 placeholder="Nhập từ khóa cần tìm..."
                 autocomplete="off"
                 autocorrect="off"
@@ -804,6 +804,10 @@ export default {
   
   .result-snippet {
     font-size: 14px;
+  }
+  
+  .delete-history-btn {
+    opacity: 1 !important;
   }
 }
 </style>
