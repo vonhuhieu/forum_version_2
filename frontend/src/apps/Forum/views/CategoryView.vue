@@ -194,7 +194,7 @@
                     <div class="select-selected-container">
                       <input 
                         type="text" 
-                        v-model="userSearchKeyword" 
+                        :value="userSearchKeyword" 
                         @focus="onUserSearchFocus"
                         @input="handleUserSearchInput"
                         placeholder="Tên người dùng..."
@@ -428,7 +428,7 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, getImeValue } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
@@ -861,7 +861,8 @@ export default {
         this.handleUserSearchInput()
       }
     },
-    handleUserSearchInput() {
+    handleUserSearchInput(e) {
+      this.userSearchKeyword = getImeValue(e)
       // Luôn hủy timer cũ TRƯỚC, tránh race condition khi xóa nhanh
       clearTimeout(this.userSearchTimeout)
       if (!this.userSearchKeyword || !this.userSearchKeyword.trim()) {

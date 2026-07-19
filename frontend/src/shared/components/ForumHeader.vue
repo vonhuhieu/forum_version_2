@@ -360,7 +360,7 @@
                 <div class="search-input-wrapper">
                   <input 
                     type="search" 
-                    v-model="searchQuery" 
+                    :value="searchQuery" 
                     name="search"
                     placeholder="Tìm kiếm..." 
                     autocomplete="off"
