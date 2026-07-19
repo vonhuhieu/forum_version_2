@@ -29,7 +29,7 @@
         >
           <div class="popup-header-content">
             <!-- Cột trái: avatar -->
-            <div class="popup-avatar-col">
+            <div class="popup-avatar-col" @click="goToProfile">
               <div class="popup-avatar-large" :style="!isAvatarUrl(userData.avatar) ? { backgroundColor: userData.avatar || '#1a507a', color: '#fff' } : {}">
                 <img v-if="isAvatarUrl(userData.avatar)" :src="userData.avatar" />
                 <template v-else>
@@ -40,7 +40,7 @@
 
             <!-- Cột phải: thông tin đè lên banner -->
             <div class="popup-meta-col">
-              <div class="popup-displayname">{{ userData.displayName || userData.username }}</div>
+              <div class="popup-displayname" @click="goToProfile">{{ userData.displayName || userData.username }}</div>
               <div class="popup-meta-box">
                 <div class="popup-title-tag">Yếu sinh lý</div>
                 <div class="popup-meta-item">Tham gia: {{ formatJoinDate(userData.createdAt) }}</div>
@@ -82,9 +82,11 @@
 import userService from '@/apps/Forum/services/user.service'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import { formatForumDate } from '@/shared/utils/date'
+import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
   name: 'UserProfilePopup',
+  mixins: [userMixin],
   props: {
     user: {
       type: Object,
@@ -109,14 +111,7 @@ export default {
   },
   computed: {
     isCurrentUser() {
-      try {
-        const userStr = localStorage.getItem('user')
-        if (userStr && this.user) {
-          const u = JSON.parse(userStr)
-          return u.id === this.user.id || u.username === this.user.username
-        }
-      } catch (e) {}
-      return false
+      return this.checkIsCurrentUser(this.user)
     },
     isLoggedIn() {
       try {
@@ -267,6 +262,15 @@ export default {
         query: { to: nameParam }
       })
     },
+    goToProfile() {
+      this.visible = false
+      const usernameParam = this.userData?.username
+      if (!usernameParam) return
+      this.$router.push({
+        name: 'UserProfile',
+        query: { username: usernameParam }
+      })
+    },
     handleFollow() {
       alert('Tính năng Theo dõi sẽ được cập nhật sau.')
     },
@@ -384,6 +388,7 @@ export default {
   overflow: hidden;
   background-color: #1a507a;
   color: #fff;
+  cursor: pointer;
 }
 
 .popup-avatar-large img {
@@ -410,6 +415,11 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.popup-displayname:hover {
+  text-decoration: underline;
 }
 
 /* Dark semi-transparent box for text info */

@@ -128,9 +128,11 @@ import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import Loading from '@/shared/components/Loading.vue'
 import api from '@/shared/services/api.service'
 import { toastSuccess, toastError } from '@/shared/utils/swal'
+import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
   name: 'ChangePassword',
+  mixins: [userMixin],
   components: {
     Breadcrumb,
     AccountSidebar,
@@ -150,7 +152,7 @@ export default {
   computed: {
     breadcrumbItems() {
       return [
-        { title: 'Tài khoản của bạn', to: '/account/profile' },
+        { title: 'Tài khoản của bạn', to: this.currentUserProfileLink },
         { title: 'Mật khẩu', active: true }
       ]
     }

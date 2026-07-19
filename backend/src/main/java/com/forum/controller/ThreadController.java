@@ -42,6 +42,15 @@ public class ThreadController {
         return ResponseEntity.ok(threadService.getMyThreadsPaged(currentUsername, page, size));
     }
 
+    @GetMapping("/user/{username}")
+    public ResponseEntity<ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>>> getUserThreads(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(threadService.getMyThreadsPaged(username, page, size));
+    }
+
+
 
     @GetMapping("/latest")
     public ResponseEntity<ResponseDTO<List<ThreadDTO>>> getLatestThreads() {

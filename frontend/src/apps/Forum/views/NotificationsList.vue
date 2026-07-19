@@ -88,21 +88,23 @@
 
 <script>
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
-import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
+import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
+import userMixin from '@/shared/mixins/user.mixin.js'
 import { alertSuccess } from '@/shared/utils/swal'
 
 export default {
   name: 'NotificationsList',
+  mixins: [userMixin],
   components: {
     Breadcrumb,
-    AccountSidebar,
     ForumPagination,
+    AccountSidebar,
     ReactionIcon,
     UserProfilePopup
   },
@@ -118,7 +120,7 @@ export default {
   computed: {
     breadcrumbItems() {
       return [
-        { title: 'Tài khoản của bạn', to: '/account/profile' },
+        { title: 'Tài khoản của bạn', to: this.currentUserProfileLink },
         { title: 'Thông báo', active: true }
       ]
     }
