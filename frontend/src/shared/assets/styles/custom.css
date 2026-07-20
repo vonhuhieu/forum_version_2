@@ -57,6 +57,14 @@
     .min-height-100-on-pc {
         min-height: 100px !important;
     }
+
+    .only-pt-1_5rem-on-pc {
+        padding: 1.5rem 0 0 0 !important;
+    }
+
+    .p-1_5rem-on-pc {
+        padding: 1.5rem !important;
+    }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
