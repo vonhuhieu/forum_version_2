@@ -45,15 +45,18 @@
               <div v-if="loading" class="reactions-loading">Đang tải...</div>
               <div v-else-if="reactions.length === 0" class="reactions-empty">Không có lượt tương tác nào.</div>
               <template v-else>
-                <div v-for="item in reactions" :key="item.id" class="reaction-row-item">
+                <div v-for="item in reactions" :key="item.id" class="reaction-row-item" @click="handleRowClick($event, item)">
                   <!-- Cột bên trái: avatar người tương tác -->
                   <div class="reactor-avatar-col">
-                    <span class="reactor-avatar" :style="!isAvatarUrl(item.actor.avatar) ? { backgroundColor: item.actor.avatar || '#ccc' } : {}">
-                      <img v-if="isAvatarUrl(item.actor.avatar)" :src="item.actor.avatar" />
-                      <template v-else>
-                        {{ (item.actor.displayName || item.actor.username).charAt(0).toUpperCase() }}
-                      </template>
-                    </span>
+                    <user-profile-popup :user="item.actor" v-if="item.actor">
+                      <span class="reactor-avatar" :style="!isAvatarUrl(item.actor.avatar) ? { backgroundColor: item.actor.avatar || '#ccc' } : {}">
+                        <img v-if="isAvatarUrl(item.actor.avatar)" :src="item.actor.avatar" />
+                        <template v-else>
+                          {{ (item.actor.displayName || item.actor.username).charAt(0).toUpperCase() }}
+                        </template>
+                      </span>
+                    </user-profile-popup>
+                    <div v-else class="reactor-avatar" style="background-color: #ccc; color: #fff;">A</div>
                   </div>
                   
                   <!-- Cột bên phải: chi tiết lượt tương tác -->
@@ -65,7 +68,7 @@
                       <span v-if="item.threadLabel" class="label-tag-mini" :style="{ backgroundColor: item.threadLabel.colorCode, color: item.threadLabel.textColor, borderColor: item.threadLabel.borderColor || 'transparent' }">
                         {{ item.threadLabel.name }}
                       </span>
-                      <router-link :to="getPostDetailLink(item)" class="thread-title-link">
+                      <router-link :to="getPostDetailLink(item)" class="thread-title-link" @click.prevent="navigateToReactionTarget(item)">
                         {{ item.threadTitle }}
                       </router-link>
                       với biểu cảm
@@ -112,7 +115,9 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AccountSidebar from '@/shared/components/AccountSidebar.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
+import api from '@/shared/services/api.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import userMixin from '@/shared/mixins/user.mixin.js'
@@ -124,7 +129,8 @@ export default {
     Breadcrumb,
     ReactionIcon,
     ForumPagination,
-    AccountSidebar
+    AccountSidebar,
+    UserProfilePopup
   },
   data() {
     return {
@@ -248,13 +254,48 @@ export default {
         return {
           name: 'ThreadDetail',
           params: { id: item.threadId },
-          query: { postId: item.postId }
+          query: { postId: item.postId },
+          hash: `#post-${item.postId}`
         }
       } else {
         return {
           name: 'ThreadDetail',
           params: { id: item.threadId },
           query: { postId: 'main_thread_entry' }
+        }
+      }
+    },
+    handleRowClick(event, item) {
+      if (event.target.closest('a, button, .reactor-avatar, [role="button"], .user-profile-popup-wrapper')) {
+        return
+      }
+      this.navigateToReactionTarget(item)
+    },
+    async navigateToReactionTarget(item) {
+      const targetPostId = item.postId || 'main_thread_entry'
+      if (targetPostId === 'main_thread_entry') {
+        this.$router.push({
+          name: 'ThreadDetail',
+          params: { id: item.threadId },
+          query: { postId: 'main_thread_entry' }
+        })
+      } else {
+        try {
+          const res = await api.get(`/posts/${item.postId}/page-number`, { params: { size: 10 } })
+          const pageNum = res.data || 1
+          this.$router.push({
+            name: 'ThreadDetail',
+            params: { id: item.threadId },
+            query: { page: pageNum, postId: item.postId },
+            hash: `#post-${item.postId}`
+          })
+        } catch (e) {
+          console.error(e)
+          this.$router.push({
+            name: 'ThreadDetail',
+            params: { id: item.threadId },
+            query: { postId: item.postId }
+          })
         }
       }
     }
@@ -318,6 +359,13 @@ export default {
   display: flex;
   padding: 15px;
   border-bottom: 1px solid #eceef1;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.reaction-row-item:hover {
+  background-color: #f8f9fa;
 }
 
 .reaction-row-item:last-child {

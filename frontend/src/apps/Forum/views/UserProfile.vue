@@ -125,7 +125,7 @@
             </div>
 
             <!-- Thành phần 3: Danh sách & Phân trang -->
-            <div class="profile-tab-content">
+            <div class="profile-tab-content only-pt-1_5rem-on-pc">
               <!-- Tab: Giới thiệu -->
               <div v-if="activeTab === 'about'" class="about-tab-panel">
                 <p class="about-empty-text">Thành viên này chưa viết lời giới thiệu.</p>
@@ -141,15 +141,17 @@
                 </div>
                 <template v-else>
                   <div class="profile-activity-list">
-                    <div v-for="item in items" :key="item.id" class="activity-row-item">
+                    <div v-for="item in items" :key="item.id" class="activity-row-item" @click="handleItemClick($event, item)">
                       <!-- Cột bên trái: Avatar -->
                       <div class="item-avatar-col">
-                        <span class="item-avatar" :style="!isAvatarUrl(userStats.avatar) ? { backgroundColor: userStats.avatar || '#ccc' } : {}">
-                          <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" />
-                          <template v-else>
-                            {{ userInitial }}
-                          </template>
-                        </span>
+                        <user-profile-popup :user="item.author || userStats">
+                          <span class="item-avatar" :style="!isAvatarUrl((item.author || userStats).avatar) ? { backgroundColor: (item.author || userStats).avatar || '#ccc' } : {}">
+                            <img v-if="isAvatarUrl((item.author || userStats).avatar)" :src="(item.author || userStats).avatar" />
+                            <template v-else>
+                              {{ ((item.author || userStats).displayName || (item.author || userStats).username || userInitial).charAt(0).toUpperCase() }}
+                            </template>
+                          </span>
+                        </user-profile-popup>
                       </div>
 
                       <!-- Cột bên phải: Nội dung -->
@@ -163,15 +165,34 @@
                           >
                             {{ (item.label || item.threadLabel).name }}
                           </span>
-                          <span class="item-title-link" @click="navigateToItem(item)">
+                          <router-link 
+                            :to="getItemRoute(item)" 
+                            class="item-title-link" 
+                            @click.prevent="navigateToItem(item)"
+                          >
                             {{ activeTab === 'posts' ? item.title : item.threadTitle }}
-                          </span>
+                          </router-link>
                         </div>
 
-                        <!-- Dòng 2: Nội dung cắt tinh gọn -->
-                        <div class="item-content-preview">
-                          {{ stripHtml(item.content) }}
-                        </div>
+                        <!-- Dòng 2: Nội dung xem trước -->
+                        <template v-if="activeTab === 'comments'">
+                          <div v-if="parseCommentPreview(item.content).hasQuote" class="mini-quote-box">
+                            <span class="mini-quote-author" v-if="parseCommentPreview(item.content).quoteAuthor">
+                              {{ parseCommentPreview(item.content).quoteAuthor }}
+                            </span>
+                            <span class="mini-quote-text">
+                              {{ parseCommentPreview(item.content).quoteText }}
+                            </span>
+                          </div>
+                          <div class="item-content-preview">
+                            {{ parseCommentPreview(item.content).replyText || '(Nội dung đính kèm)' }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="item-content-preview">
+                            {{ stripHtml(item.content) }}
+                          </div>
+                        </template>
 
                         <!-- Dòng 3: Meta metadata -->
                         <div class="item-meta-row">
@@ -194,7 +215,7 @@
                   </div>
 
                   <!-- Phân trang chung -->
-                  <div class="pagination-wrapper" v-if="totalPages > 1" style="margin-top: 1.5rem;">
+                  <div class="pagination-wrapper p-1_5rem-on-pc" v-if="totalPages > 1">
                     <ForumPagination 
                       :current-page="currentPage" 
                       :total-pages="totalPages" 
@@ -226,6 +247,7 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import Loading from '@/shared/components/Loading.vue'
+import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import api from '@/shared/services/api.service'
@@ -238,7 +260,8 @@ export default {
     Breadcrumb,
     ForumPagination,
     AvatarUploadModal,
-    Loading
+    Loading,
+    UserProfilePopup
   },
   data() {
     return {
@@ -346,6 +369,70 @@ export default {
         return text.substring(0, 200) + '...'
       }
       return text
+    },
+    getItemRoute(item) {
+      if (this.activeTab === 'posts') {
+        return { name: 'ThreadDetail', params: { id: item.id } }
+      }
+      return {
+        name: 'ThreadDetail',
+        params: { id: item.threadId },
+        query: { postId: item.id },
+        hash: `#post-${item.id}`
+      }
+    },
+    handleItemClick(event, item) {
+      if (event.target.closest('a, button, .item-avatar, .category-link, [role="button"], .user-profile-popup-wrapper')) {
+        return
+      }
+      this.navigateToItem(item)
+    },
+    parseCommentPreview(content) {
+      if (!content) return { hasQuote: false, quoteAuthor: '', quoteText: '', replyText: '' }
+
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+
+      const bq = tempDiv.querySelector('blockquote')
+      let quoteAuthor = ''
+      let quoteText = ''
+
+      if (bq) {
+        const strong = bq.querySelector('p strong, strong')
+        if (strong) {
+          quoteAuthor = strong.textContent.trim()
+        }
+        const bqClone = bq.cloneNode(true)
+        const strongInClone = bqClone.querySelector('p strong, strong')
+        if (strongInClone) {
+          if (strongInClone.parentNode && strongInClone.parentNode.tagName === 'P') {
+            strongInClone.parentNode.remove()
+          } else {
+            strongInClone.remove()
+          }
+        }
+        quoteText = bqClone.textContent.replace(/\s+/g, ' ').trim()
+        bq.remove()
+      }
+
+      const attach = tempDiv.querySelector('.attachment-block')
+      if (attach) attach.remove()
+
+      let replyText = tempDiv.textContent.replace(/\s+/g, ' ').trim()
+      if (replyText.length > 200) {
+        replyText = replyText.substring(0, 200) + '...'
+      }
+
+      if (quoteText.length > 120) {
+        quoteText = quoteText.substring(0, 120) + '...'
+      }
+
+      return {
+        hasQuote: !!bq,
+        quoteAuthor,
+        quoteText,
+        replyText
+      }
     },
     triggerReport() {
       alert('Chức năng báo cáo sẽ được cập nhật sau.')
@@ -946,17 +1033,44 @@ export default {
 .activity-row-item {
   display: flex;
   gap: 15px;
-  padding: 15px 0;
+  padding: 12px 10px;
   border-bottom: 1px solid #edf2f7;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer;
 }
 
-.activity-row-item:first-child {
-  padding-top: 0;
+.activity-row-item:hover {
+  background-color: #f8f9fa;
+}
+
+.mini-quote-box {
+  background-color: #f8f9fa;
+  border-left: 3px solid #e67e22;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  border-radius: 3px;
+  font-size: 0.82rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mini-quote-author {
+  font-weight: 600;
+  color: #e67e22;
+  margin-right: 6px;
+}
+
+.mini-quote-text {
+  color: #666;
+  font-style: italic;
 }
 
 .activity-row-item:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .item-avatar-col {
@@ -1239,4 +1353,6 @@ export default {
     word-break: break-word;
   }
 }
+
+@import "@/shared/assets/styles/custom.css";
 </style>
