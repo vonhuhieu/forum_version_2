@@ -56,3 +56,15 @@ export function isAvatarUrl(avatar) {
   if (!avatar) return false;
   return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/');
 }
+
+/**
+ * Lấy giá trị nhập liệu tức thời từ sự kiện input, giải quyết vấn đề gạch chân Telex (IME Composition) trong Vue.
+ * @param {Event} event - Sự kiện input
+ * @returns {string} - Giá trị nhập liệu thuần túy của input target
+ */
+export function getImeValue(event) {
+  if (event && event.target) {
+    return event.target.value;
+  }
+  return '';
+}

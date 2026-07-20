@@ -25,12 +25,12 @@
               class="profile-info-upper no-pt-mobile" 
               :class="{ 'text-white': !!userStats.profileBanner, 'positioned-absolute': !!userStats.profileBanner }"
             >
-              <div class="profile-avatar-wrapper" @click="openUploadModal('avatar')">
+              <div class="profile-avatar-wrapper" :class="{ 'clickable': isCurrentUser }" @click="isCurrentUser && openUploadModal('avatar')">
                 <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" class="profile-avatar-img" />
                 <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
                   {{ userInitial }}
                 </div>
-                <div class="avatar-edit-overlay">
+                <div v-if="isCurrentUser" class="avatar-edit-overlay">
                   <span>Sửa</span>
                 </div>
               </div>
@@ -45,9 +45,14 @@
                   <span class="meta-item text-dimmed">Thấy lần gần nhất: {{ formatDate(userStats.lastActiveAt) }}</span>
                 </div>
                 <!-- Nút hành động nằm dưới meta -->
-                <div class="banner-actions">
+                <div class="banner-actions" :class="{ 'banner-actions-other': !isCurrentUser }">
                   <button class="btn-banner-action fs-9" @click="triggerReport">Báo cáo</button>
-                  <button class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
+                  <template v-if="!isCurrentUser">
+                    <button class="btn-banner-action fs-9" @click="handleFollow">Theo dõi</button>
+                    <button class="btn-banner-action fs-9" @click="handleBlock">Chặn</button>
+                    <button class="btn-banner-action fs-9" @click="startConversation">Bắt đầu đối thoại</button>
+                  </template>
+                  <button v-else class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                       <circle cx="12" cy="13" r="4"></circle>
@@ -72,6 +77,26 @@
                 <span class="stat-label">Điểm thành tích</span>
                 <span class="stat-val">{{ userStats.trophyPoints || 0 }}</span>
               </div>
+            </div>
+
+            <!-- Khối nút hành động dàn ngang trên Mobile khi xem trang cá nhân người khác -->
+            <div class="profile-mobile-actions" v-if="!isCurrentUser">
+              <button class="btn-mobile-action" @click="triggerReport">Báo cáo</button>
+              <button class="btn-mobile-action" @click="handleFollow">Theo dõi</button>
+              <button class="btn-mobile-action" @click="handleBlock">Chặn</button>
+              <button class="btn-mobile-action" @click="startConversation">Bắt đầu đối thoại</button>
+            </div>
+
+            <!-- Khối nút hành động dàn ngang trên Mobile khi xem trang cá nhân của chính mình -->
+            <div class="profile-mobile-actions" v-else>
+              <button class="btn-mobile-action" @click="triggerReport">Báo cáo</button>
+              <button class="btn-mobile-action btn-banner-edit" @click="openUploadModal('banner')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                Đổi ảnh bìa
+              </button>
             </div>
 
             <!-- Thành phần 2: Tabs Selection -->
@@ -204,9 +229,11 @@ import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import api from '@/shared/services/api.service'
+import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
   name: 'UserProfile',
+  mixins: [userMixin],
   components: {
     Breadcrumb,
     ForumPagination,
@@ -228,9 +255,12 @@ export default {
     }
   },
   computed: {
+    isCurrentUser() {
+      return this.checkIsCurrentUser(this.$route.query.username)
+    },
     breadcrumbItems() {
       return [
-        { title: 'Tài khoản của bạn', to: '#' },
+        { title: 'Tài khoản của bạn', to: this.currentUserProfileLink },
         { title: 'Trang cá nhân', active: true }
       ]
     },
@@ -239,9 +269,37 @@ export default {
       return name.charAt(0).toUpperCase()
     }
   },
+  watch: {
+    '$route.query.username': {
+      handler(newVal) {
+        const currentUserStr = localStorage.getItem('user')
+        if (currentUserStr && !newVal) {
+          const currentUser = JSON.parse(currentUserStr)
+          this.$router.replace({
+            name: 'UserProfile',
+            query: { username: currentUser.username }
+          })
+          return
+        }
+        this.currentPage = 1
+        this.activeTab = 'posts'
+        this.loadProfileData()
+      }
+    }
+  },
   created() {
-    this.fetchUserStats()
-    this.fetchTabData()
+    const currentUserStr = localStorage.getItem('user')
+    if (currentUserStr) {
+      const currentUser = JSON.parse(currentUserStr)
+      if (!this.$route.query.username) {
+        this.$router.replace({
+          name: 'UserProfile',
+          query: { username: currentUser.username }
+        })
+        return
+      }
+    }
+    this.loadProfileData()
   },
   mounted() {
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
@@ -296,29 +354,48 @@ export default {
       this.uploadMode = mode
       this.showUploadModal = true
     },
-    async fetchUserStats() {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) return
-      const localUser = JSON.parse(userStr)
+    async loadProfileData() {
+      this.loading = true
       try {
-        const res = await api.get('/users/by-name', { params: { name: localUser.username } })
+        await Promise.all([
+          this.fetchUserStats(),
+          this.fetchTabData()
+        ])
+      } catch (e) {
+        console.error('Lỗi load dữ liệu profile:', e)
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchUserStats() {
+      const currentUserStr = localStorage.getItem('user')
+      if (!currentUserStr) return
+      const currentUser = JSON.parse(currentUserStr)
+      const queryUsername = this.$route.query.username || currentUser.username
+      
+      try {
+        const res = await api.get('/users/by-name', { params: { name: queryUsername } })
         if (res.data) {
           this.userStats = res.data
-          // Đồng bộ lại local storage nếu có thay đổi ảnh/tên
-          const updatedLocalUser = {
-            ...localUser,
-            avatar: this.userStats.avatar,
-            displayName: this.userStats.displayName,
-            profileBanner: this.userStats.profileBanner,
-            postCount: this.userStats.postCount,
-            interactionPoints: this.userStats.interactionPoints,
-            trophyPoints: this.userStats.trophyPoints
+          // Đồng bộ lại local storage chỉ khi là chính mình
+          if (queryUsername === currentUser.username) {
+            const updatedLocalUser = {
+              ...currentUser,
+              avatar: this.userStats.avatar,
+              displayName: this.userStats.displayName,
+              profileBanner: this.userStats.profileBanner,
+              postCount: this.userStats.postCount,
+              interactionPoints: this.userStats.interactionPoints,
+              trophyPoints: this.userStats.trophyPoints
+            }
+            localStorage.setItem('user', JSON.stringify(updatedLocalUser))
           }
-          localStorage.setItem('user', JSON.stringify(updatedLocalUser))
         }
       } catch (e) {
         console.error('Lỗi lấy thông tin người dùng:', e)
-        this.userStats = localUser
+        if (queryUsername === currentUser.username) {
+          this.userStats = currentUser
+        }
       }
     },
     async fetchTabData() {
@@ -326,7 +403,18 @@ export default {
       
       this.listLoading = true
       try {
-        const endpoint = this.activeTab === 'posts' ? '/threads/me' : '/posts/me'
+        const currentUserStr = localStorage.getItem('user')
+        if (!currentUserStr) return
+        const currentUser = JSON.parse(currentUserStr)
+        const queryUsername = this.$route.query.username || currentUser.username
+        
+        let endpoint
+        if (queryUsername === currentUser.username) {
+          endpoint = this.activeTab === 'posts' ? '/threads/me' : '/posts/me'
+        } else {
+          endpoint = this.activeTab === 'posts' ? `/threads/user/${queryUsername}` : `/posts/user/${queryUsername}`
+        }
+        
         const res = await api.get(endpoint, {
           params: {
             page: this.currentPage - 1,
@@ -397,6 +485,19 @@ export default {
     onBannerUpdated(newBanner) {
       this.userStats.profileBanner = newBanner
       this.fetchUserStats()
+    },
+    handleFollow() {
+      alert('Tính năng Theo dõi sẽ được cập nhật sau.')
+    },
+    handleBlock() {
+      alert('Tính năng Chặn sẽ được cập nhật sau.')
+    },
+    startConversation() {
+      const nameParam = this.userStats.displayName || this.userStats.username
+      this.$router.push({
+        name: 'AddConversation',
+        query: { to: nameParam }
+      })
     }
   }
 }
@@ -531,10 +632,14 @@ export default {
   border: 4px solid #ffffff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   overflow: hidden;
-  cursor: pointer;
+  cursor: default;
   z-index: 11;
   background-color: #fff;
   flex-shrink: 0;
+}
+
+.profile-avatar-wrapper.clickable {
+  cursor: pointer;
 }
 
 .profile-avatar-wrapper:hover .avatar-edit-overlay {
@@ -1080,6 +1185,58 @@ export default {
   .profile-header-card.no-banner .profile-stats-bar {
     margin-top: 0;
     padding: 10px 0.75rem;
+  }
+}
+
+/* Mobile Actions Block */
+.profile-mobile-actions {
+  display: none;
+  background: #ffffff;
+  padding: 10px 15px;
+  border-top: 1px solid #d8dbe0;
+  border-bottom: 1px solid #d8dbe0;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.btn-mobile-action {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #1a507a;
+  font-weight: 500;
+  padding: 8px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-mobile-action:hover {
+  background-color: #1a507a;
+  color: #ffffff;
+  border-color: #1a507a;
+}
+
+@media (max-width: 767px) {
+  /* Hiển thị khối nút mới trên mobile */
+  .profile-mobile-actions {
+    display: flex;
+  }
+  
+  /* Ẩn hoàn toàn khối nút cũ trên header mobile cho cả mình và người khác */
+  .banner-actions {
+    display: none !important;
+  }
+
+  /* Cho phép text thời gian online gần nhất xuống dòng tự nhiên */
+  .profile-info-upper.text-white .text-dimmed {
+    white-space: normal !important;
+    word-break: break-word;
   }
 }
 </style>

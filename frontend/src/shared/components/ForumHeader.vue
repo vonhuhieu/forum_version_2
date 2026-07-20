@@ -280,7 +280,10 @@
                        <button class="mail-tab-btn" :class="{ 'active': activeNotifTab === 'all' }" @click="activeNotifTab = 'all'">Tất cả</button>
                        <button class="mail-tab-btn" :class="{ 'active': activeNotifTab === 'unread' }" @click="activeNotifTab = 'unread'">Chưa đọc</button>
                     </div>
-                    <button class="btn-mark-mail-read-header" @click.stop="markAllRead">Đánh dấu đã xem</button>
+                    <div class="mail-tabs-actions">
+                      <button class="btn-mark-all-read" @click.stop="markAllRead">Đánh dấu đã xem</button>
+                      <button class="btn-mark-all-read btn-clear-mail-header" @click.stop="clearAllNotifications">Xóa</button>
+                    </div>
                  </div>
                  
                  <div class="notif-list" v-if="paginatedNotifications.length > 0">
@@ -339,7 +342,7 @@
                 <div class="notif-footer">
                     <a href="#" class="btn-load-more" :class="{ 'disabled': !hasMoreNotif }" @click.prevent="loadMoreNotif">Xem thêm</a>
                     <span style="color: #ccc;">·</span>
-                    <a href="#" @click.prevent>Xem tất cả</a>
+                    <router-link :to="{ name: 'NotificationsList' }" @click="showNotifDropdown = false">Xem tất cả</router-link>
                  </div>
              </div>
           </div>
@@ -357,11 +360,11 @@
                 <div class="search-input-wrapper">
                   <input 
                     type="search" 
-                    v-model="searchQuery" 
+                    :value="searchQuery" 
                     name="search"
                     placeholder="Tìm kiếm..." 
-                    autocomplete="on"
-                    autocorrect="on"
+                    autocomplete="off"
+                    autocorrect="off"
                     autocapitalize="off"
                     spellcheck="false"
                     @keydown.enter="confirmHeaderSearch" 
@@ -474,6 +477,7 @@ export default {
   },
   data() {
     return {
+      windowWidth: window.innerWidth,
       menus: [],
       isLoggedIn: false,
       currentUser: null,
@@ -503,7 +507,7 @@ export default {
   },
   computed: {
     isMobile() {
-      return window.innerWidth < 768
+      return this.windowWidth < 768
     },
     activeMenus() {
       return this.menus.filter(menu => menu.active)
@@ -572,8 +576,9 @@ export default {
     if (nav) {
       nav.addEventListener('scroll', this.updateScrollArrows)
     }
-    window.addEventListener('resize', this.updateScrollArrows)
+    window.addEventListener('resize', this.handleResize)
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    window.addEventListener('notifications-updated', this.fetchNotifSummary)
 
     try {
       const response = await menuService.getAll()
@@ -601,10 +606,15 @@ export default {
     if (nav) {
       nav.removeEventListener('scroll', this.updateScrollArrows)
     }
-    window.removeEventListener('resize', this.updateScrollArrows)
+    window.removeEventListener('resize', this.handleResize)
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    window.removeEventListener('notifications-updated', this.fetchNotifSummary)
   },
   methods: {
+    handleResize() {
+      this.windowWidth = window.innerWidth
+      this.updateScrollArrows()
+    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       if (this.currentUser && this.currentUser.username === username) {
@@ -1041,6 +1051,16 @@ export default {
         this.notifications.forEach(n => n.isRead = true)
       } catch (e) {
         console.error(e)
+      }
+    },
+    async clearAllNotifications() {
+      try {
+        await notificationService.clearAll()
+        this.notifications = []
+        this.unreadCount = 0
+        alertSuccess('Đã xóa toàn bộ thông báo.')
+      } catch (e) {
+        console.error('Lỗi khi xóa toàn bộ thông báo:', e)
       }
     },
     
@@ -2041,9 +2061,13 @@ export default {
   .search-dropdown::before {
     right: 20px !important;
   }
-  /* Ẩn dropdown lịch sử kiểu desktop trên mobile */
+  /* Cho phép hiển thị dropdown lịch sử trên mobile */
   .search-history-dropdown {
-    display: none !important;
+    display: block !important;
+  }
+  /* Đảm bảo nút xóa lịch sử luôn hiển thị trên di động để chạm bấm */
+  .delete-history-btn {
+    opacity: 1 !important;
   }
 }
 

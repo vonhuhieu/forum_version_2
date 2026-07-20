@@ -40,6 +40,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void deleteAllConversationNotificationsForUser(@org.springframework.data.repository.query.Param("username") String username);
 
     @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Notification n WHERE n.recipient.username = :username AND n.type NOT IN (com.forum.entity.NotificationType.CONVERSATION_REACTION, com.forum.entity.NotificationType.CONVERSATION_REPLY, com.forum.entity.NotificationType.CONVERSATION_QUOTE, com.forum.entity.NotificationType.CONVERSATION_MENTION)")
+    void deleteAllNonConversationNotificationsForUser(@org.springframework.data.repository.query.Param("username") String username);
+
+    @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("DELETE FROM Notification n WHERE n.post.id = :postId")
     void deleteByPostId(@org.springframework.data.repository.query.Param("postId") Long postId);
+
+    org.springframework.data.domain.Page<Notification> findByRecipientUsernameAndTypeNotIn(
+        String username,
+        java.util.List<com.forum.entity.NotificationType> types,
+        org.springframework.data.domain.Pageable pageable
+    );
 }
