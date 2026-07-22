@@ -36,7 +36,7 @@
               v-for="menu in activeMenus"
               :key="menu.id"
               :to="menu.url"
-              active-class="active"
+              :class="{ 'active': isMenuActive(menu) }"
               @click="handleMenuClick($event, menu.url)"
             >
               {{ menu.title }}
@@ -434,7 +434,7 @@
             v-for="menu in activeMenus"
             :key="menu.id"
             :to="menu.url"
-            active-class="active"
+            :class="{ 'active': isMenuActive(menu) }"
             @click="handleMenuClick($event, menu.url, true)"
           >
             {{ menu.title }}
@@ -611,6 +611,17 @@ export default {
     window.removeEventListener('notifications-updated', this.fetchNotifSummary)
   },
   methods: {
+    isMenuActive(menu) {
+      if (!menu || !menu.url) return false
+      const path = this.$route.path
+      if (menu.url === '/' || menu.url === '/trang-chu') {
+        return path === '/' || path === '/trang-chu'
+      }
+      if (menu.url === '/thanh-vien' || menu.url === '/members') {
+        return path === '/thanh-vien' || path === '/members' || path === '/account/profile'
+      }
+      return path === menu.url || path.startsWith(menu.url + '/')
+    },
     handleResize() {
       this.windowWidth = window.innerWidth
       this.updateScrollArrows()

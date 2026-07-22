@@ -26,6 +26,7 @@ import ReceivedReactions from '@/apps/Forum/views/ReceivedReactions.vue'
 import UserProfile from '@/apps/Forum/views/UserProfile.vue'
 import ChangePassword from '@/apps/Forum/views/ChangePassword.vue'
 import NotificationsList from '@/apps/Forum/views/NotificationsList.vue'
+import MembersView from '@/apps/Forum/views/MembersView.vue'
 import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
@@ -38,6 +39,12 @@ const routes = [
         name: 'Home',
         component: HomeView,
         alias: 'trang-chu'
+      },
+      {
+        path: 'thanh-vien',
+        name: 'MembersView',
+        component: MembersView,
+        alias: 'members'
       },
       {
         path: 'latest',

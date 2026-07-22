@@ -282,9 +282,10 @@ export default {
       return this.checkIsCurrentUser(this.$route.query.username)
     },
     breadcrumbItems() {
+      const displayName = this.userStats.displayName || this.userStats.username || 'Trang cá nhân'
       return [
-        { title: 'Tài khoản của bạn', to: this.currentUserProfileLink },
-        { title: 'Trang cá nhân', active: true }
+        { title: 'Thành viên', to: '/thanh-vien' },
+        { title: displayName }
       ]
     },
     userInitial() {

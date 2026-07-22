@@ -76,6 +76,42 @@ public class UserController {
         }
     }
 
+    @GetMapping("/members/newest")
+    public ResponseEntity<ResponseDTO<List<UserDTO>>> getNewestMembers(@RequestParam(defaultValue = "12") int limit) {
+        try {
+            return ResponseEntity.ok(ResponseDTO.success(userService.getNewestMembers(limit)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
+    @GetMapping("/members/top-posters")
+    public ResponseEntity<ResponseDTO<List<UserDTO>>> getTopPosters(@RequestParam(defaultValue = "5") int limit) {
+        try {
+            return ResponseEntity.ok(ResponseDTO.success(userService.getTopPosters(limit)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
+    @GetMapping("/members/top-interactions")
+    public ResponseEntity<ResponseDTO<List<UserDTO>>> getTopInteractions(@RequestParam(defaultValue = "5") int limit) {
+        try {
+            return ResponseEntity.ok(ResponseDTO.success(userService.getTopInteractions(limit)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
+    @GetMapping("/members/top-trophy-points")
+    public ResponseEntity<ResponseDTO<List<UserDTO>>> getTopTrophyPoints(@RequestParam(defaultValue = "5") int limit) {
+        try {
+            return ResponseEntity.ok(ResponseDTO.success(userService.getTopTrophyPoints(limit)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
     @PutMapping("/me/avatar")
     public ResponseEntity<ResponseDTO<UserDTO>> updateMyAvatar(@RequestBody Map<String, String> payload) {
         try {
