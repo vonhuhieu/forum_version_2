@@ -43,4 +43,43 @@ public interface UserRepository extends JpaRepository<User, Long> {
             org.springframework.data.domain.Pageable pageable);
 
     Optional<User> findFirstByDisplayNameIgnoreCase(String displayName);
+
+    @Query("SELECT u FROM User u WHERE '" + com.forum.utils.Constants.ROLE_USER + "' MEMBER OF u.roles AND SIZE(u.roles) = 1 ORDER BY u.createdAt DESC, u.id DESC")
+    java.util.List<User> findNewestRoleUsers(org.springframework.data.domain.Pageable pageable);
+
+    @Query(value = "SELECT u.id FROM users u " +
+           "LEFT JOIN (SELECT author_id, COUNT(*) as cnt FROM threads GROUP BY author_id) t ON u.id = t.author_id " +
+           "LEFT JOIN (SELECT author_id, COUNT(*) as cnt FROM posts GROUP BY author_id) p ON u.id = p.author_id " +
+           "WHERE u.id NOT IN (SELECT user_id FROM user_roles WHERE role IN ('" + com.forum.utils.Constants.ROLE_ADMIN + "', '" + com.forum.utils.Constants.ROLE_SUPER_ADMIN + "')) " +
+           "ORDER BY (COALESCE(t.cnt, 0) + COALESCE(p.cnt, 0)) DESC",
+           nativeQuery = true)
+    java.util.List<Long> findTopPosterUserIds(org.springframework.data.domain.Pageable pageable);
+
+    @Query(value = "SELECT u.id FROM users u " +
+           "LEFT JOIN (" +
+           "  SELECT author_id, COUNT(*) as cnt FROM (" +
+           "    SELECT t.author_id FROM reactions r JOIN threads t ON r.thread_id = t.id WHERE r.post_id IS NULL " +
+           "    UNION ALL " +
+           "    SELECT p.author_id FROM reactions r JOIN posts p ON r.post_id = p.id " +
+           "  ) rx GROUP BY author_id" +
+           ") r_total ON u.id = r_total.author_id " +
+           "WHERE u.id NOT IN (SELECT user_id FROM user_roles WHERE role IN ('" + com.forum.utils.Constants.ROLE_ADMIN + "', '" + com.forum.utils.Constants.ROLE_SUPER_ADMIN + "')) " +
+           "ORDER BY COALESCE(r_total.cnt, 0) DESC",
+           nativeQuery = true)
+    java.util.List<Long> findTopInteractionUserIds(org.springframework.data.domain.Pageable pageable);
+
+    @Query(value = "SELECT u.id FROM users u " +
+           "LEFT JOIN (SELECT author_id, COUNT(*) as cnt FROM threads GROUP BY author_id) t ON u.id = t.author_id " +
+           "LEFT JOIN (SELECT author_id, COUNT(*) as cnt FROM posts GROUP BY author_id) p ON u.id = p.author_id " +
+           "LEFT JOIN (" +
+           "  SELECT author_id, COUNT(*) as cnt FROM (" +
+           "    SELECT t.author_id FROM reactions r JOIN threads t ON r.thread_id = t.id WHERE r.post_id IS NULL " +
+           "    UNION ALL " +
+           "    SELECT p.author_id FROM reactions r JOIN posts p ON r.post_id = p.id " +
+           "  ) rx GROUP BY author_id" +
+           ") r_total ON u.id = r_total.author_id " +
+           "WHERE u.id NOT IN (SELECT user_id FROM user_roles WHERE role IN ('" + com.forum.utils.Constants.ROLE_ADMIN + "', '" + com.forum.utils.Constants.ROLE_SUPER_ADMIN + "')) " +
+           "ORDER BY ((COALESCE(t.cnt, 0) + COALESCE(p.cnt, 0)) * 0.1 + COALESCE(r_total.cnt, 0) * 0.2) DESC",
+           nativeQuery = true)
+    java.util.List<Long> findTopTrophyPointUserIds(org.springframework.data.domain.Pageable pageable);
 }

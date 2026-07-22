@@ -17,42 +17,17 @@
                 <span v-if="!isReadOnly" class="remove-tag" @click.stop="removeRecipient(user)">&times;</span>
                 <span>{{ user.displayName || user.username }}</span>
               </div>
-              <div v-if="!isReadOnly" class="search-input-wrapper">
-                <span 
-                  v-if="selectedRecipients.length === 0 && !searchQuery" 
-                  class="recipient-placeholder"
-                >
-                  Nhập tên đăng nhập hoặc tên hiển thị để tìm...
-                </span>
-                <input 
-                  ref="searchInput"
-                  type="text" 
-                  class="recipient-search-input" 
-                  :value="searchQuery" 
-                  @focus="showDropdown = true"
-                  @input="handleSearchInput"
-                  @keydown.delete="handleBackspace"
-                />
-              </div>
+              <UserSearchInput
+                v-if="!isReadOnly"
+                :is-public="false"
+                :clear-on-select="true"
+                :borderless="true"
+                :exclude-usernames="selectedRecipients.map(r => r.username)"
+                placeholder="Nhập tên đăng nhập hoặc tên hiển thị để tìm..."
+                @select="selectRecipient"
+                style="flex: 1; min-width: 180px;"
+              />
             </div>
-            
-            <!-- Dropdown autocomplete search results -->
-            <div v-if="!isReadOnly && showDropdown && searchResults.length > 0" class="autocomplete-dropdown">
-              <div 
-                v-for="user in searchResults" 
-                :key="user.id" 
-                class="autocomplete-item" 
-                @click="selectRecipient(user)"
-              >
-                <span class="user-avatar-circle" :style="{ backgroundColor: getAvatarColor(user) }">
-                  {{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}
-                </span>
-                <span class="user-name-text">
-                  {{ user.displayName || user.username }} ({{ user.username }})
-                </span>
-              </div>
-            </div>
-            <!-- <small style="color: #888; font-size: 0.85rem; margin-top: 4px; display: block;">Dãn cách tên bằng dấu phẩy(,).</small> -->
           </div>
 
           <!-- Tiêu đề -->
@@ -119,13 +94,15 @@ import { getImeValue } from '@/shared/utils/utils'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
 import Loading from '@/shared/components/Loading.vue'
+import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 
 export default {
   name: 'AddConversation',
   components: {
     Breadcrumb,
     CustomEditor,
-    Loading
+    Loading,
+    UserSearchInput
   },
   data() {
     const toParam = this.$route.query.to || ''

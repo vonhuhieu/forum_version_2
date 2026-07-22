@@ -77,6 +77,70 @@ public class UserService {
         });
     }
 
+    public List<UserDTO> getNewestMembers(int limit) {
+        List<User> users = userRepository.findNewestRoleUsers(PageRequest.of(0, limit));
+        return users.stream().map(u -> {
+            UserDTO dto = convertToDTO(u);
+            enrichUserStats(dto);
+            dto.setEmail(null);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    public List<UserDTO> getTopPosters(int limit) {
+        List<Long> topIds = userRepository.findTopPosterUserIds(PageRequest.of(0, limit));
+        if (topIds.isEmpty()) return new ArrayList<>();
+        Map<Long, User> userMap = userRepository.findAllById(topIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        List<UserDTO> result = new ArrayList<>();
+        for (Long id : topIds) {
+            User user = userMap.get(id);
+            if (user != null) {
+                UserDTO dto = convertToDTO(user);
+                enrichUserStats(dto);
+                dto.setEmail(null);
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
+    public List<UserDTO> getTopInteractions(int limit) {
+        List<Long> topIds = userRepository.findTopInteractionUserIds(PageRequest.of(0, limit));
+        if (topIds.isEmpty()) return new ArrayList<>();
+        Map<Long, User> userMap = userRepository.findAllById(topIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        List<UserDTO> result = new ArrayList<>();
+        for (Long id : topIds) {
+            User user = userMap.get(id);
+            if (user != null) {
+                UserDTO dto = convertToDTO(user);
+                enrichUserStats(dto);
+                dto.setEmail(null);
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
+    public List<UserDTO> getTopTrophyPoints(int limit) {
+        List<Long> topIds = userRepository.findTopTrophyPointUserIds(PageRequest.of(0, limit));
+        if (topIds.isEmpty()) return new ArrayList<>();
+        Map<Long, User> userMap = userRepository.findAllById(topIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        List<UserDTO> result = new ArrayList<>();
+        for (Long id : topIds) {
+            User user = userMap.get(id);
+            if (user != null) {
+                UserDTO dto = convertToDTO(user);
+                enrichUserStats(dto);
+                dto.setEmail(null);
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
     private void enrichUserStats(UserDTO dto) {
         if (dto == null || dto.getId() == null) return;
         Long userId = dto.getId();
