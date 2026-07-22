@@ -191,42 +191,21 @@
 
                   <div class="filter-field-group filter-user-search" style="position: relative;">
                     <label class="filter-field-label">Bắt đầu bởi:</label>
-                    <div class="select-selected-container">
-                      <input 
-                        type="text" 
-                        :value="userSearchKeyword" 
-                        @focus="onUserSearchFocus"
-                        @input="handleUserSearchInput"
+                    <div style="position: relative; flex: 1;">
+                      <UserSearchInput
+                        v-model="userSearchKeyword"
                         placeholder="Tên người dùng..."
-                        class="select-search-input"
+                        input-class="select-search-input"
+                        @select="selectUser"
                       />
                       <span 
                         v-if="selectedUser" 
                         class="select-clear-btn" 
                         @click.stop="clearUserSelection"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer; color: #999;"
                       >
                         &times;
                       </span>
-                    </div>
-
-                    <!-- Dropdown autocomplete search results -->
-                    <div v-if="userDropdownOpen && userSearchResults.length > 0" class="autocomplete-dropdown-filter">
-                      <div 
-                        v-for="user in userSearchResults" 
-                        :key="user.id" 
-                        class="autocomplete-item-filter" 
-                        @click="selectUser(user)"
-                      >
-                        <div class="user-avatar-mini" :style="!isAvatarUrl(user.avatar) ? { backgroundColor: user.avatar || '#ccc', color: '#fff' } : {}">
-                          <img v-if="isAvatarUrl(user.avatar)" :src="user.avatar" />
-                          <template v-else>
-                            {{ (user.displayName || user.username || 'A').charAt(0).toUpperCase() }}
-                          </template>
-                        </div>
-                        <span class="user-name-text">
-                          <strong>{{ user.displayName || user.username }}</strong>
-                        </span>
-                      </div>
                     </div>
                   </div>
 
@@ -427,6 +406,7 @@ import userService from '@/apps/Forum/services/user.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, getImeValue } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
@@ -437,7 +417,8 @@ export default {
   components: {
     Breadcrumb,
     ForumPagination,
-    UserProfilePopup
+    UserProfilePopup,
+    UserSearchInput
   },
   data() {
     return {
