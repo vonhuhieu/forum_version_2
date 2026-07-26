@@ -22,3 +22,9 @@ export const SETTINGS = {
   NO_LIMIT_VALUE: -1
 };
 
+export const MEMBER_KEYS = {
+  MOST_MESSAGES: 'most_messages',
+  MOST_REACTIONS: 'most_reactions',
+  MOST_POINTS: 'most_points'
+};
+

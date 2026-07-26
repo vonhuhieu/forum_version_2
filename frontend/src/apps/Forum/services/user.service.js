@@ -32,6 +32,10 @@ class UserService {
   getTopTrophyPoints(limit = 5) {
     return api.get('/users/members/top-trophy-points', { params: { limit } })
   }
+
+  getMembersPaged(key, page = 0, size = 20) {
+    return api.get('/users/members/paged', { params: { key, page, size } })
+  }
 }
 
 export default new UserService()
