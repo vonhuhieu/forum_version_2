@@ -1,6 +1,7 @@
 package com.forum.controller;
 
 import com.forum.service.AuthService;
+import com.forum.service.TurnstileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private TurnstileService turnstileService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
@@ -33,8 +37,14 @@ public class AuthController {
         String password = registerRequest.get("password");
         String email = registerRequest.get("email");
         String displayName = registerRequest.get("displayName");
+        
+        String turnstileToken = registerRequest.get("turnstileToken");
+        if (turnstileToken == null) {
+            turnstileToken = registerRequest.get("recaptcha");
+        }
 
         try {
+            turnstileService.verifyTokenOrThrow(turnstileToken);
             authService.registerUser(username, password, email, displayName);
             return ResponseEntity.ok(Map.of("message", "Đăng ký thành công"));
         } catch (IllegalArgumentException e) {
