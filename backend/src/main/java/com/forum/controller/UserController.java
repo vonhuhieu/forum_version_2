@@ -3,6 +3,7 @@ package com.forum.controller;
 import com.forum.dto.ResponseDTO;
 import com.forum.dto.UserDTO;
 import com.forum.service.UserService;
+import com.forum.utils.Constants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -107,6 +108,18 @@ public class UserController {
     public ResponseEntity<ResponseDTO<List<UserDTO>>> getTopTrophyPoints(@RequestParam(defaultValue = "5") int limit) {
         try {
             return ResponseEntity.ok(ResponseDTO.success(userService.getTopTrophyPoints(limit)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
+        }
+    }
+
+    @GetMapping("/members/paged")
+    public ResponseEntity<ResponseDTO<org.springframework.data.domain.Page<UserDTO>>> getMembersPaged(
+            @RequestParam(required = false, defaultValue = Constants.MEMBER_KEY_MOST_MESSAGES) String key,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            return ResponseEntity.ok(ResponseDTO.success(userService.getMembersPaged(key, page, size)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
         }

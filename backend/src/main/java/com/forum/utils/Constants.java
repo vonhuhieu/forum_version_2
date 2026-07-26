@@ -22,4 +22,8 @@ public class Constants {
     public static final String DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES = "15";
     public static final String SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES = "conversation_reply_edit_limit_minutes";
     public static final String DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES = "15";
+
+    public static final String MEMBER_KEY_MOST_MESSAGES = "most_messages";
+    public static final String MEMBER_KEY_MOST_REACTIONS = "most_reactions";
+    public static final String MEMBER_KEY_MOST_POINTS = "most_points";
 }

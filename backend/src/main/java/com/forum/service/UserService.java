@@ -141,6 +141,40 @@ public class UserService {
         return result;
     }
 
+    public org.springframework.data.domain.Page<UserDTO> getMembersPaged(String key, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Long> pagedIds;
+        
+        if (Constants.MEMBER_KEY_MOST_REACTIONS.equalsIgnoreCase(key)) {
+            pagedIds = userRepository.findTopInteractionUserIdsPaged(pageable);
+        } else if (Constants.MEMBER_KEY_MOST_POINTS.equalsIgnoreCase(key)) {
+            pagedIds = userRepository.findTopTrophyPointUserIdsPaged(pageable);
+        } else {
+            pagedIds = userRepository.findTopPosterUserIdsPaged(pageable);
+        }
+
+        if (pagedIds.isEmpty()) {
+            return new org.springframework.data.domain.PageImpl<>(new ArrayList<>(), pageable, 0);
+        }
+
+        List<Long> topIds = pagedIds.getContent();
+        Map<Long, User> userMap = userRepository.findAllById(topIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        List<UserDTO> result = new ArrayList<>();
+        for (Long id : topIds) {
+            User user = userMap.get(id);
+            if (user != null) {
+                UserDTO dto = convertToDTO(user);
+                enrichUserStats(dto);
+                dto.setEmail(null);
+                result.add(dto);
+            }
+        }
+
+        return new org.springframework.data.domain.PageImpl<>(result, pageable, pagedIds.getTotalElements());
+    }
+
     private void enrichUserStats(UserDTO dto) {
         if (dto == null || dto.getId() == null) return;
         Long userId = dto.getId();

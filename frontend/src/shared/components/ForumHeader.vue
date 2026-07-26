@@ -444,6 +444,12 @@
     </div>
   </header>
 
+  <div class="container header-banner-container">
+    <div class="banner-box" style="margin-top: 1rem;">
+      <img src="/675456323_122106804740812631_4737388993277477397_n.jpg" alt="HTXHS Banner">
+    </div>
+  </div>
+
   <PendingApprovalBanner v-if="isNonOfficial" />
   <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
   <AvatarUploadModal :show="showAvatarModal" :current-user="currentUser" @close="showAvatarModal = false" @avatar-updated="onAvatarUpdated" />
