@@ -16,6 +16,8 @@ import ThreadDetail from '@/apps/Forum/views/ThreadDetail.vue'
 import CategoryView from '@/apps/Forum/views/CategoryView.vue'
 import LatestThreadsView from '@/apps/Forum/views/LatestThreadsView.vue'
 import ForgotPassword from '@/apps/Auth/views/ForgotPassword.vue'
+import RegisterComplete from '@/apps/Auth/views/RegisterComplete.vue'
+import ConfirmEmail from '@/apps/Forum/views/ConfirmEmail.vue'
 import AddConversation from '@/apps/Forum/views/AddConversation.vue'
 import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
 import ConversationList from '@/apps/Forum/views/ConversationList.vue'
@@ -108,6 +110,16 @@ const routes = [
         name: 'ChangePassword',
         component: ChangePassword,
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'confirm-email',
+        name: 'ConfirmEmail',
+        component: ConfirmEmail
+      },
+      {
+        path: 'register/complete',
+        name: 'RegisterComplete',
+        component: RegisterComplete
       }
     ]
   },

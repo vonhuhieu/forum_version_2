@@ -61,7 +61,7 @@ public class AuthService {
         return String.format("hsl(%d, 70%%, 45%%)", hue);
     }
 
-    public void registerUser(String username, String password, String email, String displayName) {
+    public Map<String, Object> registerUser(String username, String password, String email, String displayName, String baseUrl) {
         // Kiểm định định dạng tài khoản nghiêm ngặt
         if (username == null || !username.matches("^[a-zA-Z0-9_]{3,20}$")) {
             throw new IllegalArgumentException("Tên đăng nhập không hợp lệ. Chỉ bao gồm chữ cái, số, gạch dưới (3-20 ký tự) và KHÔNG dấu/khoảng trắng.");
@@ -85,8 +85,122 @@ public class AuthService {
             user.setDisplayName(username);
         }
 
-        user.setRoles(Set.of(Constants.ROLE_NON_OFFICIAL_USER));
+        // Dùng HashSet khả biến để tránh UnsupportedOperationException trong Hibernate
+        user.setRoles(new java.util.HashSet<>(Set.of(Constants.ROLE_NON_OFFICIAL_USER)));
         user.setAvatar(getRandomColor());
+
+        // Sinh token xác nhận email (hạn 24 giờ)
+        String token = java.util.UUID.randomUUID().toString();
+        user.setEmailConfirmationToken(token);
+        user.setEmailConfirmationExpiry(java.time.LocalDateTime.now().plusHours(24));
+
+        userRepository.save(user);
+
+        // Thử gửi email xác thực ban đầu (bắt ngoại lệ an toàn để đăng ký không bị đổ vỡ nếu rớt mạng)
+        boolean emailSent = false;
+        try {
+            emailService.sendConfirmationEmailSync(email, user.getDisplayName(), token, baseUrl);
+            emailSent = true;
+        } catch (Exception e) {
+            System.err.println("CẢNH BÁO: Thử gửi email xác thực khi đăng ký thất bại: " + e.getMessage());
+            emailSent = false;
+        }
+
+        // Sinh JWT Token tự động đăng nhập vai trò ROLE_NON_OFFICIAL_USER
+        String jwtToken = jwtUtils.generateJwtToken(username, user.getRoles());
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", user.getId());
+        response.put("token", jwtToken);
+        response.put("username", user.getUsername());
+        response.put("displayName", user.getDisplayName());
+        response.put("roles", user.getRoles());
+        response.put("avatar", user.getAvatar());
+        response.put("email", user.getEmail());
+        response.put("emailSent", emailSent);
+        response.put("message", "Đăng ký thành công");
+        return response;
+    }
+
+    public void resendConfirmationEmail(String email, String baseUrl) {
+        if (!org.springframework.util.StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Vui lòng cung cấp địa chỉ email");
+        }
+
+        Optional<User> userOpt = userRepository.findFirstByEmail(email.trim());
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
+        }
+
+        User user = userOpt.get();
+        if (user.getRoles().contains(Constants.ROLE_USER) && !user.getRoles().contains(Constants.ROLE_NON_OFFICIAL_USER)) {
+            throw new IllegalArgumentException("Tài khoản của bạn đã được xác minh trước đó. Vui lòng đăng nhập.");
+        }
+
+        String token = java.util.UUID.randomUUID().toString();
+        user.setEmailConfirmationToken(token);
+        user.setEmailConfirmationExpiry(java.time.LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        // Gọi đồng bộ để ném ngoại lệ thực tế nếu Resend bị lỗi
+        emailService.sendConfirmationEmailSync(user.getEmail(), user.getDisplayName() != null ? user.getDisplayName() : user.getUsername(), token, baseUrl);
+    }
+
+    public Map<String, Object> verifyConfirmationToken(String token) {
+        if (!org.springframework.util.StringUtils.hasText(token)) {
+            throw new IllegalArgumentException("Mã xác thực email không hợp lệ");
+        }
+
+        Optional<User> userOpt = userRepository.findByEmailConfirmationToken(token);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("Mã xác nhận email không tồn tại hoặc không hợp lệ.");
+        }
+
+        User user = userOpt.get();
+        if (user.getEmailConfirmationExpiry() == null || user.getEmailConfirmationExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("EXPIRED:Liên kết xác minh email đã hết hạn (chỉ có hiệu lực trong 24h). Vui lòng bấm 'Gửi lại email xác nhận' để nhận liên kết mới.");
+        }
+
+        Map<String, Object> res = new java.util.HashMap<>();
+        res.put("username", user.getUsername());
+        res.put("displayName", user.getDisplayName());
+        res.put("email", user.getEmail());
+        return res;
+    }
+
+    public void confirmEmailAndUpgradeRole(String token, String currentPassword, String newPassword) {
+        if (!org.springframework.util.StringUtils.hasText(token)) {
+            throw new IllegalArgumentException("Mã xác thực email không hợp lệ");
+        }
+
+        Optional<User> userOpt = userRepository.findByEmailConfirmationToken(token);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("Mã xác nhận email không tồn tại hoặc không hợp lệ.");
+        }
+
+        User user = userOpt.get();
+        if (user.getEmailConfirmationExpiry() == null || user.getEmailConfirmationExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("EXPIRED:Liên kết xác minh email đã hết hạn (chỉ có hiệu lực trong 24h). Vui lòng bấm 'Gửi lại email xác nhận' để nhận liên kết mới.");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác.");
+        }
+
+        if (!org.springframework.util.StringUtils.hasText(newPassword) || newPassword.trim().length() < 3) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 3 ký tự.");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới phải khác với mật khẩu hiện tại.");
+        }
+
+        // Đổi sang mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        // Nâng cấp quyền lên ROLE_USER chính thức (Dùng HashSet khả biến để tránh UnsupportedOperationException)
+        user.setRoles(new java.util.HashSet<>(Set.of(Constants.ROLE_USER)));
+        user.setEmailConfirmationToken(null);
+        user.setEmailConfirmationExpiry(null);
         userRepository.save(user);
     }
 

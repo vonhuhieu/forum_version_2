@@ -68,3 +68,14 @@ export function getImeValue(event) {
   }
   return '';
 }
+
+/**
+ * Lấy domain/origin hiện tại của trình duyệt người dùng truy cập (VD: http://localhost:5173 hoặc https://htxslvn.com).
+ * @returns {string}
+ */
+export function getCurrentOrigin() {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin;
+  }
+  return '';
+}

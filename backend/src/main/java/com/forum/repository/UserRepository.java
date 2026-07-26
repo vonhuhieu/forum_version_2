@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
     Optional<User> findFirstByEmail(String email);
     Optional<User> findFirstByOrderByIdDesc();
+    Optional<User> findByEmailConfirmationToken(String token);
 
     @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = :role")
     long countByRole(@Param("role") String role);
