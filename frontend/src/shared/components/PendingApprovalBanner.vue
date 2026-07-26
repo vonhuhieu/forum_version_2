@@ -2,7 +2,7 @@
   <div class="pending-approval-banner-wrapper">
     <div class="container">
       <div class="pending-approval-banner">
-        Tài khoản của bạn hiện đang chờ được quản trị viên phê duyệt. Bạn sẽ nhận được email khi quyết định được đưa ra.
+        Bạn hãy vui lòng kiểm tra email đã đăng ký để thực hiện xác thực tài khoản hoặc chờ để được quản trị viên phê duyệt.
       </div>
     </div>
   </div>
