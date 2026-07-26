@@ -41,7 +41,7 @@
         
         <div class="form-group">
           <label>Xác nhận <span class="required">*</span></label>
-          <div id="recaptcha-main" class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
+          <div id="turnstile-container"></div>
         </div>
         <div v-if="error" class="error-msg">{{ error }}</div>
         <div v-if="success" class="success-msg">{{ success }}</div>
@@ -74,33 +74,65 @@ export default {
       showConfirmPassword: false,
       error: '',
       success: '',
-      loading: false
+      loading: false,
+      turnstileWidgetId: null,
+      turnstileToken: ''
     }
   },
   mounted() {
-    // If recaptcha is already loaded, render it
-    if (window.grecaptcha) {
-      this.renderRecaptcha()
-    } else {
-      // Check every 500ms if recaptcha is loaded
-      const interval = setInterval(() => {
-        if (window.grecaptcha) {
-          this.renderRecaptcha()
-          clearInterval(interval)
-        }
-      }, 500)
-    }
+    this.initTurnstile()
   },
   methods: {
-    renderRecaptcha() {
-      if (window.grecaptcha && document.getElementById('recaptcha-main')) {
-        window.grecaptcha.render('recaptcha-main')
+    initTurnstile() {
+      if (window.turnstile) {
+        this.renderTurnstile()
+      } else {
+        const interval = setInterval(() => {
+          if (window.turnstile) {
+            this.renderTurnstile()
+            clearInterval(interval)
+          }
+        }, 300)
+      }
+    },
+    renderTurnstile() {
+      const siteKey = process.env.VUE_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
+      const container = document.getElementById('turnstile-container')
+      if (window.turnstile && container && this.turnstileWidgetId === null) {
+        try {
+          this.turnstileWidgetId = window.turnstile.render('#turnstile-container', {
+            sitekey: siteKey,
+            size: 'flexible',
+            callback: (token) => {
+              this.turnstileToken = token
+              this.error = ''
+            },
+            'expired-callback': () => {
+              this.turnstileToken = ''
+            },
+            'error-callback': () => {
+              this.turnstileToken = ''
+            }
+          })
+        } catch (e) {
+          console.error('Lỗi khởi tạo Cloudflare Turnstile:', e)
+        }
+      }
+    },
+    resetTurnstile() {
+      if (window.turnstile && this.turnstileWidgetId !== null) {
+        try {
+          window.turnstile.reset(this.turnstileWidgetId)
+        } catch (e) {
+          // ignore
+        }
+        this.turnstileToken = ''
       }
     },
     async handleRegister() {
-      const recaptchaResponse = window.grecaptcha ? window.grecaptcha.getResponse() : ''
-      if (!recaptchaResponse) {
-        this.error = 'Vui lòng xác nhận mã reCAPTCHA'
+      const token = this.turnstileToken || (window.turnstile && this.turnstileWidgetId !== null ? window.turnstile.getResponse(this.turnstileWidgetId) : '')
+      if (!token) {
+        this.error = 'Vui lòng xác nhận mã chống Bot (Cloudflare Turnstile)'
         return
       }
 
@@ -123,7 +155,7 @@ export default {
           displayName: this.displayName,
           password: this.password,
           email: this.email,
-          recaptcha: recaptchaResponse
+          turnstileToken: token
         })
         this.success = 'Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...'
         setTimeout(() => {
@@ -131,9 +163,7 @@ export default {
         }, 2000)
       } catch (err) {
         this.error = err.response?.data?.message || 'Đã có lỗi xảy ra'
-        if (window.grecaptcha) {
-          window.grecaptcha.reset()
-        }
+        this.resetTurnstile()
       } finally {
         this.loading = false
       }
@@ -184,4 +214,12 @@ export default {
 .btn-login:hover { background: #154267; }
 .error-msg { color: #e74c3c; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
 .success-msg { color: #27ae60; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
+
+#turnstile-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 65px;
+}
 </style>
