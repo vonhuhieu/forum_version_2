@@ -50,6 +50,12 @@ public class User {
     @Column(name = "reset_code_expiry")
     private LocalDateTime resetCodeExpiry;
 
+    @Column(name = "email_confirmation_token")
+    private String emailConfirmationToken;
+
+    @Column(name = "email_confirmation_expiry")
+    private LocalDateTime emailConfirmationExpiry;
+
     @org.hibernate.annotations.CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

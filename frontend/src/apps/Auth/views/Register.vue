@@ -29,17 +29,6 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Xác nhận mật khẩu <span class="required">*</span></label>
-          <div class="password-wrapper">
-            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" required placeholder="Nhập lại mật khẩu">
-            <span class="toggle-icon" @click="showConfirmPassword = !showConfirmPassword">
-              <svg v-if="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </span>
-          </div>
-        </div>
-        
-        <div class="form-group">
           <label>Xác nhận <span class="required">*</span></label>
           <div id="turnstile-container"></div>
         </div>
@@ -69,9 +58,7 @@ export default {
       displayName: '',
       email: '',
       password: '',
-      confirmPassword: '',
       showPassword: false,
-      showConfirmPassword: false,
       error: '',
       success: '',
       loading: false,
@@ -100,6 +87,7 @@ export default {
       const container = document.getElementById('turnstile-container')
       if (window.turnstile && container && this.turnstileWidgetId === null) {
         try {
+          container.innerHTML = ''
           this.turnstileWidgetId = window.turnstile.render('#turnstile-container', {
             sitekey: siteKey,
             size: 'flexible',
@@ -142,25 +130,33 @@ export default {
         return
       }
 
-      if (this.password !== this.confirmPassword) {
-        this.error = 'Mật khẩu xác nhận không khớp'
-        return
-      }
       this.loading = true
       this.error = ''
       this.success = ''
       try {
-        await AuthService.register({
+        const res = await AuthService.register({
           username: this.username,
           displayName: this.displayName,
           password: this.password,
           email: this.email,
           turnstileToken: token
         })
-        this.success = 'Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...'
-        setTimeout(() => {
-          this.$router.push({ name: 'Login' })
-        }, 2000)
+        
+        // Tự động lưu session đăng nhập vai trò ROLE_NON_OFFICIAL_USER
+        if (res.data && res.data.token) {
+          localStorage.setItem('token', res.data.token)
+          localStorage.setItem('user', JSON.stringify(res.data))
+          window.dispatchEvent(new Event('storage'))
+        }
+
+        // Điều hướng sang màn hình thông báo chờ xác nhận email
+        await this.$router.push({
+          name: 'RegisterComplete',
+          query: {
+            email: this.email,
+            emailSent: res.data?.emailSent ? 'true' : 'false'
+          }
+        })
       } catch (err) {
         this.error = err.response?.data?.message || 'Đã có lỗi xảy ra'
         this.resetTurnstile()
@@ -216,10 +212,15 @@ export default {
 .success-msg { color: #27ae60; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
 
 #turnstile-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   min-height: 65px;
+}
+
+#turnstile-container :deep(iframe),
+#turnstile-container iframe {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
 }
 </style>
