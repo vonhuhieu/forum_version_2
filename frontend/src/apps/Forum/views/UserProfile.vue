@@ -36,7 +36,9 @@
               </div>
 
               <div class="profile-meta-details">
-                <h1 class="profile-displayname">{{ userStats.displayName || userStats.username }}</h1>
+                <h1 class="profile-displayname">
+                  {{ userStats.displayName || userStats.username }} <VerifiedBadge :user="userStats" size="20px" />
+                </h1>
                 <div class="profile-title-tag">{{ userStats.displayTitle || 'Thành viên' }}</div>
                 <div class="profile-time-row">
                   <span class="meta-item">Tham gia: {{ formatDate(userStats.createdAt) }}</span>
@@ -248,6 +250,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import api from '@/shared/services/api.service'
@@ -261,7 +264,8 @@ export default {
     ForumPagination,
     AvatarUploadModal,
     Loading,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {

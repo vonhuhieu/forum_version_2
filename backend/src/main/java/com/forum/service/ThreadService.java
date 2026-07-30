@@ -308,6 +308,16 @@ public class ThreadService {
         List<Object[]> latestPosts = postRepository.findLatestPostFieldsForThreadIds(threadIds);
         java.util.Map<Long, Object[]> threadIdToPostMap = latestPosts.stream()
                 .collect(java.util.stream.Collectors.toMap(row -> (Long) row[0], row -> row, (p1, p2) -> p1));
+
+        List<Long> lastPostUserIds = latestPosts.stream()
+                .filter(row -> row[3] != null)
+                .map(row -> (Long) row[3])
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+        java.util.Map<Long, User> lastPostUserMap = lastPostUserIds.isEmpty() ? java.util.Collections.emptyMap() :
+                userRepository.findAllById(lastPostUserIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
                 
         for (ThreadDTO dto : dtos) {
             Object[] row = threadIdToPostMap.get(dto.getId());
@@ -316,12 +326,19 @@ public class ThreadService {
                 dto.setLastPostAt((java.time.LocalDateTime) row[2]);
                 
                 if (row[3] != null) {
+                    Long userId = (Long) row[3];
+                    User lastPostUser = lastPostUserMap.get(userId);
                     com.forum.dto.UserDTO userDTO = new com.forum.dto.UserDTO();
-                    userDTO.setId((Long) row[3]);
+                    userDTO.setId(userId);
                     userDTO.setUsername((String) row[4]);
                     userDTO.setDisplayName((String) row[5]);
                     userDTO.setEmail((String) row[6]);
                     userDTO.setAvatar((String) row[7]);
+                    if (lastPostUser != null) {
+                        userDTO.setRoles(lastPostUser.getRoles());
+                        userDTO.setDisplayTitle(userTitleService.resolveDisplayTitle(lastPostUser, null));
+                        userDTO.setIsVerifiedBadge(userTitleService.isVerifiedBadge(lastPostUser, null));
+                    }
                     dto.setLastPostAuthor(userDTO);
                 }
             }
@@ -354,6 +371,7 @@ public class ThreadService {
                 userDTO.setEmail(post.getAuthor().getEmail());
                 userDTO.setAvatar(post.getAuthor().getAvatar());
                 userDTO.setDisplayTitle(userTitleService.resolveDisplayTitle(post.getAuthor(), null));
+                userDTO.setIsVerifiedBadge(userTitleService.isVerifiedBadge(post.getAuthor(), null));
                 dto.setLastPostAuthor(userDTO);
             }
         });

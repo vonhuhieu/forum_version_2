@@ -24,4 +24,5 @@ public class UserDTO {
     private Long assignedTitleId;
     private String assignedTitleName;
     private Boolean isVerified;
+    private Boolean isVerifiedBadge;
 }

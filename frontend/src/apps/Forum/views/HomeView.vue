@@ -52,8 +52,15 @@
                         </span>
                       </router-link>
                     </div>
-                    <div class="lt-meta">
-                      Mới nhất: {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }} &middot; {{ formatDate(thread.lastPostAt || thread.createdAt) }}
+                    <div class="lt-meta d-flex align-items-center">
+                      Mới nhất:&nbsp;
+                      <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                        <span class="cursor-pointer font-weight-bold me-1">
+                          {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="14px" />
+                        </span>
+                      </user-profile-popup>
+                      <span v-else>Ẩn danh</span>
+                      &nbsp;&middot;&nbsp;{{ formatDate(thread.lastPostAt || thread.createdAt) }}
                     </div>
                     <div class="lt-category">
                       <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category?.id } }">{{ thread.category?.name || 'Không rõ' }}</router-link>
@@ -176,6 +183,7 @@
 import ForumHome from '@/shared/components/ForumHome.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import statisticsService from '@/apps/Forum/services/statistics.service'
@@ -187,7 +195,8 @@ export default {
   components: {
     ForumHome,
     Loading,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {

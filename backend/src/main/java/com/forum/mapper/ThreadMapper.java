@@ -39,6 +39,7 @@ public abstract class ThreadMapper {
     protected void fillDisplayTitle(User user, @MappingTarget UserDTO dto) {
         if (user != null && dto != null && userTitleService != null) {
             dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
+            dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, dto.getTrophyPoints()));
         }
     }
 }

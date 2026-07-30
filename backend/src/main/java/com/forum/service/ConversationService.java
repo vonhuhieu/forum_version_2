@@ -228,6 +228,7 @@ public class ConversationService {
             dto.setCreatorAvatar(c.getCreator() != null ? c.getCreator().getAvatar() : null);
             dto.setCreatorUsername(c.getCreator() != null ? c.getCreator().getUsername() : "deleted_user");
             dto.setCreatorDisplayName(c.getCreator() != null ? c.getCreator().getDisplayName() : "Người dùng đã xóa");
+            dto.setCreatorIsVerifiedBadge(c.getCreator() != null ? userTitleService.isVerifiedBadge(c.getCreator(), null) : false);
 
             
             conversationMessageRepository.findFirstByConversationIdOrderByCreatedAtAsc(c.getId())
@@ -350,6 +351,7 @@ public class ConversationService {
             dto.setCreatorAvatar(c.getCreator() != null ? c.getCreator().getAvatar() : null);
             dto.setCreatorUsername(c.getCreator() != null ? c.getCreator().getUsername() : "deleted_user");
             dto.setCreatorDisplayName(c.getCreator() != null ? c.getCreator().getDisplayName() : "Người dùng đã xóa");
+            dto.setCreatorIsVerifiedBadge(c.getCreator() != null ? userTitleService.isVerifiedBadge(c.getCreator(), null) : false);
 
 
             if (!c.getMessages().isEmpty()) {
@@ -359,6 +361,7 @@ public class ConversationService {
                 dto.setLastMessageSenderUsername(lastMsg.getSender().getUsername());
                 dto.setLastMessageSenderDisplayName(lastMsg.getSender().getDisplayName());
                 dto.setLastMessageSenderAvatar(lastMsg.getSender().getAvatar());
+                dto.setLastMessageSenderIsVerifiedBadge(lastMsg.getSender() != null ? userTitleService.isVerifiedBadge(lastMsg.getSender(), null) : false);
                 // Use last message created time or updatedAt of conversation for last message time
                 dto.setUpdatedAt(lastMsg.getCreatedAt());
             }
@@ -661,6 +664,7 @@ public class ConversationService {
         dto.setCreatedAt(user.getCreatedAt());
         dto.setRoles(user.getRoles());
         dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
+        dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, dto.getTrophyPoints()));
         return dto;
     }
 

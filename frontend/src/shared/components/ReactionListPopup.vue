@@ -54,7 +54,12 @@
               </user-profile-popup>
               <div v-else class="avatar-circle" style="background-color: #ccc; color: #fff;">?</div>
               <div class="reactor-details">
-                <div class="reactor-name">{{ participant.user ? (participant.user.displayName || participant.user.username) : 'Ẩn danh' }}</div>
+                <user-profile-popup :user="participant.user" v-if="participant.user">
+                  <div class="reactor-name font-weight-bold cursor-pointer">
+                    {{ participant.user.displayName || participant.user.username }} <VerifiedBadge :user="participant.user" size="14px" />
+                  </div>
+                </user-profile-popup>
+                <div v-else class="reactor-name">Ẩn danh</div>
                 <div class="reactor-title">{{ participant.user?.displayTitle || 'Thành viên' }}</div>
                 <div class="reactor-stats" v-if="participant.user">
                   Bài viết: {{ formatNumber(participant.user.postCount) }} · Điểm tương tác: {{ formatNumber(participant.user.interactionPoints) }} · Điểm: {{ formatNumber(participant.user.trophyPoints) }}
@@ -91,6 +96,7 @@ import BaseModal from './BaseModal.vue'
 import ReactionIcon from './ReactionIcon.vue'
 import ForumPagination from './ForumPagination.vue'
 import UserProfilePopup from './UserProfilePopup.vue'
+import VerifiedBadge from './VerifiedBadge.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
@@ -101,7 +107,8 @@ export default {
     BaseModal,
     ReactionIcon,
     ForumPagination,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   props: {
     show: {

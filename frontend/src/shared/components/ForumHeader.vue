@@ -97,7 +97,9 @@
                       </div>
                     </div>
                     <div class="xamvn-user-details">
-                      <div class="xamvn-username">{{ currentUser.displayName || currentUser.username }}</div>
+                      <div class="xamvn-username cursor-pointer" @click="goToProfile">
+                        {{ currentUser.displayName || currentUser.username }} <VerifiedBadge :user="currentUser" size="15px" />
+                      </div>
                       <div class="xamvn-title">{{ currentUser.displayTitle || 'Thành viên' }}</div>
                       <div class="xamvn-stats">
                         <div class="xamvn-stat-row">
@@ -218,11 +220,19 @@
                                </template>
                             </template>
                             <template v-else-if="convo.isQuote">
-                               <strong>{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }}</strong> đã trích tin nhắn của bạn trong cuộc đối thoại 
+                               <user-profile-popup :user="getConvoSenderUser(convo)" v-if="getConvoSenderUser(convo)">
+                                 <strong class="cursor-pointer">{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }} <VerifiedBadge :user="getConvoSenderUser(convo)" size="13px" /></strong>
+                               </user-profile-popup>
+                               <strong v-else>{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }}</strong>
+                               đã trích tin nhắn của bạn trong cuộc đối thoại 
                                <span class="convo-title-link" style="display: inline;">{{ convo.title }}</span>
                             </template>
                             <template v-else-if="convo.isMention">
-                               <strong>{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }}</strong> đã tag bạn trong cuộc hội thoại 
+                               <user-profile-popup :user="getConvoSenderUser(convo)" v-if="getConvoSenderUser(convo)">
+                                 <strong class="cursor-pointer">{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }} <VerifiedBadge :user="getConvoSenderUser(convo)" size="13px" /></strong>
+                               </user-profile-popup>
+                               <strong v-else>{{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername }}</strong>
+                               đã tag bạn trong cuộc hội thoại 
                                <span class="convo-title-link" style="display: inline;">{{ convo.title }}</span>
                             </template>
                             <template v-else-if="currentUser && convo.creatorUsername === currentUser.username">
@@ -231,7 +241,11 @@
                                với {{ getRecipients(convo) }}
                             </template>
                             <template v-else>
-                               {{ convo.creatorDisplayName || convo.creatorUsername }} đã bắt đầu cuộc hội thoại 
+                               <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
+                                 <strong class="cursor-pointer">{{ convo.creatorDisplayName || convo.creatorUsername }} <VerifiedBadge :user="getConvoCreator(convo)" size="13px" /></strong>
+                               </user-profile-popup>
+                               <strong v-else>{{ convo.creatorDisplayName || convo.creatorUsername }}</strong>
+                               đã bắt đầu cuộc hội thoại 
                                <span class="convo-title-link" style="display: inline;">{{ convo.title }}</span>
                                với bạn
                             </template>
@@ -306,8 +320,12 @@
                          <div v-else class="notif-avatar" style="background-color: #ccc; color: #fff;">?</div>
                       </div>
                      <div class="notif-body">
-                        <div class="notif-text">
-                           <strong>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
+                         <div class="notif-text">
+                            <user-profile-popup :user="getNotifUser(notif)" v-if="getNotifUser(notif)">
+                              <strong class="cursor-pointer">{{ notif.actorDisplayName || notif.actorUsername }} <VerifiedBadge :user="getNotifUser(notif)" size="14px" /></strong>
+                            </user-profile-popup>
+                            <strong v-else>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
+                            &nbsp;
                            <template v-if="notif.type === 'REACTION'">
                               đã tương tác <ReactionIcon :code="notif.reactionIcon" :color="notif.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" /> 
                               <strong :style="{ color: notif.reactionColor || '#2c3e50' }">{{ notif.reactionName }}</strong>
@@ -469,6 +487,7 @@ import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
@@ -479,7 +498,8 @@ export default {
     SearchModal,
     ReactionIcon,
     AvatarUploadModal,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {
@@ -667,7 +687,8 @@ export default {
             postCount: dbUser.postCount,
             interactionPoints: dbUser.interactionPoints,
             trophyPoints: dbUser.trophyPoints,
-            displayTitle: dbUser.displayTitle
+            displayTitle: dbUser.displayTitle,
+            isVerifiedBadge: dbUser.isVerifiedBadge
           }
           
           const currentRoles = this.currentUser.roles || []
@@ -1008,20 +1029,41 @@ export default {
         return {
           username: convo.creatorUsername,
           displayName: convo.creatorDisplayName,
-          avatar: convo.creatorAvatar
+          avatar: convo.creatorAvatar,
+          isVerifiedBadge: convo.creatorIsVerifiedBadge
         }
       }
       if (convo.isReply || convo.isQuote || convo.isMention) {
         return {
           username: convo.lastMessageSenderUsername,
           displayName: convo.lastMessageSenderDisplayName,
-          avatar: convo.lastMessageSenderAvatar
+          avatar: convo.lastMessageSenderAvatar,
+          isVerifiedBadge: convo.lastMessageSenderIsVerifiedBadge
         }
       }
       return {
         username: convo.creatorUsername,
         displayName: convo.creatorDisplayName,
-        avatar: convo.creatorAvatar
+        avatar: convo.creatorAvatar,
+        isVerifiedBadge: convo.creatorIsVerifiedBadge
+      }
+    },
+    getConvoCreator(convo) {
+      if (!convo) return null
+      return {
+        username: convo.creatorUsername,
+        displayName: convo.creatorDisplayName,
+        avatar: convo.creatorAvatar,
+        isVerifiedBadge: convo.creatorIsVerifiedBadge
+      }
+    },
+    getConvoSenderUser(convo) {
+      if (!convo) return null
+      return {
+        username: convo.lastMessageSenderUsername || convo.creatorUsername,
+        displayName: convo.lastMessageSenderDisplayName || convo.creatorDisplayName,
+        avatar: convo.lastMessageSenderAvatar || convo.creatorAvatar,
+        isVerifiedBadge: convo.lastMessageSenderIsVerifiedBadge || convo.creatorIsVerifiedBadge
       }
     },
     getNotifUser(notif) {
@@ -1029,7 +1071,8 @@ export default {
       return {
         username: notif.actorUsername,
         displayName: notif.actorDisplayName,
-        avatar: notif.actorAvatar
+        avatar: notif.actorAvatar,
+        isVerifiedBadge: notif.actorIsVerifiedBadge || notif.isVerifiedBadge
       }
     },
     isAvatarUrl(avatar) {
