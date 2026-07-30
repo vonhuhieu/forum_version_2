@@ -42,7 +42,7 @@
             <div class="popup-meta-col">
               <div class="popup-displayname" @click="goToProfile">{{ userData.displayName || userData.username }}</div>
               <div class="popup-meta-box">
-                <div class="popup-title-tag">Yếu sinh lý</div>
+                <div class="popup-title-tag">{{ userData.displayTitle || 'Thành viên' }}</div>
                 <div class="popup-meta-item">Tham gia: {{ formatJoinDate(userData.createdAt) }}</div>
                 <div class="popup-meta-item text-dimmed">{{ formatLastActive(userData.lastActiveAt || userData.createdAt) }}</div>
               </div>

@@ -19,4 +19,9 @@ public class UserDTO {
     private Long trophyPoints;
     private Long threadCount;
     private Long commentCount;
+
+    private String displayTitle;
+    private Long assignedTitleId;
+    private String assignedTitleName;
+    private Boolean isVerified;
 }

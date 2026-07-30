@@ -37,6 +37,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final EmailService emailService;
+    private final UserTitleService userTitleService;
 
     public Page<UserDTO> searchUsers(String keyword, String currentUsername, int page, int size) {
         String trimmedKeyword = keyword != null ? keyword.trim() : "";
@@ -190,6 +191,15 @@ public class UserService {
         dto.setTrophyPoints(trophyPoints);
         dto.setThreadCount(threadCount);
         dto.setCommentCount(postCountInDb);
+
+        userRepository.findById(userId).ifPresent(user -> {
+            dto.setIsVerified(user.isVerified());
+            if (user.getAssignedTitle() != null) {
+                dto.setAssignedTitleId(user.getAssignedTitle().getId());
+                dto.setAssignedTitleName(user.getAssignedTitle().getName());
+            }
+            dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, trophyPoints));
+        });
     }
 
     public List<UserDTO> getAdminUsers(String currentUsername) {
@@ -508,6 +518,12 @@ public class UserService {
         dto.setCreatedAt(user.getCreatedAt());
         dto.setLastActiveAt(user.getLastActiveAt());
         dto.setRoles(user.getRoles());
+        dto.setIsVerified(user.isVerified());
+        if (user.getAssignedTitle() != null) {
+            dto.setAssignedTitleId(user.getAssignedTitle().getId());
+            dto.setAssignedTitleName(user.getAssignedTitle().getName());
+        }
+        dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
         return dto;
     }
 
