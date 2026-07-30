@@ -13,7 +13,14 @@
         <div class="thread-meta-bar">
           <div class="author-info">
             <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <span class="author-name">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
+            <span class="author-name">
+              <user-profile-popup :user="thread.author" v-if="thread.author">
+                <span class="cursor-pointer font-weight-bold">
+                  {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                </span>
+              </user-profile-popup>
+              <span v-else>Ẩn danh</span>
+            </span>
             <span class="meta-dot">·</span>
             <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             <span class="post-time">{{ formatDate(thread.createdAt) }}</span>
@@ -69,7 +76,12 @@
               </user-profile-popup>
               <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">A</div>
               <div class="author-info-mobile-block">
-                <div class="author-name-large">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</div>
+                <user-profile-popup :user="thread.author" v-if="thread.author">
+                  <div class="author-name-large font-weight-bold cursor-pointer">
+                    {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" />
+                  </div>
+                </user-profile-popup>
+                <div v-else class="author-name-large">Ẩn danh</div>
                 <div class="author-title">{{ (thread.author && thread.author.displayTitle) ? thread.author.displayTitle : 'Thành viên' }}</div>
               </div>
               <span class="message-userArrow"></span>
@@ -157,7 +169,12 @@
               </user-profile-popup>
               <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
               <div class="author-info-mobile-block">
-                <div class="author-name-large">{{ item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh' }}</div>
+                <user-profile-popup :user="item.author" v-if="item.author">
+                  <div class="author-name-large font-weight-bold cursor-pointer">
+                    {{ item.author.displayName || item.author.username }} <VerifiedBadge :user="item.author" />
+                  </div>
+                </user-profile-popup>
+                <div v-else class="author-name-large">Ẩn danh</div>
                 <div class="author-title">{{ (item.author && item.author.displayTitle) ? item.author.displayTitle : 'Thành viên' }}</div>
               </div>
               <span class="message-userArrow"></span>
@@ -338,6 +355,7 @@ import { formatForumDate } from '@/shared/utils/date'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
 import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
 import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
@@ -355,6 +373,7 @@ export default {
     ReactionButton,
     ReactionSummary,
     ReactionListPopup,
+    VerifiedBadge,
     Loading,
     UserProfilePopup,
     ReportModal
@@ -1572,18 +1591,37 @@ export default {
   margin-bottom: 10px;
 }
 
+.author-info-mobile-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .author-name-large {
   font-weight: bold;
   color: #2980b9;
   font-size: 1rem;
   text-align: center;
   margin-bottom: 5px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+.author-name-large :deep(.verified-badge-wrapper) {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 2px;
+  margin-right: 2px;
 }
 
 .author-title {
   font-size: 0.8rem;
   color: #7f8c8d;
   text-align: center;
+  word-break: break-word;
 }
 
 .post-main {

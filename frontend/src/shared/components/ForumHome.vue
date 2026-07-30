@@ -33,7 +33,14 @@
               </span>
             </div>
             <div class="thread-meta desktop-only">
-              <span class="author-name white-space-nowrap">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
+              <span class="author-name white-space-nowrap">
+                <user-profile-popup :user="thread.author" v-if="thread.author">
+                  <span class="cursor-pointer font-weight-bold">
+                    {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                  </span>
+                </user-profile-popup>
+                <span v-else>Ẩn danh</span>
+              </span>
               <span class="dot-divider">•</span>
               <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" class="meta-link white-space-nowrap">{{ formatDate(thread.createdAt) }}</router-link>
               <span v-if="thread.category" class="dot-divider home-category-dot">•</span>
@@ -58,7 +65,14 @@
             </div>
             <div class="thread-meta-mobile mobile-only">
               <div class="thread-meta-row-2">
-                <span class="author-name">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
+                <span class="author-name">
+                  <user-profile-popup :user="thread.author" v-if="thread.author">
+                    <span class="cursor-pointer font-weight-bold">
+                      {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                    </span>
+                  </user-profile-popup>
+                  <span v-else>Ẩn danh</span>
+                </span>
               </div>
               <div v-if="thread.category" class="thread-meta-row-2-category">
                 <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category.id } }" class="meta-link meta-category mobile-category-link">
@@ -89,7 +103,14 @@
                 class="last-post-time-link">
                 {{ formatDate(thread.lastPostAt || thread.createdAt) }}
               </router-link>
-              <span class="last-post-author">{{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }}</span>
+              <span class="last-post-author">
+                <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                  <span class="cursor-pointer font-weight-bold">
+                    {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="13px" />
+                  </span>
+                </user-profile-popup>
+                <span v-else>Ẩn danh</span>
+              </span>
             </div>
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
               <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
@@ -180,7 +201,14 @@
                 <div class="last-thread-meta home-last-thread-meta display-flex-on-tablet-and-pc">
                   <span class="last-post-time">{{ formatDate(lastThreadByCat[cat.id].lastPostAt || lastThreadByCat[cat.id].createdAt) }}</span>
                   <span class="dot home-last-post-dot">•</span>
-                  <span class="author home-last-post-author">{{ (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'Ẩn danh' }}</span>
+                  <span class="author home-last-post-author">
+                    <user-profile-popup :user="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author" v-if="lastThreadByCat[cat.id] && (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)">
+                      <span class="cursor-pointer font-weight-bold">
+                        {{ (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username }} <VerifiedBadge :user="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author" size="13px" />
+                      </span>
+                    </user-profile-popup>
+                    <span v-else>Ẩn danh</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -225,8 +253,15 @@
                   </span>
                 </router-link>
               </div>
-              <div class="lt-meta">
-                Mới nhất: {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }} &middot; {{ formatDate(thread.lastPostAt || thread.createdAt) }}
+              <div class="lt-meta d-flex align-items-center">
+                Mới nhất:&nbsp;
+                <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                  <span class="cursor-pointer font-weight-bold me-1">
+                    {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="14px" />
+                  </span>
+                </user-profile-popup>
+                <span v-else>Ẩn danh</span>
+                &nbsp;&middot;&nbsp;{{ formatDate(thread.lastPostAt || thread.createdAt) }}
               </div>
               <div class="lt-category">
                 <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category?.id } }">{{ thread.category?.name || 'Không rõ' }}</router-link>
@@ -293,6 +328,7 @@ import categoryService from '@/apps/Forum/services/category.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
@@ -319,7 +355,8 @@ export default {
     }
   },
   components: {
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {

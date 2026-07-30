@@ -14,6 +14,7 @@ public class NotificationDTO {
     private String actorUsername;
     private String actorDisplayName;
     private String actorAvatar;
+    private Boolean actorIsVerifiedBadge;
     
     private Long threadId;
     private String threadTitle;

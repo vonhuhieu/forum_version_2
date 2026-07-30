@@ -28,4 +28,7 @@ public class UserTitle {
 
     @Column
     private String description;
+
+    @Column(name = "is_trusted")
+    private Boolean isTrusted = false;
 }

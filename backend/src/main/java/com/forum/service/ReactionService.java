@@ -423,6 +423,7 @@ public class ReactionService {
         dto.setThreadCount(threadCount);
         dto.setCommentCount(postCountInDb);
         dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, trophyPoints));
+        dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, trophyPoints));
         return dto;
     }
 

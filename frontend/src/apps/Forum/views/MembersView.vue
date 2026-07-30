@@ -258,14 +258,14 @@
                       <div class="member-name-row">
                         <UserProfilePopup :user="userItem">
                           <span class="member-display-name">
-                            {{ userItem.displayName || userItem.username }}
+                            {{ userItem.displayName || userItem.username }} <VerifiedBadge :user="userItem" size="15px" />
                           </span>
                         </UserProfilePopup>
                       </div>
 
                       <!-- Hàng 2: Cấp bậc -->
                       <div class="member-rank-row">
-                        Thành viên
+                        {{ userItem.displayTitle || 'Thành viên' }}
                       </div>
 
                       <!-- Hàng 3: Thống kê 3 chỉ số -->
@@ -309,6 +309,7 @@ import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import { MEMBER_KEYS } from '@/shared/utils/constants'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 
 export default {
   name: 'MembersView',
@@ -316,7 +317,8 @@ export default {
     Loading,
     UserProfilePopup,
     UserSearchInput,
-    ForumPagination
+    ForumPagination,
+    VerifiedBadge
   },
   data() {
     return {

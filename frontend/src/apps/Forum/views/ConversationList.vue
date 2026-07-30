@@ -53,7 +53,14 @@
                 </div>
                 
                 <div class="thread-meta">
-                  <span class="author-name white-space-nowrap">{{ convo.creatorDisplayName || convo.creatorUsername || 'Ẩn danh' }}</span>
+                  <span class="author-name white-space-nowrap">
+                    <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
+                      <span class="cursor-pointer font-weight-bold">
+                        {{ convo.creatorDisplayName || convo.creatorUsername || 'Ẩn danh' }} <VerifiedBadge :user="getConvoCreator(convo)" />
+                      </span>
+                    </user-profile-popup>
+                    <span v-else>Ẩn danh</span>
+                  </span>
                   <span class="dot-divider">•</span>
                   <router-link :to="{ name: 'ConversationDetail', params: { id: convo.id } }" class="meta-link">
                     {{ formatDate(convo.createdAt) }}
@@ -95,7 +102,12 @@
                     {{ formatDate(convo.updatedAt) }}
                   </router-link>
                   <span class="last-post-author">
-                    {{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'Ẩn danh' }}
+                    <user-profile-popup :user="getConvoLastSender(convo)" v-if="getConvoLastSender(convo)">
+                      <span class="cursor-pointer font-weight-bold">
+                        {{ convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'Ẩn danh' }} <VerifiedBadge :user="getConvoLastSender(convo)" />
+                      </span>
+                    </user-profile-popup>
+                    <span v-else>Ẩn danh</span>
                   </span>
                 </div>
                 <user-profile-popup :user="getConvoLastSender(convo)" v-if="getConvoLastSender(convo)">
@@ -141,6 +153,7 @@ import conversationService from '@/apps/Forum/services/conversation.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
 
@@ -149,7 +162,8 @@ export default {
   components: {
     Breadcrumb,
     ForumPagination,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {
@@ -221,7 +235,8 @@ export default {
       return {
         username: convo.creatorUsername,
         displayName: convo.creatorDisplayName,
-        avatar: convo.creatorAvatar
+        avatar: convo.creatorAvatar,
+        isVerifiedBadge: convo.creatorIsVerifiedBadge
       }
     },
     getConvoLastSender(convo) {
@@ -229,7 +244,8 @@ export default {
       return {
         username: convo.lastMessageSenderUsername,
         displayName: convo.lastMessageSenderDisplayName,
-        avatar: convo.lastMessageSenderAvatar
+        avatar: convo.lastMessageSenderAvatar,
+        isVerifiedBadge: convo.lastMessageSenderIsVerifiedBadge
       }
     },
     isAvatarUrl(avatar) {

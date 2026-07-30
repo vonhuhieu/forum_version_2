@@ -14,6 +14,7 @@ public class ConversationDTO {
     private String creatorAvatar;
     private String creatorUsername;
     private String creatorDisplayName;
+    private Boolean creatorIsVerifiedBadge;
     private Long firstMessageId;
     private int replyCount;
     private int participantCount;
@@ -41,5 +42,6 @@ public class ConversationDTO {
     private String lastMessageSenderUsername;
     private String lastMessageSenderDisplayName;
     private String lastMessageSenderAvatar;
+    private Boolean lastMessageSenderIsVerifiedBadge;
     private Long lastMessageId;
 }

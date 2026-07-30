@@ -40,7 +40,9 @@
 
             <!-- Cột phải: thông tin đè lên banner -->
             <div class="popup-meta-col">
-              <div class="popup-displayname" @click="goToProfile">{{ userData.displayName || userData.username }}</div>
+              <div class="popup-displayname" @click="goToProfile">
+                {{ userData.displayName || userData.username }} <VerifiedBadge :user="userData" size="18px" />
+              </div>
               <div class="popup-meta-box">
                 <div class="popup-title-tag">{{ userData.displayTitle || 'Thành viên' }}</div>
                 <div class="popup-meta-item">Tham gia: {{ formatJoinDate(userData.createdAt) }}</div>
@@ -80,12 +82,17 @@
 
 <script>
 import userService from '@/apps/Forum/services/user.service'
+import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import { formatForumDate } from '@/shared/utils/date'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
   name: 'UserProfilePopup',
+  components: {
+    VerifiedBadge
+  },
   mixins: [userMixin],
   props: {
     user: {
