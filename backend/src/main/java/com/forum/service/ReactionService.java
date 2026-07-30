@@ -410,7 +410,19 @@ public class ReactionService {
         dto.setDisplayName(user.getDisplayName());
         dto.setEmail(user.getEmail());
         dto.setAvatar(user.getAvatar());
-        dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
+
+        long threadCount = threadRepository.countByAuthorId(user.getId());
+        long postCountInDb = postRepository.countByAuthorId(user.getId());
+        long totalPosts = threadCount + postCountInDb;
+        long interactionPoints = reactionRepository.countReactionsReceivedByUserId(user.getId());
+        long trophyPoints = Math.round(totalPosts * 0.1 + interactionPoints * 0.2);
+
+        dto.setPostCount(totalPosts);
+        dto.setInteractionPoints(interactionPoints);
+        dto.setTrophyPoints(trophyPoints);
+        dto.setThreadCount(threadCount);
+        dto.setCommentCount(postCountInDb);
+        dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, trophyPoints));
         return dto;
     }
 
