@@ -37,7 +37,7 @@
 
               <div class="profile-meta-details">
                 <h1 class="profile-displayname">{{ userStats.displayName || userStats.username }}</h1>
-                <div class="profile-title-tag">Yếu sinh lý</div>
+                <div class="profile-title-tag">{{ userStats.displayTitle || 'Thành viên' }}</div>
                 <div class="profile-time-row">
                   <span class="meta-item">Tham gia: {{ formatDate(userStats.createdAt) }}</span>
                 </div>

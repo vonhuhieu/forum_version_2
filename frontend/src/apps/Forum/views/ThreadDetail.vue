@@ -70,7 +70,7 @@
               <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">A</div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</div>
-                <div class="author-title">Yếu sinh lý</div>
+                <div class="author-title">{{ (thread.author && thread.author.displayTitle) ? thread.author.displayTitle : 'Thành viên' }}</div>
               </div>
               <span class="message-userArrow"></span>
             </div>
@@ -158,7 +158,7 @@
               <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
               <div class="author-info-mobile-block">
                 <div class="author-name-large">{{ item.author ? (item.author.displayName || item.author.username) : 'Ẩn danh' }}</div>
-                <div class="author-title">Thành viên</div>
+                <div class="author-title">{{ (item.author && item.author.displayTitle) ? item.author.displayTitle : 'Thành viên' }}</div>
               </div>
               <span class="message-userArrow"></span>
             </div>

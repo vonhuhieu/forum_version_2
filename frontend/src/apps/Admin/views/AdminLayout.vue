@@ -44,6 +44,9 @@
           <router-link :to="{ name: 'AdminUsers' }" :class="['nav-item', { 'active': $route.name === 'AdminUsers' }]">
             <span class="icon">👥</span> <span class="nav-text">Thành viên</span>
           </router-link>
+          <router-link :to="{ name: 'AdminTitles' }" :class="['nav-item', { 'active': $route.name === 'AdminTitles' }]">
+            <span class="icon">🎖️</span> <span class="nav-text">Quản lý Cấp bậc</span>
+          </router-link>
         </div>
       </nav>
 
@@ -101,7 +104,8 @@ export default {
         'AdminThreadEdit': 'Cập nhật bài viết',
         'AdminThreadView': 'Chi tiết bài viết',
         'AdminUsers': 'Quản lý Thành viên',
-        'AdminReports': 'Quản lý Báo cáo'
+        'AdminReports': 'Quản lý Báo cáo',
+        'AdminTitles': 'Quản lý Cấp bậc'
       }
       
       const items = [{ title: 'Quản trị', to: { path: '/admin/menu' } }]

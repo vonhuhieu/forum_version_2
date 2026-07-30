@@ -63,6 +63,15 @@ public class User {
     @Column(name = "last_active_at")
     private LocalDateTime lastActiveAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_title_id")
+    private UserTitle assignedTitle;
+
+    public boolean isVerified() {
+        return roles != null && roles.contains(com.forum.utils.Constants.ROLE_USER)
+                && !roles.contains(com.forum.utils.Constants.ROLE_NON_OFFICIAL_USER);
+    }
+
     public User(String username, String password, Set<String> roles) {
         this.username = username;
         this.password = password;

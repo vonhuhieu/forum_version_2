@@ -14,6 +14,7 @@ import java.util.TimeZone;
     "org.opensearch.spring.boot.autoconfigure.OpenSearchClientAutoConfiguration"
 })
 @EnableAsync
+@org.springframework.cache.annotation.EnableCaching
 public class ForumApplication {
 
     public static void main(String[] args) {
