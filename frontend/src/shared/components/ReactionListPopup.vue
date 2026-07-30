@@ -54,8 +54,11 @@
               </user-profile-popup>
               <div v-else class="avatar-circle" style="background-color: #ccc; color: #fff;">?</div>
               <div class="reactor-details">
-                <div class="reactor-name">{{ participant.user.displayName || participant.user.username }}</div>
-                <div class="reactor-title">Thành viên</div>
+                <div class="reactor-name">{{ participant.user ? (participant.user.displayName || participant.user.username) : 'Ẩn danh' }}</div>
+                <div class="reactor-title">{{ participant.user?.displayTitle || 'Thành viên' }}</div>
+                <div class="reactor-stats" v-if="participant.user">
+                  Bài viết: {{ formatNumber(participant.user.postCount) }} · Điểm tương tác: {{ formatNumber(participant.user.interactionPoints) }} · Điểm: {{ formatNumber(participant.user.trophyPoints) }}
+                </div>
               </div>
             </div>
             <div class="reaction-meta">
@@ -170,6 +173,10 @@ export default {
     },
     formatDate(dateStr) {
       return formatForumDate(dateStr)
+    },
+    formatNumber(val) {
+      if (val === null || val === undefined) return '0'
+      return val.toLocaleString('vi-VN')
     },
     async fetchParticipants() {
       this.loading = true
@@ -298,6 +305,12 @@ export default {
 .reactor-title {
   font-size: 0.8rem;
   color: #65676b;
+  margin-top: 2px;
+}
+
+.reactor-stats {
+  font-size: 0.78rem;
+  color: #7f8c8d;
   margin-top: 2px;
 }
 
