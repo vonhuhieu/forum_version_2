@@ -29,6 +29,19 @@
         </div>
       </template>
 
+      <!-- Slot cho cột Cấp bậc -->
+      <template #item-displayTitle="{ item }">
+        <div class="text-center">
+          <span class="badge bg-secondary text-wrap" v-if="item.displayTitle">
+            {{ item.displayTitle }}
+          </span>
+          <span class="text-muted small fst-italic" v-else>---</span>
+          <div v-if="item.assignedTitleName" class="text-success font-weight-bold" style="font-size: 10px;">
+            (Admin cấp)
+          </div>
+        </div>
+      </template>
+
       <!-- Slot cho cột Vai trò -->
       <template #item-roles="{ item }">
         <div class="roles-badges">
@@ -36,6 +49,13 @@
             {{ getRoleName(role) }}
           </span>
         </div>
+      </template>
+
+      <!-- Slot extra-actions cho Nút Cấp Title -->
+      <template #extra-actions="{ item }">
+        <button class="action-btn" style="background: #e67e22; color: #fff; margin-right: 4px;" title="Cấp Cấp bậc" @click="openAssignTitleModal(item)">
+          🎖️
+        </button>
       </template>
 
       <!-- Slot cho cột Ngày tham gia -->
@@ -108,6 +128,38 @@
         </div>
       </div>
     </BaseModal>
+
+    <!-- Modal Cấp Cấp bậc trực tiếp cho User -->
+    <BaseModal
+      v-model:show="showAssignTitleModal"
+      title="CẤP CẤP BẬC TỰ DO"
+    >
+      <div class="admin-form" v-if="assignTargetUser">
+        <p class="mb-3">
+          Đang cấp Cấp bậc cho thành viên: <strong>{{ assignTargetUser.displayName || assignTargetUser.username }}</strong>
+        </p>
+
+        <div class="form-group mb-3">
+          <label class="form-label font-weight-bold">Chọn Cấp bậc cấp riêng</label>
+          <select class="form-select" v-model="selectedTitleId">
+            <option :value="null">-- Mặc định (Tự động theo điểm / xác thực) --</option>
+            <option v-for="title in allTitles" :key="title.id" :value="title.id">
+              {{ title.name }} ({{ getTitleTypeName(title.type) }})
+            </option>
+          </select>
+          <small class="text-muted mt-1 d-block">
+            * Cấp bậc do Admin cấp trực tiếp có quyền lực cao nhất, ghi đè toàn bộ điểm số và trạng thái xác thực.
+          </small>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showAssignTitleModal = false">Hủy</button>
+          <button class="btn-save" @click="saveAssignTitle" :disabled="assigningTitle">
+            {{ assigningTitle ? 'Đang lưu...' : 'Lưu Cấp bậc' }}
+          </button>
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -116,7 +168,9 @@ import DataTable from '@/shared/components/DataTable.vue'
 import BaseModal from '@/shared/components/BaseModal.vue'
 import Loading from '@/shared/components/Loading.vue'
 import AdminService from '@/apps/Admin/services/admin.service'
+import TitleService from '@/apps/Admin/services/title.service'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
+import { TITLE_TYPES } from '@/shared/utils/constants'
 
 export default {
   name: 'UserManagement',
@@ -136,15 +190,21 @@ export default {
       sortField: 'createdAt',
       sortOrder: 'desc',
       headers: [
-        { text: 'Tên đăng nhập', value: 'username', sortable: true, width: '20%' },
-        { text: 'Tên hiển thị', value: 'displayName', sortable: true, width: '25%' },
-        { text: 'Email', value: 'email', sortable: true, width: '25%' },
+        { text: 'Tên đăng nhập', value: 'username', sortable: true, width: '15%' },
+        { text: 'Tên hiển thị', value: 'displayName', sortable: true, width: '20%' },
+        { text: 'Cấp bậc', value: 'displayTitle', sortable: false, width: '15%' },
+        { text: 'Email', value: 'email', sortable: true, width: '20%' },
         { text: 'Vai trò', value: 'roles', sortable: false, width: '15%' },
         { text: 'Ngày tham gia', value: 'createdAt', sortable: true, width: '15%' }
       ],
       showModal: false,
       isEdit: false,
       saving: false,
+      showAssignTitleModal: false,
+      assignTargetUser: null,
+      selectedTitleId: null,
+      allTitles: [],
+      assigningTitle: false,
       currentUserRoles: [],
       selectedRoleFilter: '',
       formData: {
@@ -379,6 +439,39 @@ export default {
           return 'Chưa chính thức'
         default:
           return role.replace('ROLE_', '')
+      }
+    },
+    async openAssignTitleModal(user) {
+      this.assignTargetUser = user
+      this.selectedTitleId = user.assignedTitleId || null
+      this.showAssignTitleModal = true
+      try {
+        const res = await TitleService.getAllTitles()
+        this.allTitles = res.data || []
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách Cấp bậc:', err)
+      }
+    },
+    async saveAssignTitle() {
+      if (!this.assignTargetUser) return
+      this.assigningTitle = true
+      try {
+        await TitleService.assignTitleToUser(this.assignTargetUser.id, this.selectedTitleId)
+        toastSuccess('Cập nhật Cấp bậc thành công!')
+        this.showAssignTitleModal = false
+        this.fetchUsers()
+      } catch (err) {
+        toastError(err.response?.data?.message || 'Có lỗi xảy ra khi gán Cấp bậc')
+      } finally {
+        this.assigningTitle = false
+      }
+    },
+    getTitleTypeName(type) {
+      switch (type) {
+        case TITLE_TYPES.UNVERIFIED_DEFAULT: return 'Chưa xác thực'
+        case TITLE_TYPES.POINT_BASED: return 'Theo điểm'
+        case TITLE_TYPES.CUSTOM_ASSIGNABLE: return 'Tự do'
+        default: return type
       }
     }
   }

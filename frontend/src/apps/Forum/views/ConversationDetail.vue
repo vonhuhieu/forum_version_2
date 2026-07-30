@@ -82,7 +82,7 @@
                   <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
                   <div class="author-info-mobile-block">
                     <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
-                    <div class="author-title">{{ getUserRoleText(msg.sender?.roles) }}</div>
+                    <div class="author-title">{{ msg.sender?.displayTitle || getUserRoleText(msg.sender?.roles) }}</div>
                   </div>
                   <span class="message-userArrow"></span>
                 </div>

@@ -98,7 +98,7 @@
                     </div>
                     <div class="xamvn-user-details">
                       <div class="xamvn-username">{{ currentUser.displayName || currentUser.username }}</div>
-                      <div class="xamvn-title">Yếu sinh lý</div>
+                      <div class="xamvn-title">{{ currentUser.displayTitle || 'Thành viên' }}</div>
                       <div class="xamvn-stats">
                         <div class="xamvn-stat-row">
                           <span class="xamvn-stat-label">Bài viết:</span>
@@ -666,7 +666,8 @@ export default {
             roles: dbUser.roles,
             postCount: dbUser.postCount,
             interactionPoints: dbUser.interactionPoints,
-            trophyPoints: dbUser.trophyPoints
+            trophyPoints: dbUser.trophyPoints,
+            displayTitle: dbUser.displayTitle
           }
           
           const currentRoles = this.currentUser.roles || []
