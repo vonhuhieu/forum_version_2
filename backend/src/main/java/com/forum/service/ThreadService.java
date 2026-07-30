@@ -37,6 +37,7 @@ public class ThreadService {
     private final ThreadViewIncrementer threadViewIncrementer;
     private final SearchDocumentRepository searchDocumentRepository;
     private final SystemSettingService systemSettingService;
+    private final UserTitleService userTitleService;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -352,6 +353,7 @@ public class ThreadService {
                 userDTO.setDisplayName(post.getAuthor().getDisplayName());
                 userDTO.setEmail(post.getAuthor().getEmail());
                 userDTO.setAvatar(post.getAuthor().getAvatar());
+                userDTO.setDisplayTitle(userTitleService.resolveDisplayTitle(post.getAuthor(), null));
                 dto.setLastPostAuthor(userDTO);
             }
         });
