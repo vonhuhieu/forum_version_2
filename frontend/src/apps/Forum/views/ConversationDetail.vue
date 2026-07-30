@@ -221,7 +221,7 @@
                 <div v-else class="avatar-mini" style="background-color: #ccc; color: #fff;">?</div>
                 <div class="participant-info">
                   <div class="name">{{ part.displayName || part.username }}</div>
-                  <div class="title">{{ getUserRoleText(part.roles) }}</div>
+                  <div class="title">{{ part.displayTitle || getUserRoleText(part.roles) }}</div>
                 </div>
               </div>
               

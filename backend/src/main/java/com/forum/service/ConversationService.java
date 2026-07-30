@@ -48,6 +48,7 @@ public class ConversationService {
     private final ReactionService reactionService;
     private final NotificationRepository notificationRepository;
     private final SystemSettingService systemSettingService;
+    private final UserTitleService userTitleService;
 
     public ResponseDTO<ConversationDTO> createConversation(ConversationCreateDTO createDTO) {
         String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -659,6 +660,7 @@ public class ConversationService {
         dto.setAvatar(user.getAvatar());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setRoles(user.getRoles());
+        dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
         return dto;
     }
 

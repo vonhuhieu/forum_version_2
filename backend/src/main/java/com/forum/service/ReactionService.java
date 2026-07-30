@@ -31,6 +31,7 @@ public class ReactionService {
     private final ReactionIconService reactionIconService;
     private final NotificationService notificationService;
     private final ConversationMessageRepository conversationMessageRepository;
+    private final UserTitleService userTitleService;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -409,6 +410,7 @@ public class ReactionService {
         dto.setDisplayName(user.getDisplayName());
         dto.setEmail(user.getEmail());
         dto.setAvatar(user.getAvatar());
+        dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
         return dto;
     }
 
