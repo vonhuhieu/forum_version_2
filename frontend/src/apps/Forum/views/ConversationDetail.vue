@@ -81,7 +81,12 @@
                   </user-profile-popup>
                   <div v-else class="avatar-large" style="background-color: #ccc; color: #fff;">?</div>
                   <div class="author-info-mobile-block">
-                    <div class="author-name-large">{{ msg.sender ? (msg.sender.displayName || msg.sender.username) : 'Ẩn danh' }}</div>
+                    <user-profile-popup :user="msg.sender" v-if="msg.sender">
+                      <div class="author-name-large font-weight-bold cursor-pointer">
+                        {{ msg.sender.displayName || msg.sender.username }} <VerifiedBadge :user="msg.sender" />
+                      </div>
+                    </user-profile-popup>
+                    <div v-else class="author-name-large">Ẩn danh</div>
                     <div class="author-title">{{ msg.sender?.displayTitle || getUserRoleText(msg.sender?.roles) }}</div>
                   </div>
                   <span class="message-userArrow"></span>
@@ -220,7 +225,11 @@
                 </user-profile-popup>
                 <div v-else class="avatar-mini" style="background-color: #ccc; color: #fff;">?</div>
                 <div class="participant-info">
-                  <div class="name">{{ part.displayName || part.username }}</div>
+                  <user-profile-popup :user="part">
+                    <div class="name font-weight-bold cursor-pointer">
+                      {{ part.displayName || part.username }} <VerifiedBadge :user="part" size="14px" />
+                    </div>
+                  </user-profile-popup>
                   <div class="title">{{ part.displayTitle || getUserRoleText(part.roles) }}</div>
                 </div>
               </div>
@@ -264,6 +273,7 @@ import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
@@ -277,7 +287,8 @@ export default {
     ReactionSummary,
     ReactionListPopup,
     ForumPagination,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     const userStr = localStorage.getItem('user')

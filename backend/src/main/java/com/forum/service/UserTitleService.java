@@ -54,7 +54,12 @@ public class UserTitleService {
         if (title.getType() == TitleType.POINT_BASED && title.getMinPoints() == null) {
             title.setMinPoints(0);
         }
-        return userTitleRepository.save(title);
+        if (title.getIsTrusted() == null) {
+            title.setIsTrusted(false);
+        }
+        UserTitle saved = userTitleRepository.save(title);
+        ThreadService.clearAllCaches();
+        return saved;
     }
 
     @CacheEvict(value = {"userTitles", "userTitles_point_based", "userTitles_unverified"}, allEntries = true)
@@ -75,8 +80,11 @@ public class UserTitleService {
         title.setType(titleDetails.getType());
         title.setMinPoints(titleDetails.getType() == TitleType.POINT_BASED ? titleDetails.getMinPoints() : null);
         title.setDescription(titleDetails.getDescription());
+        title.setIsTrusted(titleDetails.getIsTrusted() != null && titleDetails.getIsTrusted());
 
-        return userTitleRepository.save(title);
+        UserTitle saved = userTitleRepository.save(title);
+        ThreadService.clearAllCaches();
+        return saved;
     }
 
     @CacheEvict(value = {"userTitles", "userTitles_point_based", "userTitles_unverified"}, allEntries = true)
@@ -94,6 +102,7 @@ public class UserTitleService {
                 });
 
         userTitleRepository.delete(title);
+        ThreadService.clearAllCaches();
     }
 
     // Admin gán/bỏ gán Title trực tiếp cho User
@@ -109,27 +118,25 @@ public class UserTitleService {
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Cấp bậc với ID: " + titleId));
             user.setAssignedTitle(title);
         }
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        ThreadService.clearAllCaches();
+        return savedUser;
     }
 
     /**
-     * Logic giải mã Title hiển thị (Plain Text) cho User dựa trên thứ tự ưu tiên:
-     * 1. Quyền lực tối cao: Admin Assign Title (nếu assignedTitle != null)
-     * 2. Trạng thái chưa xác thực -> Title UNVERIFIED_DEFAULT
-     * 3. Trạng thái đã xác thực -> Title mốc điểm trophyPoints (mốc minPoints cao nhất thỏa mãn)
+     * Tìm Cấp bậc (UserTitle) thỏa mãn cho User
      */
-    public String resolveDisplayTitle(User user, Long trophyPoints) {
+    public UserTitle resolveUserTitle(User user, Long trophyPoints) {
         if (user == null) return null;
 
         // Ưu tiên 1: Title do Admin gán trực tiếp
         if (user.getAssignedTitle() != null) {
-            return user.getAssignedTitle().getName();
+            return user.getAssignedTitle();
         }
 
         // Ưu tiên 2: Chưa xác thực
         if (!user.isVerified()) {
-            Optional<UserTitle> unverifiedOpt = getUnverifiedDefaultTitle();
-            return unverifiedOpt.map(UserTitle::getName).orElse(null);
+            return getUnverifiedDefaultTitle().orElse(null);
         }
 
         // Ưu tiên 3: Đã xác thực - Xét duyệt theo mốc trophyPoints
@@ -137,10 +144,36 @@ public class UserTitleService {
         List<UserTitle> pointBasedTitles = getPointBasedTitlesDesc();
         for (UserTitle title : pointBasedTitles) {
             if (title.getMinPoints() != null && points >= title.getMinPoints()) {
-                return title.getName();
+                return title;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Logic giải mã Title hiển thị (Plain Text) cho User
+     */
+    public String resolveDisplayTitle(User user, Long trophyPoints) {
+        UserTitle title = resolveUserTitle(user, trophyPoints);
+        return title != null ? title.getName() : null;
+    }
+
+    /**
+     * Logic xác định User có Tích Xanh Uy Tín (isVerifiedBadge):
+     * 1. Có ROLE_SUPER_ADMIN hoặc ROLE_ADMIN
+     * 2. Hoặc Cấp bậc hiện tại có Mode Uy Tín (isTrusted == true)
+     */
+    public boolean isVerifiedBadge(User user, Long trophyPoints) {
+        if (user == null) return false;
+
+        // Tiêu chí 1: ROLE_SUPER_ADMIN hoặc ROLE_ADMIN
+        if (user.getRoles() != null && (user.getRoles().contains(com.forum.utils.Constants.ROLE_SUPER_ADMIN) || user.getRoles().contains(com.forum.utils.Constants.ROLE_ADMIN))) {
+            return true;
+        }
+
+        // Tiêu chí 2: Title hiện tại của User có Mode Uy Tín (isTrusted = true)
+        UserTitle title = resolveUserTitle(user, trophyPoints);
+        return title != null && Boolean.TRUE.equals(title.getIsTrusted());
     }
 }

@@ -33,6 +33,7 @@ public abstract class PostMapper {
     protected void fillUserDisplayTitle(User user, @MappingTarget UserDTO dto) {
         if (user != null && dto != null && userTitleService != null) {
             dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
+            dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, dto.getTrophyPoints()));
         }
     }
 }

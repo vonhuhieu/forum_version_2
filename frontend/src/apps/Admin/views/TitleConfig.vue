@@ -93,6 +93,7 @@
           <span class="title-badge-preview" :class="getTypeBadgeClass(item.type)">
             {{ item.name }}
           </span>
+          <VerifiedBadge v-if="item.isTrusted" size="15px" class="ms-1" />
         </div>
       </template>
 
@@ -100,6 +101,14 @@
       <template #item-type="{ item }">
         <span class="badge" :class="getTypeBadgeClass(item.type)">
           {{ getTypeName(item.type) }}
+        </span>
+      </template>
+
+      <!-- Slot cho cột Mode Uy Tín -->
+      <template #item-isTrusted="{ item }">
+        <span class="badge" :class="item.isTrusted ? 'bg-primary' : 'bg-light text-muted border'">
+          <VerifiedBadge v-if="item.isTrusted" size="13px" class="me-1" />
+          {{ item.isTrusted ? 'Mode Uy Tín' : 'Bình thường' }}
         </span>
       </template>
 
@@ -159,6 +168,24 @@
           <small class="form-text text-muted">Đệ tử đạt từ mốc điểm này trở lên sẽ tự động nhận danh hiệu.</small>
         </div>
 
+        <!-- Mode Uy Tín Toggle Checkbox -->
+        <div class="form-group">
+          <div class="form-check form-switch custom-switch-wrapper">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="isTrustedSwitch" 
+              v-model="formData.isTrusted" 
+            />
+            <label class="form-check-label font-weight-bold d-flex align-items-center cursor-pointer" for="isTrustedSwitch">
+              <VerifiedBadge size="16px" class="me-1" /> Bật Mode Uy Tín (Tích Xanh)
+            </label>
+          </div>
+          <small class="form-text text-muted">
+            Khi bật Mode Uy Tín, đệ tử sở hữu cấp bậc này sẽ có Tích trắng nền xanh hiển thị bên cạnh tên trên toàn hệ thống.
+          </small>
+        </div>
+
         <div class="form-group">
           <label>Mô tả Cấp Bậc</label>
           <textarea 
@@ -171,13 +198,16 @@
 
         <!-- Khối Xem trước Live Preview -->
         <div class="preview-section mb-3" v-if="formData.name">
-          <label>Xem trước hiển thị danh hiệu:</label>
+          <label>Xem trước hiển thị danh hiệu & Tích Xanh:</label>
           <div class="preview-box-active">
             <div class="simulated-badge-box">
-              <span class="title-badge-preview" :class="getTypeBadgeClass(formData.type)">
+              <div class="simulated-user-name d-flex align-items-center font-weight-bold">
+                Tên Đệ Tử <VerifiedBadge :show="formData.isTrusted" size="16px" />
+              </div>
+              <span class="title-badge-preview ms-2" :class="getTypeBadgeClass(formData.type)">
                 {{ formData.name }}
               </span>
-              <span v-if="formData.type === TITLE_TYPES.POINT_BASED" class="preview-points-hint">
+              <span v-if="formData.type === TITLE_TYPES.POINT_BASED" class="preview-points-hint ms-2">
                 (Điểm tối thiểu: ≥ {{ formData.minPoints || 0 }})
               </span>
             </div>
@@ -198,6 +228,7 @@
 <script>
 import DataTable from '@/shared/components/DataTable.vue'
 import BaseModal from '@/shared/components/BaseModal.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import TitleService from '@/apps/Admin/services/title.service'
 import { TITLE_TYPES } from '@/shared/utils/constants'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
@@ -206,7 +237,8 @@ export default {
   name: 'TitleConfig',
   components: {
     DataTable,
-    BaseModal
+    BaseModal,
+    VerifiedBadge
   },
   data() {
     return {
@@ -227,9 +259,10 @@ export default {
 
       // Data Headers for DataTable
       headers: [
-        { text: 'Tên Cấp Bậc', value: 'name', width: '220px', sortable: true },
-        { text: 'Loại Cấp Bậc', value: 'type', width: '180px', sortable: true },
-        { text: 'Mốc Điểm Tối Thiểu', value: 'minPoints', width: '180px', sortable: true },
+        { text: 'Tên Cấp Bậc', value: 'name', width: '200px', sortable: true },
+        { text: 'Loại Cấp Bậc', value: 'type', width: '160px', sortable: true },
+        { text: 'Mode Uy Tín', value: 'isTrusted', width: '130px', sortable: true },
+        { text: 'Mốc Điểm Tối Thiểu', value: '160px', sortable: true },
         { text: 'Mô Tả', value: 'description', sortable: false }
       ],
 
@@ -238,7 +271,8 @@ export default {
         name: '',
         type: TITLE_TYPES.POINT_BASED,
         minPoints: 0,
-        description: ''
+        description: '',
+        isTrusted: false
       }
     }
   },
@@ -279,6 +313,10 @@ export default {
 
           if (valA === null || valA === undefined) valA = ''
           if (valB === null || valB === undefined) valB = ''
+
+          if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+            return this.sortOrder === 'asc' ? (valA === valB ? 0 : valA ? -1 : 1) : (valA === valB ? 0 : valA ? 1 : -1)
+          }
 
           if (typeof valA === 'number' && typeof valB === 'number') {
             return this.sortOrder === 'asc' ? valA - valB : valB - valA
@@ -370,7 +408,8 @@ export default {
         name: '',
         type: TITLE_TYPES.POINT_BASED,
         minPoints: 0,
-        description: ''
+        description: '',
+        isTrusted: false
       }
       this.showModal = true
     },
@@ -387,7 +426,8 @@ export default {
         name: title.name,
         type: title.type,
         minPoints: title.minPoints != null ? title.minPoints : 0,
-        description: title.description || ''
+        description: title.description || '',
+        isTrusted: title.isTrusted || false
       }
       this.showModal = true
     },
@@ -653,6 +693,19 @@ export default {
   outline: none;
 }
 
+.custom-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 0;
+}
+
+.custom-switch-wrapper .form-check-input {
+  width: 2.8em;
+  height: 1.4em;
+  cursor: pointer;
+}
+
 /* Preview Section in Modal */
 .preview-section {
   padding: 1rem 1.25rem;
@@ -678,6 +731,10 @@ export default {
   border-radius: 8px;
   border: 1px solid #e9ecef;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.simulated-user-name {
+  color: #1a507a;
 }
 
 .preview-points-hint {

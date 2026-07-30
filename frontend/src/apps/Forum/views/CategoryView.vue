@@ -71,7 +71,14 @@
                       <div class="last-thread-meta">
                         <span>{{ formatDate(lastThreadByCat[sub.id].lastPostAt || lastThreadByCat[sub.id].createdAt) }}</span>
                         <span class="dot">•</span>
-                        <span class="author">{{ (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.displayName || (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.username || 'Ẩn danh' }}</span>
+                        <span class="author">
+                          <user-profile-popup :user="lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author" v-if="lastThreadByCat[sub.id] && (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)">
+                            <span class="cursor-pointer font-weight-bold">
+                              {{ (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.displayName || (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.username }} <VerifiedBadge :user="lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author" size="13px" />
+                            </span>
+                          </user-profile-popup>
+                          <span v-else>Ẩn danh</span>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -323,7 +330,14 @@
                   </span>
                 </div>
                 <div class="thread-meta">
-                  <span class="author-name white-space-nowrap">{{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}</span>
+                  <span class="author-name white-space-nowrap">
+                    <user-profile-popup :user="thread.author" v-if="thread.author">
+                      <span class="cursor-pointer font-weight-bold">
+                        {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                      </span>
+                    </user-profile-popup>
+                    <span v-else>Ẩn danh</span>
+                  </span>
                   <span class="dot-divider">•</span>
                   <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id }, query: getThreadDetailQuery() }" class="meta-link">{{ formatDate(thread.createdAt) }}</router-link>
                   
@@ -339,7 +353,12 @@
                   </span>
                 </div>
                 <div class="thread-author-mobile">
-                  {{ thread.author ? (thread.author.displayName || thread.author.username) : 'Ẩn danh' }}
+                  <user-profile-popup :user="thread.author" v-if="thread.author">
+                    <span class="cursor-pointer font-weight-bold">
+                      {{ thread.author.displayName || thread.author.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                    </span>
+                  </user-profile-popup>
+                  <span v-else>Ẩn danh</span>
                 </div>
                 <div class="thread-stats-mobile">
                   Trả lời: {{ thread.replyCount || 0 }} <span class="dot-divider">•</span> {{ formatDate(thread.lastPostAt || thread.createdAt) }}
@@ -362,7 +381,14 @@
                     class="last-post-time-link">
                     {{ formatDate(thread.lastPostAt || thread.createdAt) }}
                   </router-link>
-                  <span class="last-post-author">{{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'Ẩn danh' }}</span>
+                  <span class="last-post-author">
+                    <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                      <span class="cursor-pointer font-weight-bold">
+                        {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="13px" />
+                      </span>
+                    </user-profile-popup>
+                    <span v-else>Ẩn danh</span>
+                  </span>
                 </div>
                 <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
                   <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
@@ -406,6 +432,7 @@ import userService from '@/apps/Forum/services/user.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, getImeValue } from '@/shared/utils/utils'
@@ -418,7 +445,8 @@ export default {
     Breadcrumb,
     ForumPagination,
     UserProfilePopup,
-    UserSearchInput
+    UserSearchInput,
+    VerifiedBadge
   },
   data() {
     return {

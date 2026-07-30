@@ -2,13 +2,20 @@ package com.forum.mapper;
 
 import com.forum.dto.NotificationDTO;
 import com.forum.entity.Notification;
+import com.forum.service.UserTitleService;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface NotificationMapper {
+public abstract class NotificationMapper {
+
+    @Autowired
+    protected UserTitleService userTitleService;
 
     @Mapping(source = "actor.id", target = "actorId")
     @Mapping(source = "actor.username", target = "actorUsername")
@@ -21,7 +28,14 @@ public interface NotificationMapper {
     @Mapping(source = "thread.label.textColor", target = "threadLabelTextColor")
     @Mapping(source = "thread.label.borderColor", target = "threadLabelBorderColor")
     @Mapping(source = "post.id", target = "postId")
-    NotificationDTO toDTO(Notification notification);
+    public abstract NotificationDTO toDTO(Notification notification);
 
-    List<NotificationDTO> toDTOList(List<Notification> notifications);
+    public abstract List<NotificationDTO> toDTOList(List<Notification> notifications);
+
+    @AfterMapping
+    protected void fillActorVerifiedBadge(Notification notification, @MappingTarget NotificationDTO dto) {
+        if (notification != null && notification.getActor() != null && dto != null && userTitleService != null) {
+            dto.setActorIsVerifiedBadge(userTitleService.isVerifiedBadge(notification.getActor(), null));
+        }
+    }
 }

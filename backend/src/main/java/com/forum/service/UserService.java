@@ -199,6 +199,7 @@ public class UserService {
                 dto.setAssignedTitleName(user.getAssignedTitle().getName());
             }
             dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, trophyPoints));
+            dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, trophyPoints));
         });
     }
 
@@ -393,6 +394,7 @@ public class UserService {
             }
         }
 
+        ThreadService.clearAllCaches();
         return convertToDTO(saved);
     }
 
@@ -524,6 +526,7 @@ public class UserService {
             dto.setAssignedTitleName(user.getAssignedTitle().getName());
         }
         dto.setDisplayTitle(userTitleService.resolveDisplayTitle(user, dto.getTrophyPoints()));
+        dto.setIsVerifiedBadge(userTitleService.isVerifiedBadge(user, dto.getTrophyPoints()));
         return dto;
     }
 
