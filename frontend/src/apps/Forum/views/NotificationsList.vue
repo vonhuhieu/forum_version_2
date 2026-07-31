@@ -45,6 +45,7 @@
                 <div class="notif-body">
                   <div class="notif-text">
                     <strong>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
+                    <VerifiedBadge :user="getNotifUser(notif)" size="16px" />
                     <template v-if="notif.type === 'REACTION'">
                       đã tương tác <ReactionIcon :code="notif.reactionIcon" :color="notif.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" /> 
                       <strong :style="{ color: notif.reactionColor || '#2c3e50' }">{{ notif.reactionName }}</strong>
@@ -92,6 +93,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl } from '@/shared/utils/utils'
@@ -106,7 +108,8 @@ export default {
     ForumPagination,
     AccountSidebar,
     ReactionIcon,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {
@@ -141,7 +144,8 @@ export default {
       return {
         username: notif.actorUsername,
         displayName: notif.actorDisplayName,
-        avatar: notif.actorAvatar
+        avatar: notif.actorAvatar,
+        isVerifiedBadge: notif.actorIsVerifiedBadge || notif.isVerifiedBadge
       }
     },
     handleAvatarUpdated(event) {

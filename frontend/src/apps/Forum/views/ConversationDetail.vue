@@ -15,7 +15,14 @@
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            <span class="author-name">{{ participantListString }}</span>
+            <span class="author-name" v-if="conversation && conversation.participants">
+              <template v-for="(part, idx) in conversation.participants" :key="part.id || idx">
+                <span class="participant-item-inline">
+                  {{ part.displayName || part.username }}<VerifiedBadge :user="part" size="14px" />
+                </span>
+                <template v-if="idx < conversation.participants.length - 1">, </template>
+              </template>
+            </span>
             <span class="meta-dot">·</span>
             <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -111,7 +118,7 @@
                       </button>
                     </div>
                   </div>
-                  <div v-else class="content-body ql-editor" v-html="formatMessageContent(msg.content)"></div>
+                  <div v-else class="content-body ql-editor" v-html="formatMessageContent(msg.content)" @click="handleContentClick"></div>
 
                   <div class="post-meta-bottom" v-if="editingMessageId !== msg.id">
                     <div class="left-actions">
@@ -205,7 +212,10 @@
               </div>
               <div class="sidebar-row" v-if="conversation.lastReplyAuthor">
                 <span class="label">Trả lời lần cuối từ:</span>
-                <span class="val author">{{ conversation.lastReplyAuthor.displayName || conversation.lastReplyAuthor.username }}</span>
+                <span class="val author">
+                  {{ conversation.lastReplyAuthor.displayName || conversation.lastReplyAuthor.username }}
+                  <VerifiedBadge :user="conversation.lastReplyAuthor" size="14px" />
+                </span>
               </div>
             </div>
           </div>
@@ -274,7 +284,7 @@ import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
@@ -624,7 +634,16 @@ export default {
       innerQuotes.forEach(q => q.remove())
 
       const trimmedContent = tempDiv.innerHTML.trim()
-      const quoteHtml = `<blockquote data-source="${msgId}"><p><strong>${authorName} đã viết:</strong></p>${trimmedContent}</blockquote><p>&nbsp;</p>`
+      
+      let senderUser = null
+      if (msgId && this.conversation && this.conversation.messages) {
+        const mObj = this.conversation.messages.find(m => m.id === parseInt(msgId, 10))
+        if (mObj) senderUser = mObj.sender
+      }
+      const badgeHtml = getVerifiedBadgeSvgHtml(senderUser)
+      const badgeStr = badgeHtml ? badgeHtml : ''
+
+      const quoteHtml = `<blockquote data-source="${msgId}"><p><strong>${authorName}</strong>${badgeStr} đã viết:</p>${trimmedContent}</blockquote><p>&nbsp;</p>`
       
       this.replyForm.content = this.replyForm.content + quoteHtml
       this.replyForm.quotedMessageId = msgId
@@ -665,8 +684,9 @@ export default {
             const quotedMsg = this.conversation.messages.find(m => m.id === msgId)
             if (quotedMsg) {
               const authorName = quotedMsg.sender ? (quotedMsg.sender.displayName || quotedMsg.sender.username) : 'Ẩn danh'
+              const badgeHtml = getVerifiedBadgeSvgHtml(quotedMsg.sender)
               const msgContentClean = this.stripBlockQuotes(quotedMsg.content || '')
-              bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${msgContentClean}`
+              bq.innerHTML = `<p><strong>${authorName}${badgeHtml} đã viết:</strong></p>${msgContentClean}`
               hasChanges = true
             }
           }
@@ -680,6 +700,45 @@ export default {
       }
 
       return processed
+    },
+    handleContentClick(e) {
+      const strongElem = e.target.closest('blockquote p:first-child strong')
+      if (!strongElem) return
+
+      const blockquote = strongElem.closest('blockquote')
+      let targetId = null
+
+      if (blockquote && blockquote.hasAttribute('data-source')) {
+        targetId = blockquote.getAttribute('data-source')
+      }
+
+      if (!targetId) return
+
+      const msgId = parseInt(targetId, 10)
+      if (!isNaN(msgId) && this.conversation && this.conversation.messages) {
+        const idx = this.conversation.messages.findIndex(m => m.id === msgId)
+        if (idx !== -1) {
+          const targetPage = Math.ceil((idx + 1) / this.itemsPerPage)
+          if (targetPage === this.currentPage) {
+            this.highlightedMessageId = targetId
+            const element = document.getElementById(`msg-${targetId}`)
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              setTimeout(() => { this.highlightedMessageId = null }, 4000)
+            }
+          } else {
+            this.currentPage = targetPage
+            this.highlightedMessageId = targetId
+            this.$nextTick(() => {
+              const element = document.getElementById(`msg-${targetId}`)
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                setTimeout(() => { this.highlightedMessageId = null }, 4000)
+              }
+            })
+          }
+        }
+      }
     },
     stripBlockQuotes(html) {
       if (!html) return ''
@@ -1377,5 +1436,42 @@ export default {
   .convo-main {
     width: 100%;
   }
+}
+
+:deep(.ql-editor blockquote p:first-child strong), :deep(.ck-content blockquote p:first-child strong) {
+  color: #e67e22;
+  font-size: 0.9rem;
+}
+
+/* EXCLUSIVE TO READER (HIDDEN IN EDITOR) */
+.content-body :deep(blockquote p:first-child strong) {
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px;
+  transition: text-decoration 0.2s;
+}
+
+.content-body :deep(blockquote p:first-child strong:hover) {
+  text-decoration: underline !important;
+}
+
+/* Circular Arrow Icon - RENDERER ONLY */
+.content-body :deep(blockquote p:first-child strong::after) {
+  content: '\2191' !important; 
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 16px !important;
+  height: 16px !important;
+  background: #f39c12 !important;
+  color: white !important;
+  border-radius: 50% !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: bold !important;
+  text-decoration: none !important;
+  position: relative;
+  top: -1px;
 }
 </style>

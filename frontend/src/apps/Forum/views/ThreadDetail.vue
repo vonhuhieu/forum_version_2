@@ -270,7 +270,7 @@
              </div>
           </div>
           <div class="post-main" style="padding: 0; border: 1px solid #e0e0e0;">
-             <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" @image-uploaded="handleImageUploaded" />
+             <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" :allowedUsers="threadAndPostAuthors" @image-uploaded="handleImageUploaded" />
              
              <!-- Khối xem trước đính kèm chân bình luận -->
              <div v-if="replyAttachedImages && replyAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -358,7 +358,7 @@ import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
-import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
@@ -530,6 +530,18 @@ export default {
     canShowReactionForMainPost() {
       if (!this.isLoggedIn || !this.thread || !this.thread.author || !this.currentUser || this.isNonOfficial) return false;
       return String(this.thread.author.id) !== String(this.currentUser.id);
+    },
+    threadAndPostAuthors() {
+      const list = []
+      if (this.thread && this.thread.author) {
+        list.push(this.thread.author)
+      }
+      if (this.posts && Array.isArray(this.posts)) {
+        this.posts.forEach(p => {
+          if (p.author) list.push(p.author)
+        })
+      }
+      return list
     }
   },
   async mounted() {
@@ -939,8 +951,9 @@ export default {
           if (sourceId === 'main_thread_entry') {
             if (this.thread) {
               const authorName = this.thread.author ? (this.thread.author.displayName || this.thread.author.username) : 'Ẩn danh'
+              const badgeHtml = getVerifiedBadgeSvgHtml(this.thread.author)
               const threadContentClean = this.stripBlockQuotes(this.thread.content || '')
-              bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${threadContentClean}`
+              bq.innerHTML = `<p><strong>${authorName}${badgeHtml} đã viết:</strong></p>${threadContentClean}`
               hasChanges = true
             }
           } else {
@@ -949,8 +962,9 @@ export default {
               const quotedPost = this.posts.find(p => p.id === postId)
               if (quotedPost) {
                 const authorName = quotedPost.author ? (quotedPost.author.displayName || quotedPost.author.username) : 'Ẩn danh'
+                const badgeHtml = getVerifiedBadgeSvgHtml(quotedPost.author)
                 const postContentClean = this.stripBlockQuotes(quotedPost.content || '')
-                bq.innerHTML = `<p><strong>${authorName} đã viết:</strong></p>${postContentClean}`
+                bq.innerHTML = `<p><strong>${authorName}${badgeHtml} đã viết:</strong></p>${postContentClean}`
                 hasChanges = true
               }
             }
@@ -1048,15 +1062,8 @@ export default {
         this.replyForm.content = ''
         this.replyAttachedImages = []
         
-        this.totalPosts++
-        const lastPage = this.totalPages
-        if (this.currentPage !== lastPage) {
-          this.$router.push({ query: { ...this.$route.query, page: lastPage } })
-        } else {
-          await this.fetchPosts()
-        }
-        
-        this.$nextTick(() => {
+        this.currentPage = this.totalPages
+        this.fetchPosts().then(() => {
           setTimeout(() => {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           }, 400);
@@ -1085,11 +1092,18 @@ export default {
       const attachments = tempDiv.querySelector('.attachment-block')
       if (attachments) attachments.remove()
 
-      const trimmedContent = tempDiv.innerHTML.trim() // safety trim (increased to avoid truncation)
+      const trimmedContent = tempDiv.innerHTML.trim()
       
-      // Use data-source attribute. Preserved cleanly by modified CKEditor plugin without live links inside composer.
+      let authorUser = null
+      if (sourceId === 'main_thread_entry' && this.thread) {
+        authorUser = this.thread.author
+      } else if (sourceId && this.posts) {
+        const pId = parseInt(sourceId, 10)
+        const pObj = this.posts.find(p => p.id === pId)
+        if (pObj) authorUser = pObj.author
+      }
       const sourceAttr = sourceId ? ` data-source="${sourceId}"` : '';
-      const quoteHtml = `<blockquote${sourceAttr}><p><strong>${authorName} đã viết:</strong></p>${trimmedContent}</blockquote><p>&nbsp;</p>`
+      const quoteHtml = `<blockquote${sourceAttr}><p><strong>${authorName}</strong> đã viết:</p>${trimmedContent}</blockquote><p>&nbsp;</p>`
       
       this.replyForm.content = this.replyForm.content + quoteHtml
       

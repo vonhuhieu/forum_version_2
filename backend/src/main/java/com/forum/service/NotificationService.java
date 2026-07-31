@@ -61,18 +61,22 @@ public class NotificationService {
             return;
         }
 
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
         Notification notif = new Notification();
-        notif.setRecipient(recipient);
-        notif.setActor(actor);
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
         notif.setType(NotificationType.NEW_COMMENT);
-        notif.setThread(thread);
+        notif.setThread(managedThread);
         notif.setPost(post);
         notif.setRead(false);
 
         Notification saved = notificationRepository.save(notif);
         NotificationDTO dto = notificationMapper.toDTO(saved);
 
-        pushNotification(recipient.getId(), dto);
+        pushNotification(managedRecipient.getId(), dto);
     }
 
     @Async
@@ -83,18 +87,22 @@ public class NotificationService {
             return;
         }
 
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
         Notification notif = new Notification();
-        notif.setRecipient(recipient);
-        notif.setActor(actor);
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
         notif.setType(NotificationType.QUOTE);
-        notif.setThread(thread);
+        notif.setThread(managedThread);
         notif.setPost(post);
         notif.setRead(false);
 
         Notification saved = notificationRepository.save(notif);
         NotificationDTO dto = notificationMapper.toDTO(saved);
 
-        pushNotification(recipient.getId(), dto);
+        pushNotification(managedRecipient.getId(), dto);
     }
 
     @Async
@@ -105,11 +113,15 @@ public class NotificationService {
             return;
         }
 
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
         Notification notif = new Notification();
-        notif.setRecipient(recipient);
-        notif.setActor(actor);
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
         notif.setType(NotificationType.REACTION);
-        notif.setThread(thread);
+        notif.setThread(managedThread);
         notif.setPost(post);
         notif.setReactionIcon(icon.getIcon());
         notif.setReactionName(icon.getTooltip());
@@ -119,7 +131,7 @@ public class NotificationService {
         Notification saved = notificationRepository.save(notif);
         NotificationDTO dto = notificationMapper.toDTO(saved);
 
-        pushNotification(recipient.getId(), dto);
+        pushNotification(managedRecipient.getId(), dto);
     }
 
     private void pushNotification(Long userId, NotificationDTO dto) {
@@ -195,18 +207,22 @@ public class NotificationService {
             return;
         }
 
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
         Notification notif = new Notification();
-        notif.setRecipient(recipient);
-        notif.setActor(actor);
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
         notif.setType(NotificationType.MENTION);
-        notif.setThread(thread);
+        notif.setThread(managedThread);
         notif.setPost(post);
         notif.setRead(false);
 
         Notification saved = notificationRepository.save(notif);
         NotificationDTO dto = notificationMapper.toDTO(saved);
 
-        pushNotification(recipient.getId(), dto);
+        pushNotification(managedRecipient.getId(), dto);
     }
 
     public java.util.Set<Long> getMentionedUserIds(User actor, String content) {
