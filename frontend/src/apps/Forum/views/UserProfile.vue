@@ -178,14 +178,15 @@
 
                         <!-- Dòng 2: Nội dung xem trước -->
                         <template v-if="activeTab === 'comments'">
-                          <div v-if="parseCommentPreview(item.content).hasQuote" class="mini-quote-box">
-                            <span class="mini-quote-author" v-if="parseCommentPreview(item.content).quoteAuthor">
-                              {{ parseCommentPreview(item.content).quoteAuthor }}
-                            </span>
-                            <span class="mini-quote-text">
-                              {{ parseCommentPreview(item.content).quoteText }}
-                            </span>
-                          </div>
+                          <template v-for="(q, qi) in parseCommentPreview(item.content).quotes" :key="qi">
+                            <div class="mini-quote-box">
+                              <span class="mini-quote-author" v-if="q.quoteAuthor" v-html="getQuoteAuthorHtml(q.quoteAuthor, item)">
+                              </span>
+                              <span class="mini-quote-text">
+                                {{ q.quoteText }}
+                              </span>
+                            </div>
+                          </template>
                           <div class="item-content-preview">
                             {{ parseCommentPreview(item.content).replyText || '(Nội dung đính kèm)' }}
                           </div>
@@ -198,7 +199,10 @@
 
                         <!-- Dòng 3: Meta metadata -->
                         <div class="item-meta-row">
-                          <span class="meta-author">{{ userStats.displayName || userStats.username }}</span>
+                          <span class="meta-author">
+                            {{ (item.author || userStats).displayName || (item.author || userStats).username }}
+                            <VerifiedBadge :user="item.author || userStats" size="14px" />
+                          </span>
                           <span class="meta-divider">&middot;</span>
                           <span class="meta-post-number">Post #{{ activeTab === 'posts' ? 1 : item.seqNumber }}</span>
                           <span class="meta-divider">&middot;</span>
@@ -252,7 +256,7 @@ import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
@@ -392,21 +396,56 @@ export default {
       }
       this.navigateToItem(item)
     },
+    getQuoteAuthorHtml(quoteAuthorStr, item) {
+      if (!quoteAuthorStr) return ''
+      const match = quoteAuthorStr.match(/(.*?)\s*đã\s*(?:viết|nói):/i)
+      if (!match || !match[1]) return quoteAuthorStr
+
+      const authorName = match[1].trim()
+      let targetUser = null
+      if (this.userStats && ((this.userStats.displayName && this.userStats.displayName.trim() === authorName) || (this.userStats.username && this.userStats.username.trim() === authorName))) {
+        targetUser = this.userStats
+      } else if (item && item.author && ((item.author.displayName && item.author.displayName.trim() === authorName) || (item.author.username && item.author.username.trim() === authorName))) {
+        targetUser = item.author
+      }
+
+      const badgeHtml = getVerifiedBadgeSvgHtml(targetUser || { isVerifiedBadge: true })
+      return `${authorName}${badgeHtml} đã viết:`
+    },
     parseCommentPreview(content) {
-      if (!content) return { hasQuote: false, quoteAuthor: '', quoteText: '', replyText: '' }
+      if (!content) return { hasQuote: false, quotes: [], replyText: '' }
 
       const tempDiv = document.createElement('div')
       tempDiv.innerHTML = content
 
-      const bq = tempDiv.querySelector('blockquote')
-      let quoteAuthor = ''
-      let quoteText = ''
-
-      if (bq) {
-        const strong = bq.querySelector('p strong, strong')
-        if (strong) {
-          quoteAuthor = strong.textContent.trim()
+      // Lấy TẤT CẢ blockquote để build mảng quotes
+      const allBqs = Array.from(tempDiv.querySelectorAll('blockquote'))
+      const quotes = allBqs.map(bq => {
+        let quoteAuthor = ''
+        const firstP = bq.querySelector('p:first-child')
+        if (firstP) {
+          // Lấy text từ toàn bộ p đầu tiên để bao gồm cả "đã viết:" dù nằm trong hay ngoài strong
+          // Lọc bỏ text từ span.verified-badge-wrapper (SVG badge không có text content nhưng cẩn thận)
+          let rawText = ''
+          firstP.childNodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              rawText += node.textContent
+            } else if (node.nodeName === 'STRONG') {
+              // Lấy text từ strong (bỏ qua span badge bên trong)
+              node.childNodes.forEach(child => {
+                if (child.nodeType === Node.TEXT_NODE) rawText += child.textContent
+                else if (!(child.nodeName === 'SPAN' && child.classList && child.classList.contains('verified-badge-wrapper'))) {
+                  rawText += child.textContent
+                }
+              })
+            } else if (!(node.nodeName === 'SPAN' && node.classList && node.classList.contains('verified-badge-wrapper'))) {
+              rawText += node.textContent
+            }
+          })
+          quoteAuthor = rawText.trim()
         }
+
+        // Lấy nội dung quote (không bao gồm header strong)
         const bqClone = bq.cloneNode(true)
         const strongInClone = bqClone.querySelector('p strong, strong')
         if (strongInClone) {
@@ -416,9 +455,14 @@ export default {
             strongInClone.remove()
           }
         }
-        quoteText = bqClone.textContent.replace(/\s+/g, ' ').trim()
-        bq.remove()
-      }
+        let quoteText = bqClone.textContent.replace(/\s+/g, ' ').trim()
+        if (quoteText.length > 100) quoteText = quoteText.substring(0, 100) + '...'
+
+        return { quoteAuthor, quoteText }
+      })
+
+      // Xóa TẤT CẢ blockquote trước khi trích xuất replyText
+      allBqs.forEach(bq => bq.remove())
 
       const attach = tempDiv.querySelector('.attachment-block')
       if (attach) attach.remove()
@@ -427,15 +471,9 @@ export default {
       if (replyText.length > 200) {
         replyText = replyText.substring(0, 200) + '...'
       }
-
-      if (quoteText.length > 120) {
-        quoteText = quoteText.substring(0, 120) + '...'
-      }
-
       return {
-        hasQuote: !!bq,
-        quoteAuthor,
-        quoteText,
+        hasQuote: quotes.length > 0,
+        quotes,
         replyText
       }
     },

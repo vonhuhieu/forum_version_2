@@ -64,6 +64,7 @@
                     <!-- Dòng 1 -->
                     <div class="reaction-msg-line">
                       <span class="reactor-name">{{ item.actor.displayName || item.actor.username }}</span>
+                      <VerifiedBadge :user="item.actor" size="16px" />
                       đã tương tác với bạn trong chủ đề
                       <span v-if="item.threadLabel" class="label-tag-mini" :style="{ backgroundColor: item.threadLabel.colorCode, color: item.threadLabel.textColor, borderColor: item.threadLabel.borderColor || 'transparent' }">
                         {{ item.threadLabel.name }}
@@ -116,6 +117,7 @@ import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import api from '@/shared/services/api.service'
 import { formatForumDate } from '@/shared/utils/date'
@@ -130,7 +132,8 @@ export default {
     ReactionIcon,
     ForumPagination,
     AccountSidebar,
-    UserProfilePopup
+    UserProfilePopup,
+    VerifiedBadge
   },
   data() {
     return {

@@ -92,6 +92,7 @@ import {
 import 'ckeditor5/ckeditor5.css'
 import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
+import { getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
  
 class QuoteSourcePlugin extends Plugin {
   static get requires() {
@@ -99,8 +100,9 @@ class QuoteSourcePlugin extends Plugin {
   }
   init() {
     const editor = this.editor;
-    editor.model.schema.extend('blockQuote', { allowAttributes: 'data-source' });
+    editor.model.schema.extend('blockQuote', { allowAttributes: ['data-source', 'data-verified'] });
     editor.conversion.attributeToAttribute({ model: 'data-source', view: 'data-source' });
+    editor.conversion.attributeToAttribute({ model: 'data-verified', view: 'data-verified' });
   }
 }
 
@@ -134,6 +136,7 @@ export default {
   data() {
     return {
       editorInstance: null,
+      decorateTimer: null,
       showEmojiPicker: false,
       emojiPickerTarget: null,
       editor: ClassicEditor,
@@ -278,6 +281,11 @@ export default {
         this.currentPage = 1;
         this.activeIndex = 0;
       }
+    },
+    allowedUsers() {
+      this.$nextTick(() => {
+        this.decorateEditorQuotes();
+      });
     }
   },
   mounted() {
@@ -285,10 +293,74 @@ export default {
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside)
+    if (this.decorateTimer) {
+      clearTimeout(this.decorateTimer)
+      this.decorateTimer = null
+    }
   },
   methods: {
+    decorateEditorQuotes() {
+      if (!this.editorInstance) return;
+      const editor = this.editorInstance;
+      const editableEl = editor.ui.getEditableElement();
+      if (!editableEl) return;
+
+      const blockquotes = editableEl.querySelectorAll('blockquote:not([data-verified])');
+      if (blockquotes.length === 0) return;
+
+      const modelElementsToVerify = [];
+
+      blockquotes.forEach(bq => {
+        const strongEl = bq.querySelector('p:first-child strong');
+        if (!strongEl) return;
+
+        let rawText = '';
+        strongEl.childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE) rawText += node.textContent;
+        });
+        const authorName = rawText.replace(/\s*đã\s*(?:viết|nói):\s*$/i, '').trim();
+        if (!authorName) return;
+
+        let targetUser = null;
+        if (this.allowedUsers && Array.isArray(this.allowedUsers)) {
+          targetUser = this.allowedUsers.find(u => u &&
+            ((u.displayName && u.displayName.trim() === authorName) ||
+             (u.username && u.username.trim() === authorName))
+          );
+        }
+        if (!getVerifiedBadgeSvgHtml(targetUser)) return;
+
+        try {
+          const viewEl = editor.editing.view.domConverter.mapDomToView(bq);
+          if (viewEl) {
+            const modelEl = editor.editing.mapper.toModelElement(viewEl);
+            if (modelEl) modelElementsToVerify.push(modelEl);
+          }
+        } catch (e) { /* ignore */ }
+      });
+
+      if (modelElementsToVerify.length === 0) return;
+
+      editor.model.change(writer => {
+        modelElementsToVerify.forEach(modelEl => {
+          writer.setAttribute('data-verified', '1', modelEl);
+        });
+      });
+    },
     onEditorReady(editor) {
       this.editorInstance = editor;
+
+      editor.model.document.on('change:data', () => {
+        if (this.decorateTimer) clearTimeout(this.decorateTimer);
+        this.decorateTimer = setTimeout(() => {
+          this.decorateEditorQuotes();
+          this.decorateTimer = null;
+        }, 80);
+      });
+
+      this.$nextTick(() => {
+        this.decorateEditorQuotes();
+      });
 
       // Hàm kiểm tra xem ký tự tại một offset có thuộc về tag @ hợp lệ hay không (màu xanh #2577b1, bold và bắt đầu bằng @)
       const isCharInsideMention = (parent, offset) => {
@@ -1320,6 +1392,28 @@ export default {
 /* Ẩn hoàn toàn nút xóa trích dẫn khi đang sửa bài viết (Edit mode) */
 .is-edit :deep(.ck-editor__editable blockquote::before) {
   display: none !important;
+}
+
+/* Đồng bộ màu cam cho toàn bộ dòng tiêu đề quote (cả strong lẫn text "đã viết:" nằm ngoài strong) */
+:deep(.ck-editor__editable blockquote p:first-child) {
+  color: #e67e22 !important;
+  font-size: 0.9rem !important;
+  font-weight: bold !important;
+}
+
+/* Badge tích xanh uy tín trong Editor Composer (dùng CSS ::after trên data-verified) */
+:deep(.ck-editor__editable blockquote[data-verified="1"] p:first-child strong::after) {
+  content: '';
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' fill='%231877F2'/%3E%3Cpath d='M8.5 12.5L10.5 14.5L15.5 9.5' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: middle;
+  margin-left: 4px;
+  pointer-events: none;
 }
 
 </style>

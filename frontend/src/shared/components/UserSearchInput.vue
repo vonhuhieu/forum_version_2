@@ -30,6 +30,7 @@
         </div>
         <div class="user-info-text">
           <span class="user-display-name">{{ user.displayName || user.username }}</span>
+          <VerifiedBadge :user="user" size="16px" />
         </div>
       </div>
     </div>
@@ -38,10 +39,14 @@
 
 <script>
 import userService from '@/apps/Forum/services/user.service'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'UserSearchInput',
+  components: {
+    VerifiedBadge
+  },
   props: {
     placeholder: {
       type: String,
