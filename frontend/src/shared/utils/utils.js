@@ -79,3 +79,28 @@ export function getCurrentOrigin() {
   }
   return '';
 }
+
+/**
+ * Trả về chuỗi HTML SVG đại diện cho Badge Tích xanh Uy tín
+ * @param {Object|boolean} userOrIsVerified - Đối tượng user hoặc boolean isVerified
+ * @param {string} size - Kích thước của icon SVG (mặc định '16px')
+ * @returns {string} - Chuỗi HTML đại diện cho badge tích xanh hoặc chuỗi rỗng
+ */
+export function getVerifiedBadgeSvgHtml(userOrIsVerified, size = '16px') {
+  let isVerified = false;
+  if (typeof userOrIsVerified === 'boolean') {
+    isVerified = userOrIsVerified;
+  } else if (userOrIsVerified && typeof userOrIsVerified === 'object') {
+    if (userOrIsVerified.isVerifiedBadge) {
+      isVerified = true;
+    } else if (Array.isArray(userOrIsVerified.roles)) {
+      if (userOrIsVerified.roles.includes('ROLE_SUPER_ADMIN') || userOrIsVerified.roles.includes('ROLE_ADMIN')) {
+        isVerified = true;
+      }
+    }
+  }
+
+  if (!isVerified) return '';
+
+  return `<span class="verified-badge-wrapper" title="Tài khoản Uy tín / Quản trị viên" style="display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; line-height: 1; margin-left: 4px; pointer-events: none; user-select: none;"><svg class="verified-badge-icon" style="width: ${size}; height: ${size}; display: inline-block; vertical-align: middle; flex-shrink: 0; pointer-events: none;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#1877F2"/><path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+}

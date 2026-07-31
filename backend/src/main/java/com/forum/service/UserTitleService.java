@@ -131,7 +131,15 @@ public class UserTitleService {
 
         // Ưu tiên 1: Title do Admin gán trực tiếp
         if (user.getAssignedTitle() != null) {
-            return user.getAssignedTitle();
+            UserTitle title = user.getAssignedTitle();
+            if (!org.hibernate.Hibernate.isInitialized(title)) {
+                try {
+                    return userTitleRepository.findById(title.getId()).orElse(null);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+            return title;
         }
 
         // Ưu tiên 2: Chưa xác thực
