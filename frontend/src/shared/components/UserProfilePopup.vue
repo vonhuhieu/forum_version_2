@@ -70,7 +70,7 @@
 
         <!-- Thanh nút hành động (ẩn khi là chính mình hoặc chưa đăng nhập) -->
         <div class="popup-actions" v-if="isLoggedIn && !isCurrentUser">
-          <button class="btn-popup-action" @click="handleFollow">Theo dõi</button>
+          <button class="btn-popup-action" @click="handleFollow" :disabled="loadingFollow">{{ isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}</button>
           <button class="btn-popup-action" @click="handleBlock">Chặn</button>
           <button class="btn-popup-action" @click="startConversation">Bắt đầu đối thoại</button>
         </div>
@@ -82,6 +82,7 @@
 
 <script>
 import userService from '@/apps/Forum/services/user.service'
+import userFollowService from '@/apps/Forum/services/user-follow.service'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl } from '@/shared/utils/utils'
@@ -109,7 +110,9 @@ export default {
       displayBelow: false,
       popupStyle: {},
       arrowStyle: {},
-      isTouch: false
+      isTouch: false,
+      isFollowing: false,
+      loadingFollow: false
     }
   },
   mounted() {
@@ -216,6 +219,8 @@ export default {
       this.visible = true
       if (!this.userData) {
         await this.fetchUserProfile()
+      } else {
+        await this.checkFollowStatus()
       }
     },
     hidePopup() {
@@ -236,11 +241,23 @@ export default {
         } else {
           this.userData = this.user
         }
+        await this.checkFollowStatus()
       } catch (e) {
         console.error('Error fetching user profile:', e)
         this.userData = this.user
       } finally {
         this.loading = false
+      }
+    },
+    async checkFollowStatus() {
+      if (!this.isLoggedIn || this.isCurrentUser || !this.userData?.username) return
+      try {
+        const res = await userFollowService.getFollowStatus(this.userData.username)
+        if (res.data !== undefined) {
+          this.isFollowing = res.data
+        }
+      } catch (e) {
+        console.error('Error checking follow status:', e)
       }
     },
     formatJoinDate(dateStr) {
@@ -278,8 +295,33 @@ export default {
         query: { username: usernameParam }
       })
     },
-    handleFollow() {
-      alert('Tính năng Theo dõi sẽ được cập nhật sau.')
+    async handleFollow() {
+      if (!this.isLoggedIn) {
+        toastError('Vui lòng đăng nhập để thực hiện chức năng này.')
+        return
+      }
+      if (!this.userData?.username) return
+
+      const targetState = !this.isFollowing
+      const actionTitle = 'Xác nhận'
+      const actionText = targetState
+        ? 'Bạn chắc chắn muốn theo dõi người dùng này?'
+        : 'Bạn chắc chắn muốn bỏ theo dõi người dùng này?'
+
+      const confirmRes = await alertConfirm(actionTitle, actionText)
+      if (!confirmRes.isConfirmed) return
+
+      this.loadingFollow = true
+      try {
+        await userFollowService.toggleFollow(this.userData.username, targetState)
+        this.isFollowing = targetState
+        toastSuccess(targetState ? 'Đã theo dõi người dùng thành công' : 'Đã bỏ theo dõi người dùng')
+      } catch (e) {
+        console.error('Lỗi khi thao tác theo dõi:', e)
+        toastError(e.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại sau.')
+      } finally {
+        this.loadingFollow = false
+      }
     },
     handleBlock() {
       alert('Tính năng Chặn sẽ được cập nhật sau.')

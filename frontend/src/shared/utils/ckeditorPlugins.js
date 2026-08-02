@@ -1,5 +1,6 @@
 import uploadService from '@/apps/Forum/services/upload.service'
 import { ButtonView } from 'ckeditor5'
+import { convertHeicToJpegIfNeeded, processFilesForUpload } from '@/shared/utils/heicUtils'
 
 // Custom Upload Adapter cho hình ảnh (khi paste ảnh hoặc dùng nút imageUpload)
 class MyUploadAdapter {
@@ -9,24 +10,26 @@ class MyUploadAdapter {
   }
 
   upload() {
-    return this.loader.file.then(file => new Promise((resolve, reject) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      
-      uploadService.upload(formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      .then(res => {
-        const url = res.data.url;
-        if (this.editor) {
-          this.editor.fire('imageUploaded', { url: url, name: file.name, type: file.type || 'image/jpeg' });
-        }
-        resolve({ default: url })
-      })
-      .catch(err => {
-        reject(err)
-      })
-    }))
+    return this.loader.file
+      .then(file => convertHeicToJpegIfNeeded(file))
+      .then(file => new Promise((resolve, reject) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        uploadService.upload(formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        .then(res => {
+          const url = res.data.url;
+          if (this.editor) {
+            this.editor.fire('imageUploaded', { url: url, name: file.name, type: file.type || 'image/jpeg' });
+          }
+          resolve({ default: url })
+        })
+        .catch(err => {
+          reject(err)
+        })
+      }))
   }
 
   abort() {}
@@ -56,19 +59,20 @@ export function CustomUploadPlugin(editor) {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.accept = 'video/*,image/*,.pdf,.doc,.docx,.xls,.xlsx';
+      input.accept = 'video/*,image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx';
 
       input.onchange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
+        const rawFiles = Array.from(e.target.files);
+        if (rawFiles.length === 0) return;
 
-        const formData = new FormData();
-        files.forEach(file => formData.append('files', file));
-        
         // Thông báo bắt đầu upload để Vue cha có thể hiển thị Loading overlay
         editor.fire('uploadMultipleStart');
 
         try {
+          const files = await processFilesForUpload(rawFiles);
+          const formData = new FormData();
+          files.forEach(file => formData.append('files', file));
+
           const res = await uploadService.uploadMultiple(formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });

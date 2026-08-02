@@ -12,7 +12,7 @@
         type="file" 
         ref="fileInput" 
         multiple 
-        accept="image/*" 
+        accept="image/*,.heic,.heif" 
         style="display: none" 
         @change="onFileChange"
       />
@@ -69,6 +69,7 @@
 
 <script>
 import uploadService from '@/apps/Forum/services/upload.service'
+import { processFilesForUpload } from '@/shared/utils/heicUtils'
 
 export default {
   name: 'ImageUploaderPanel',
@@ -171,14 +172,15 @@ export default {
       this.$refs.fileInput.click()
     },
     async onFileChange(event) {
-      const files = Array.from(event.target.files)
-      if (files.length === 0) return
+      const rawFiles = Array.from(event.target.files)
+      if (rawFiles.length === 0) return
  
       this.isUploading = true
-      const formData = new FormData()
-      files.forEach(file => formData.append('files', file))
- 
       try {
+        const files = await processFilesForUpload(rawFiles)
+        const formData = new FormData()
+        files.forEach(file => formData.append('files', file))
+ 
         const res = await uploadService.uploadMultiple(formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })

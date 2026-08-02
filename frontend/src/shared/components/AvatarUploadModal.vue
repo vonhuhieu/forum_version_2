@@ -145,6 +145,7 @@
 import api from '@/shared/services/api.service'
 import Loading from '@/shared/components/Loading.vue'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
+import { convertHeicToJpegIfNeeded } from '@/shared/utils/heicUtils'
 
 export default {
   name: 'AvatarUploadModal',
@@ -228,7 +229,8 @@ export default {
       if (file && file.type.startsWith('image/')) this.loadImage(file)
     },
 
-    loadImage(file) {
+    async loadImage(file) {
+      file = await convertHeicToJpegIfNeeded(file)
       if (file.size > 5 * 1024 * 1024) {
         alert('Ảnh vượt quá 5MB, vui lòng chọn ảnh nhỏ hơn.')
         return
