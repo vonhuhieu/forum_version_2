@@ -32,4 +32,5 @@ public class ThreadDTO {
     private List<UserDTO> recentReactors;
     
     private String scope;
+    private Boolean isFollowed;
 }

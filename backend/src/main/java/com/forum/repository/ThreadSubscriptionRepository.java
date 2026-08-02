@@ -12,6 +12,7 @@ public interface ThreadSubscriptionRepository extends JpaRepository<ThreadSubscr
     Optional<ThreadSubscription> findByThreadIdAndUserId(Long threadId, Long userId);
     Optional<ThreadSubscription> findByThreadIdAndUserUsername(Long threadId, String username);
     List<ThreadSubscription> findByThreadIdAndIsFollowingTrue(Long threadId);
+    List<ThreadSubscription> findByUserIdAndThreadIdIn(Long userId, List<Long> threadIds);
     
     @org.springframework.transaction.annotation.Transactional
     void deleteByThreadId(Long threadId);
