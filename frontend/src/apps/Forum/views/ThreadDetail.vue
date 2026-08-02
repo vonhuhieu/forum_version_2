@@ -270,7 +270,7 @@
              </div>
           </div>
           <div class="post-main" style="padding: 0; border: 1px solid #e0e0e0;">
-             <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" @image-uploaded="handleImageUploaded" />
+             <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" @image-uploaded="handleImageUploaded" @upload-loading-start="isUploadLoading = true" @upload-loading-end="isUploadLoading = false" />
              
              <!-- Khối xem trước đính kèm chân bình luận -->
              <div v-if="replyAttachedImages && replyAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -322,7 +322,7 @@
       />
     </main>
   </div>
-  <Loading :visible="loading" />
+  <Loading :visible="loading || isUploadLoading" />
 
   <!-- Lightbox Modal -->
   <div v-if="showLightbox" class="lightbox-modal" @click="closeLightbox">
@@ -394,6 +394,7 @@ export default {
       categoryGroup: null,
       allCategories: [],
       loading: true,
+      isUploadLoading: false,
       showLightbox: false,
       activeImageUrl: '',
       replyForm: {
