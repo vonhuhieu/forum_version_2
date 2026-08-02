@@ -147,7 +147,7 @@
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
-                          {{ item.displayName || item.username }}
+                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
@@ -178,7 +178,7 @@
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
-                          {{ item.displayName || item.username }}
+                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
@@ -209,7 +209,7 @@
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
-                          {{ item.displayName || item.username }}
+                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
