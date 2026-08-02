@@ -60,6 +60,47 @@ public class FileUploadService {
         return "raw";
     }
 
+    private boolean isHeicFile(String filename, String contentType) {
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".heic") || lower.endsWith(".heif")) {
+                return true;
+            }
+        }
+        if (contentType != null) {
+            String lower = contentType.toLowerCase();
+            if (lower.contains("heic") || lower.contains("heif")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean convertHeicToJpgLocal(MultipartFile file, java.nio.file.Path targetPath) {
+        try {
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(file.getInputStream());
+            if (img != null) {
+                java.awt.image.BufferedImage rgbImg = new java.awt.image.BufferedImage(
+                    img.getWidth(), img.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB
+                );
+                java.awt.Graphics2D g = rgbImg.createGraphics();
+                g.drawImage(img, 0, 0, java.awt.Color.WHITE, null);
+                g.dispose();
+                return javax.imageio.ImageIO.write(rgbImg, "jpg", targetPath.toFile());
+            }
+            java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (Exception e) {
+            System.err.println("[FileUploadService] Error during local HEIC conversion fallback: " + e.getMessage());
+            try {
+                java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                return true;
+            } catch (IOException ex) {
+                return false;
+            }
+        }
+    }
+
     /**
      * Upload a single file. Supports both Local and Cloudinary providers.
      * @return map with keys: url (absolute or relative URL), name, type
@@ -71,29 +112,48 @@ public class FileUploadService {
 
         String originalFilename = file.getOriginalFilename();
         String mimeType = file.getContentType();
+        boolean isHeic = isHeicFile(originalFilename, mimeType);
+
+        if (isHeic) {
+            System.out.println("[FileUploadService] Received HEIC file for backend processing: " + originalFilename + " (" + file.getSize() + " bytes)");
+        }
 
         // 1. Local File Storage Provider
         if ("local".equalsIgnoreCase(uploadProvider)) {
-            // Create local uploads directory if it does not exist
             java.nio.file.Path uploadPath = java.nio.file.Paths.get(localDir);
             if (!java.nio.file.Files.exists(uploadPath)) {
                 java.nio.file.Files.createDirectories(uploadPath);
             }
 
-            // Extract original file extension
             String extension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
 
-            // Generate unique, safe filename using UUID
+            if (isHeic) {
+                long startTime = System.currentTimeMillis();
+                String newFilename = (originalFilename != null ? originalFilename.replaceAll("(?i)\\.(heic|heif)$", ".jpg") : "image.jpg");
+                String uniqueFilename = java.util.UUID.randomUUID().toString() + ".jpg";
+                java.nio.file.Path targetPath = uploadPath.resolve(uniqueFilename);
+
+                boolean converted = convertHeicToJpgLocal(file, targetPath);
+                long duration = System.currentTimeMillis() - startTime;
+                if (converted) {
+                    System.out.println("[FileUploadService] Processed HEIC -> JPG locally: " + originalFilename + " -> " + uniqueFilename + " in " + duration + "ms");
+                    String fileUrl = "/uploads/" + uniqueFilename;
+                    Map<String, String> data = new HashMap<>();
+                    data.put("url", fileUrl);
+                    data.put("name", newFilename);
+                    data.put("type", "image/jpeg");
+                    return data;
+                }
+            }
+
             String uniqueFilename = java.util.UUID.randomUUID().toString() + extension;
             java.nio.file.Path targetPath = uploadPath.resolve(uniqueFilename);
 
-            // Copy file content to destination path
             java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            // Return relative path matching Frontend expectations (/uploads/...)
             String fileUrl = "/uploads/" + uniqueFilename;
 
             Map<String, String> data = new HashMap<>();
@@ -109,6 +169,11 @@ public class FileUploadService {
         Map<String, Object> uploadOptions = new HashMap<>();
         uploadOptions.put("folder", "forum_uploads");
         uploadOptions.put("resource_type", resourceType);
+
+        if (isHeic) {
+            uploadOptions.put("format", "jpg");
+            mimeType = "image/jpeg";
+        }
 
         // For raw uploads (documents): preserve the original filename and extension
         // by generating a unique public_id that explicitly ends with the file extension.

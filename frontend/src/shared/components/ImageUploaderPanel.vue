@@ -179,22 +179,20 @@ export default {
       this.$refs.fileInput.click()
     },
     async onFileChange(event) {
-      const rawFiles = Array.from(event.target.files)
-      if (rawFiles.length === 0) return
- 
+      const files = Array.from(event.target.files)
+      if (files.length === 0) return
+
       this.isUploading = true
       try {
-        const files = await processFilesForUpload(rawFiles)
         const formData = new FormData()
         files.forEach(file => formData.append('files', file))
- 
+
         const res = await uploadService.uploadMultiple(formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
         
         const validResults = res.data || []
-        // Chỉ lưu những file là ảnh
-        const newImages = validResults.filter(result => result.type && result.type.startsWith('image/'))
+        const newImages = validResults.filter(result => result.url)
         
         this.uploadedImages.push(...newImages)
         
