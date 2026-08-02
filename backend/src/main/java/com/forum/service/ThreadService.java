@@ -83,7 +83,9 @@ public class ThreadService {
         
         List<ThreadDTO> cached = threadListCache.get(cacheKey);
         if (cached != null) {
-            return ResponseDTO.success(cached);
+            List<ThreadDTO> result = copyThreadDTOList(cached);
+            enrichFollowStatus(result);
+            return ResponseDTO.success(result);
         }
 
         List<Thread> threads;
@@ -121,9 +123,12 @@ public class ThreadService {
         }
 
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
-        enrichThreads(dtos);
+        enrichGeneralThreadFields(dtos);
         threadListCache.put(cacheKey, dtos);
-        return ResponseDTO.success(dtos);
+
+        List<ThreadDTO> result = copyThreadDTOList(dtos);
+        enrichFollowStatus(result);
+        return ResponseDTO.success(result);
     }
 
     public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
@@ -214,7 +219,9 @@ public class ThreadService {
         String cacheKey = "latest_" + canSeeInternal;
         List<ThreadDTO> cached = threadListCache.get(cacheKey);
         if (cached != null) {
-            return ResponseDTO.success(cached);
+            List<ThreadDTO> result = copyThreadDTOList(cached);
+            enrichFollowStatus(result);
+            return ResponseDTO.success(result);
         }
 
         List<Thread> threads;
@@ -225,9 +232,12 @@ public class ThreadService {
             threads = threadRepository.findAllPublicOrderByLastPostAtDesc(p).getContent();
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
-        enrichThreads(dtos);
+        enrichGeneralThreadFields(dtos);
         threadListCache.put(cacheKey, dtos);
-        return ResponseDTO.success(dtos);
+
+        List<ThreadDTO> result = copyThreadDTOList(dtos);
+        enrichFollowStatus(result);
+        return ResponseDTO.success(result);
     }
 
     public ResponseDTO<ThreadDTO> getThreadById(Long id) {
@@ -268,6 +278,7 @@ public class ThreadService {
         dto.setLocked(baseDto.isLocked());
 
         dto.setCurrentUserReaction(reactionService.getCurrentUserReactionForThread(id));
+        dto.setIsFollowed(getFollowStatus(id).getData());
 
         return ResponseDTO.success(dto);
     }
@@ -295,7 +306,44 @@ public class ThreadService {
         ));
     }
 
-    private void enrichThreads(List<ThreadDTO> dtos) {
+    private ThreadDTO copyThreadDTO(ThreadDTO orig) {
+        if (orig == null) return null;
+        ThreadDTO copy = new ThreadDTO();
+        copy.setId(orig.getId());
+        copy.setTitle(orig.getTitle());
+        copy.setContent(orig.getContent());
+        copy.setCategory(orig.getCategory());
+        copy.setLabel(orig.getLabel());
+        copy.setAuthor(orig.getAuthor());
+        copy.setCreatedAt(orig.getCreatedAt());
+        copy.setViewCount(orig.getViewCount());
+        copy.setReplyCount(orig.getReplyCount());
+        copy.setPinned(orig.isPinned());
+        copy.setActive(orig.isActive());
+        copy.setLocked(orig.isLocked());
+        copy.setPoll(orig.getPoll());
+        copy.setAttachedImages(orig.getAttachedImages());
+        copy.setLastPostId(orig.getLastPostId());
+        copy.setLastPostAuthor(orig.getLastPostAuthor());
+        copy.setLastPostAt(orig.getLastPostAt());
+        copy.setReactionSummary(orig.getReactionSummary());
+        copy.setCurrentUserReaction(orig.getCurrentUserReaction());
+        copy.setRecentReactors(orig.getRecentReactors());
+        copy.setScope(orig.getScope());
+        copy.setIsFollowed(orig.getIsFollowed());
+        return copy;
+    }
+
+    private List<ThreadDTO> copyThreadDTOList(List<ThreadDTO> dtos) {
+        if (dtos == null) return null;
+        List<ThreadDTO> list = new java.util.ArrayList<>(dtos.size());
+        for (ThreadDTO dto : dtos) {
+            list.add(copyThreadDTO(dto));
+        }
+        return list;
+    }
+
+    private void enrichGeneralThreadFields(List<ThreadDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) return;
         
         List<Long> threadIds = dtos.stream()
@@ -353,6 +401,47 @@ public class ThreadService {
                 dto.getAuthor().setRoles(null);
             }
         }
+    }
+
+    private void enrichFollowStatus(List<ThreadDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) return;
+        List<Long> threadIds = dtos.stream()
+                .map(ThreadDTO::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toList());
+        if (threadIds.isEmpty()) return;
+
+        // Enrich follow status for current authenticated user
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() != null && !"anonymousUser".equals(auth.getPrincipal())) {
+            String currentUsername = (String) auth.getPrincipal();
+            userRepository.findByUsername(currentUsername).ifPresent(currentUser -> {
+                List<ThreadSubscription> subs = threadSubscriptionRepository.findByUserIdAndThreadIdIn(currentUser.getId(), threadIds);
+                java.util.Map<Long, Boolean> subMap = subs.stream().collect(java.util.stream.Collectors.toMap(
+                    s -> s.getThread().getId(),
+                    ThreadSubscription::isFollowing,
+                    (a, b) -> a
+                ));
+                for (ThreadDTO dto : dtos) {
+                    if (subMap.containsKey(dto.getId())) {
+                        dto.setIsFollowed(subMap.get(dto.getId()));
+                    } else if (dto.getAuthor() != null && currentUser.getId().equals(dto.getAuthor().getId())) {
+                        dto.setIsFollowed(true);
+                    } else {
+                        dto.setIsFollowed(false);
+                    }
+                }
+            });
+        } else {
+            for (ThreadDTO dto : dtos) {
+                dto.setIsFollowed(false);
+            }
+        }
+    }
+
+    private void enrichThreads(List<ThreadDTO> dtos) {
+        enrichGeneralThreadFields(dtos);
+        enrichFollowStatus(dtos);
     }
 
 
@@ -686,6 +775,9 @@ public class ThreadService {
             sub.setFollowing(following);
             threadSubscriptionRepository.save(sub);
         }
+
+        threadListCache.clear();
+        threadCache.remove(id);
 
         return ResponseDTO.success(null);
     }
