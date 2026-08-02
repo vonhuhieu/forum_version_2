@@ -107,6 +107,55 @@ public class NotificationService {
 
     @Async
     @Transactional
+    public void sendFollowedUserThreadNotification(User actor, Thread thread, User recipient) {
+        if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {
+            return;
+        }
+
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
+        Notification notif = new Notification();
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
+        notif.setType(NotificationType.FOLLOWED_USER_THREAD);
+        notif.setThread(managedThread);
+        notif.setRead(false);
+
+        Notification saved = notificationRepository.save(notif);
+        NotificationDTO dto = notificationMapper.toDTO(saved);
+
+        pushNotification(managedRecipient.getId(), dto);
+    }
+
+    @Async
+    @Transactional
+    public void sendFollowedUserPostNotification(User actor, Thread thread, Post post, User recipient) {
+        if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {
+            return;
+        }
+
+        User managedActor = (actor.getId() != null) ? userRepository.findById(actor.getId()).orElse(actor) : actor;
+        User managedRecipient = (recipient.getId() != null) ? userRepository.findById(recipient.getId()).orElse(recipient) : recipient;
+        Thread managedThread = (thread != null && thread.getId() != null) ? threadRepository.findById(thread.getId()).orElse(thread) : thread;
+
+        Notification notif = new Notification();
+        notif.setRecipient(managedRecipient);
+        notif.setActor(managedActor);
+        notif.setType(NotificationType.FOLLOWED_USER_POST);
+        notif.setThread(managedThread);
+        notif.setPost(post);
+        notif.setRead(false);
+
+        Notification saved = notificationRepository.save(notif);
+        NotificationDTO dto = notificationMapper.toDTO(saved);
+
+        pushNotification(managedRecipient.getId(), dto);
+    }
+
+    @Async
+    @Transactional
     public void sendReactionNotification(User actor, User recipient, Thread thread, Post post, ReactionIcon icon) {
         // Don't notify user about their own actions
         if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {

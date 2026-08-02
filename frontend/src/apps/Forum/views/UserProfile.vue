@@ -50,7 +50,7 @@
                 <div class="banner-actions" :class="{ 'banner-actions-other': !isCurrentUser }">
                   <button class="btn-banner-action fs-9" @click="triggerReport">Báo cáo</button>
                   <template v-if="!isCurrentUser">
-                    <button class="btn-banner-action fs-9" @click="handleFollow">Theo dõi</button>
+                    <button class="btn-banner-action fs-9" @click="handleFollow" :disabled="loadingFollow">{{ isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}</button>
                     <button class="btn-banner-action fs-9" @click="handleBlock">Chặn</button>
                     <button class="btn-banner-action fs-9" @click="startConversation">Bắt đầu đối thoại</button>
                   </template>
@@ -84,7 +84,7 @@
             <!-- Khối nút hành động dàn ngang trên Mobile khi xem trang cá nhân người khác -->
             <div class="profile-mobile-actions" v-if="!isCurrentUser">
               <button class="btn-mobile-action" @click="triggerReport">Báo cáo</button>
-              <button class="btn-mobile-action" @click="handleFollow">Theo dõi</button>
+              <button class="btn-mobile-action" @click="handleFollow" :disabled="loadingFollow">{{ isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}</button>
               <button class="btn-mobile-action" @click="handleBlock">Chặn</button>
               <button class="btn-mobile-action" @click="startConversation">Bắt đầu đối thoại</button>
             </div>
@@ -257,6 +257,8 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
+import userFollowService from '@/apps/Forum/services/user-follow.service'
 import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
@@ -283,6 +285,8 @@ export default {
       itemsPerPage: 10,
       showUploadModal: false,
       uploadMode: 'avatar', // 'avatar' | 'banner'
+      isFollowing: false,
+      loadingFollow: false
     }
   },
   computed: {
@@ -526,6 +530,55 @@ export default {
         if (queryUsername === currentUser.username) {
           this.userStats = currentUser
         }
+      } finally {
+        await this.checkFollowStatus()
+      }
+    },
+    async checkFollowStatus() {
+      const currentUserStr = localStorage.getItem('user')
+      if (!currentUserStr) return
+      const currentUser = JSON.parse(currentUserStr)
+      const queryUsername = this.$route.query.username || currentUser.username
+      if (queryUsername === currentUser.username) return
+
+      try {
+        const res = await userFollowService.getFollowStatus(queryUsername)
+        if (res.data !== undefined) {
+          this.isFollowing = res.data
+        }
+      } catch (e) {
+        console.error('Error checking follow status:', e)
+      }
+    },
+    async handleFollow() {
+      const currentUserStr = localStorage.getItem('user')
+      if (!currentUserStr) {
+        toastError('Vui lòng đăng nhập để thực hiện chức năng này.')
+        return
+      }
+      const currentUser = JSON.parse(currentUserStr)
+      const queryUsername = this.$route.query.username
+      if (!queryUsername || queryUsername === currentUser.username) return
+
+      const targetState = !this.isFollowing
+      const actionTitle = 'Xác nhận'
+      const actionText = targetState
+        ? 'Bạn chắc chắn muốn theo dõi người dùng này?'
+        : 'Bạn chắc chắn muốn bỏ theo dõi người dùng này?'
+
+      const confirmRes = await alertConfirm(actionTitle, actionText)
+      if (!confirmRes.isConfirmed) return
+
+      this.loadingFollow = true
+      try {
+        await userFollowService.toggleFollow(queryUsername, targetState)
+        this.isFollowing = targetState
+        toastSuccess(targetState ? 'Đã theo dõi người dùng thành công' : 'Đã bỏ theo dõi người dùng')
+      } catch (e) {
+        console.error('Lỗi khi thao tác theo dõi:', e)
+        toastError(e.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại sau.')
+      } finally {
+        this.loadingFollow = false
       }
     },
     async fetchTabData() {
@@ -615,9 +668,6 @@ export default {
     onBannerUpdated(newBanner) {
       this.userStats.profileBanner = newBanner
       this.fetchUserStats()
-    },
-    handleFollow() {
-      alert('Tính năng Theo dõi sẽ được cập nhật sau.')
     },
     handleBlock() {
       alert('Tính năng Chặn sẽ được cập nhật sau.')

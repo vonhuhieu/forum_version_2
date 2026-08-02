@@ -24,27 +24,32 @@
       :style="popupStyle"
       @mousedown.prevent
     >
-      <div class="tagging-list">
+      <div class="tagging-list" ref="taggingListRef">
         <div 
           v-for="(user, idx) in filteredUsers" 
-          :key="user.id || user.username" 
+          :key="user.id || user.username || idx" 
           class="tagging-item"
           :class="{ 'active': idx === activeIndex }"
+          @mouseenter="activeIndex = idx"
           @click="selectUser(user)"
         >
-          <div class="tagging-avatar" :style="{ backgroundColor: getAvatarColor(user) }">
-            {{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}
+          <div class="tagging-avatar" :style="!isAvatarUrl(user.avatar) ? { backgroundColor: getAvatarColor(user) } : {}">
+            <img v-if="isAvatarUrl(user.avatar)" :src="user.avatar" alt="avatar" />
+            <span v-else>{{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}</span>
           </div>
-          <div class="tagging-name">{{ user.displayName || user.username }}</div>
+          <div class="tagging-name-wrapper">
+            <span class="tagging-name">{{ user.displayName || user.username }}</span>
+            <VerifiedBadge :user="user" size="16px" />
+          </div>
         </div>
       </div>
-      <div class="tagging-pagination" v-if="totalPages > 1">
+      <!-- <div class="tagging-pagination" v-if="totalPages > 1">
         <ForumPagination 
           :current-page="currentPage" 
           :total-pages="totalPages" 
           @page-changed="onPageChange"
         />
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -92,7 +97,8 @@ import {
 import 'ckeditor5/ckeditor5.css'
 import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
-import { getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
  
 class QuoteSourcePlugin extends Plugin {
   static get requires() {
@@ -111,7 +117,8 @@ export default {
   components: {
     ckeditor: Ckeditor,
     EmojiPicker,
-    ForumPagination
+    // ForumPagination,
+    VerifiedBadge
   },
   props: {
     modelValue: {
@@ -146,6 +153,8 @@ export default {
       currentPage: 1,
       totalPages: 1,
       activeIndex: 0,
+      searchTimeout: null,
+      requestId: 0,
       popupStyle: {
         position: 'absolute',
         left: '0px',
@@ -282,6 +291,9 @@ export default {
         this.activeIndex = 0;
       }
     },
+    activeIndex() {
+      this.scrollToHighlighted();
+    },
     allowedUsers() {
       this.$nextTick(() => {
         this.decorateEditorQuotes();
@@ -299,6 +311,18 @@ export default {
     }
   },
   methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
+    scrollToHighlighted() {
+      this.$nextTick(() => {
+        if (!this.$refs.taggingListRef) return;
+        const highlightedEl = this.$refs.taggingListRef.querySelector('.tagging-item.active');
+        if (highlightedEl) {
+          highlightedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      });
+    },
     decorateEditorQuotes() {
       if (!this.editorInstance) return;
       const editor = this.editorInstance;
@@ -900,8 +924,13 @@ export default {
         this.isTagging = true;
         this.searchQuery = query;
         this.updatePopupPosition();
-        this.fetchUsers();
+        
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+          this.fetchUsers();
+        }, 300);
       } else {
+        clearTimeout(this.searchTimeout);
         this.isTagging = false;
         this.searchQuery = '';
         this.hasClosedManually = false;
@@ -973,14 +1002,15 @@ export default {
       }
 
       // Fallback: search API toàn bộ user
+      const currentReqId = ++this.requestId;
       try {
-        const response = await userService.search({
+        const response = await userService.searchPublic({
           keyword: this.searchQuery,
           page: this.currentPage - 1, // backend is 0-indexed
           size: 10
         })
         
-        if (response.data) {
+        if (currentReqId === this.requestId && response.data) {
           const pageData = response.data
           const rawContent = pageData.content || []
           const filtered = rawContent.filter(u => !this.isUserAlreadyTagged(u, taggedSet, textToCheck))
@@ -988,7 +1018,9 @@ export default {
           this.totalPages = pageData.totalPages || 1
           
           if (this.activeIndex >= this.filteredUsers.length) {
-            this.activeIndex = Math.max(0, this.filteredUsers.length - 1)
+            this.activeIndex = this.filteredUsers.length > 0 ? 0 : -1
+          } else if (this.activeIndex < 0 && this.filteredUsers.length > 0) {
+            this.activeIndex = 0
           }
         }
       } catch (error) {
@@ -1252,12 +1284,31 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 14px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background-color: #1a507a;
+}
+
+.tagging-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tagging-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .tagging-name {
   color: #2c3e50;
   font-size: 14px;
   font-weight: 500;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .tagging-pagination {
