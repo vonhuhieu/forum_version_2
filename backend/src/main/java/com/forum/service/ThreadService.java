@@ -38,6 +38,7 @@ public class ThreadService {
     private final SearchDocumentRepository searchDocumentRepository;
     private final SystemSettingService systemSettingService;
     private final UserTitleService userTitleService;
+    private final com.forum.repository.UserFollowRepository userFollowRepository;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -531,6 +532,14 @@ public class ThreadService {
                     );
                 } else {
                     notificationService.processMentionsAsync(actorId, threadId);
+                }
+
+                // Gửi thông báo cho những người đang theo dõi tác giả bài viết mới
+                List<com.forum.entity.UserFollow> follows = userFollowRepository.findByFollowingId(actorId);
+                for (com.forum.entity.UserFollow uf : follows) {
+                    if (uf.getFollower() != null && !uf.getFollower().getId().equals(actorId)) {
+                        notificationService.sendFollowedUserThreadNotification(saved.getAuthor(), saved, uf.getFollower());
+                    }
                 }
             }
         } catch (Exception e) {

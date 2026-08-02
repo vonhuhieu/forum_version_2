@@ -57,6 +57,12 @@
                     <template v-else-if="notif.type === 'MENTION'">
                       đã tag bạn trong chủ đề
                     </template>
+                    <template v-else-if="notif.type === 'FOLLOWED_USER_THREAD'">
+                      đã đăng một chủ đề mới là
+                    </template>
+                    <template v-else-if="notif.type === 'FOLLOWED_USER_POST'">
+                      đã trả lời vào chủ đề
+                    </template>
                     <template v-else>
                       đã trả lời vào chủ đề
                     </template>
@@ -65,7 +71,7 @@
                       <span class="highlight-thread">{{ notif.threadTitle }}</span>
                       <span v-if="!notif.isRead" class="unread-dot"></span>
                     </span>.
-                    <span v-if="notif.type !== 'QUOTE' && notif.type !== 'REACTION' && notif.type !== 'MENTION'" class="notif-extra">Có thể có bài viết thêm trong chủ đề</span>
+                    <span v-if="notif.type !== 'QUOTE' && notif.type !== 'REACTION' && notif.type !== 'MENTION' && notif.type !== 'FOLLOWED_USER_THREAD' && notif.type !== 'FOLLOWED_USER_POST'" class="notif-extra">Có thể có bài viết thêm trong chủ đề</span>
                   </div>
                   <div class="notif-time">{{ formatDate(notif.createdAt) }}</div>
                 </div>

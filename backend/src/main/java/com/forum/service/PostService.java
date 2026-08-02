@@ -48,6 +48,7 @@ public class PostService {
     private final SystemSettingService systemSettingService;
     private final NotificationRepository notificationRepository;
     private final ReactionRepository reactionRepository;
+    private final com.forum.repository.UserFollowRepository userFollowRepository;
 
     private SearchDocument mapPostToSearchDocument(Post post) {
         SearchDocument doc = new SearchDocument();
@@ -382,9 +383,26 @@ public class PostService {
                     if (notifiedUserIds.contains(followerId)) {
                         continue;
                     }
+                    notifiedUserIds.add(followerId);
                     userRepository.findById(followerId).ifPresent(follower -> {
                         notificationService.sendNewCommentNotification(actor, updatedThread, saved, follower);
                     });
+                }
+
+                // Send FOLLOWED_USER_POST notification to User Followers of actor (Priority: MENTION > QUOTE > NEW_COMMENT > FOLLOWED_USER_POST)
+                if (actor != null) {
+                    List<com.forum.entity.UserFollow> userFollows = userFollowRepository.findByFollowingId(actor.getId());
+                    for (com.forum.entity.UserFollow uf : userFollows) {
+                        if (uf.getFollower() == null) continue;
+                        Long userFollowerId = uf.getFollower().getId();
+                        if (userFollowerId.equals(actor.getId())) continue;
+                        if (notifiedUserIds.contains(userFollowerId)) continue; // Anti-spam suppression
+
+                        notifiedUserIds.add(userFollowerId);
+                        userRepository.findById(userFollowerId).ifPresent(userFollower -> {
+                            notificationService.sendFollowedUserPostNotification(actor, updatedThread, saved, userFollower);
+                        });
+                    }
                 }
             } catch (Exception e) {
                 // log error or ignore
