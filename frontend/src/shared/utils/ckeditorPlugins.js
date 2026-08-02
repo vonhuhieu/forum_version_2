@@ -57,7 +57,7 @@ export function CustomUploadPlugin(editor) {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.accept = 'video/*,image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx';
+      input.accept = 'video/*,image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx';
 
       input.onchange = async (e) => {
         const files = Array.from(e.target.files);

@@ -15,7 +15,7 @@
         type="file" 
         ref="fileInput" 
         multiple 
-        accept="image/jpeg,image/png,image/webp,image/gif,.heic,.heif" 
+        accept="image/jpeg,image/png,image/webp,image/gif" 
         style="display: none" 
         @change="onFileChange"
       />

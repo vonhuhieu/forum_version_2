@@ -88,16 +88,12 @@ public class FileUploadService {
                 g.dispose();
                 return javax.imageio.ImageIO.write(rgbImg, "jpg", targetPath.toFile());
             }
-            java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return true;
+            // ImageIO cannot decode HEIC natively - return false so caller saves raw file
+            System.err.println("[FileUploadService] WARNING: Java ImageIO cannot decode HEIC format. Saving raw file with original extension.");
+            return false;
         } catch (Exception e) {
-            System.err.println("[FileUploadService] Error during local HEIC conversion fallback: " + e.getMessage());
-            try {
-                java.nio.file.Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                return true;
-            } catch (IOException ex) {
-                return false;
-            }
+            System.err.println("[FileUploadService] Error during local HEIC conversion: " + e.getMessage());
+            return false;
         }
     }
 
