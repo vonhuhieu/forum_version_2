@@ -1,5 +1,8 @@
 <template>
   <div class="image-uploader-panel" :class="{ 'disabled-panel': disabled }">
+    <!-- Component Loading mờ toàn màn hình dùng chung hệ thống -->
+    <Loading :visible="isUploading" />
+
     <div class="uploader-actions">
       <button class="btn-upload" @click="triggerFileInput" :disabled="isUploading || disabled">
         <svg v-if="!isUploading" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-paperclip">
@@ -12,7 +15,7 @@
         type="file" 
         ref="fileInput" 
         multiple 
-        accept="image/*,.heic,.heif" 
+        accept="image/jpeg,image/png,image/webp,image/gif,.heic,.heif" 
         style="display: none" 
         @change="onFileChange"
       />
@@ -70,9 +73,13 @@
 <script>
 import uploadService from '@/apps/Forum/services/upload.service'
 import { processFilesForUpload } from '@/shared/utils/heicUtils'
+import Loading from '@/shared/components/Loading.vue'
 
 export default {
   name: 'ImageUploaderPanel',
+  components: {
+    Loading
+  },
   props: {
     images: {
       type: Array,
