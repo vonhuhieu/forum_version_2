@@ -47,9 +47,13 @@ apt-get install -y \
 
 systemctl enable --now docker
 
-# Cài rclone bằng script chính thức (tránh lỗi 404 từ Ubuntu mirror)
-echo "Cài đặt rclone từ rclone.org..."
-curl https://rclone.org/install.sh | bash
+# Cài rclone bằng script chính thức (chỉ cài nếu chưa có)
+if ! command -v rclone &> /dev/null; then
+    echo "Cài đặt rclone từ rclone.org..."
+    curl https://rclone.org/install.sh | bash || true
+else
+    echo "rclone đã được cài đặt sẵn: $(rclone --version | head -1)"
+fi
 echo "OK: Tất cả phần mềm đã được cài đặt."
 
 # ------------------------------------------------------------------------------
@@ -105,7 +109,15 @@ if [ ! -f "$FORUM_DIR/docker-compose.yml" ]; then
 fi
 
 cd "$FORUM_DIR"
-docker compose up -d mysql opensearch
+
+# Tự động nhận diện lệnh compose
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+else
+    COMPOSE_CMD="docker-compose"
+fi
+
+$COMPOSE_CMD up -d mysql opensearch
 echo "OK: MySQL và OpenSearch đã được khởi động."
 
 # Chờ MySQL sẵn sàng (tối đa 60 giây)
