@@ -1,0 +1,213 @@
+name: "VPS Bootstrap - Khởi tạo VPS mới"
+
+# =============================================================================
+# Workflow này thực hiện TOÀN BỘ quy trình khởi tạo VPS mới:
+#   Job 1: bootstrap   → Cài môi trường, cấu hình Nginx, cấp SSL
+#   Job 2: restore     → Tải backup từ Google Drive, restore DB + uploads
+#   Job 3: deploy      → Trigger deploy-vps.yml để đẩy app.jar + reindex
+#
+# TRIGGER: Thủ công (workflow_dispatch) - Con nhấn nút "Run workflow" trên GitHub
+#
+# GitHub Secrets cần có TRƯỚC KHI chạy:
+#   VPS_HOST       - IP của VPS mới
+#   VPS_USERNAME   - Username SSH (thường là root)
+#   VPS_PASSWORD   - Mật khẩu SSH của VPS mới
+#   VPS_ENV_FILE   - Nội dung file .env encode base64
+#   CERTBOT_EMAIL  - Email đăng ký SSL Let's Encrypt
+#   RCLONE_CONF    - Nội dung rclone.conf encode base64 (xem hướng dẫn trong README)
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_restore:
+        description: "Bỏ qua bước restore dữ liệu? (true/false)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  # ============================================================================
+  # JOB 1: Bootstrap - Cài đặt môi trường VPS mới
+  # ============================================================================
+  bootstrap:
+    name: "1. Cài đặt môi trường VPS"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml lên VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "docker-compose.yml"
+          target: "/var/www/forum/"
+
+      - name: Copy scripts lên VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "scripts/"
+          target: "/var/www/forum/"
+
+      - name: Chạy script bootstrap trên VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          # Tăng timeout lên 15 phút vì apt upgrade có thể chậm
+          command_timeout: 15m
+          script: |
+            chmod +x /var/www/forum/scripts/bootstrap.sh
+            chmod +x /var/www/forum/scripts/restore-data.sh
+
+            # Truyền secret vào script dưới dạng biến môi trường
+            export VPS_ENV_FILE="${{ secrets.VPS_ENV_FILE }}"
+            export CERTBOT_EMAIL="${{ secrets.CERTBOT_EMAIL }}"
+            export DOMAIN_NAME="api.htxslvn.com"
+
+            /var/www/forum/scripts/bootstrap.sh
+
+  # ============================================================================
+  # JOB 2: Restore - Khôi phục dữ liệu từ Google Drive
+  # ============================================================================
+  restore:
+    name: "2. Khôi phục dữ liệu từ Google Drive"
+    runs-on: ubuntu-latest
+    # Chỉ chạy sau khi job bootstrap thành công
+    needs: bootstrap
+    # Có thể bỏ qua bước này bằng input skip_restore=true
+    if: ${{ github.event.inputs.skip_restore == 'false' }}
+
+    steps:
+      - name: Chạy script restore-data trên VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          command_timeout: 30m
+          script: |
+            export RCLONE_CONF="${{ secrets.RCLONE_CONF }}"
+
+            /var/www/forum/scripts/restore-data.sh
+
+  # ============================================================================
+  # JOB 3: Deploy - Đẩy code mới nhất lên VPS và reindex OpenSearch
+  # ============================================================================
+  deploy:
+    name: "3. Deploy Backend + Reindex OpenSearch"
+    runs-on: ubuntu-latest
+    # Chạy sau khi restore xong (hoặc sau bootstrap nếu skip_restore=true)
+    needs: [bootstrap, restore]
+    # Chạy kể cả khi job restore bị skip (skip_restore=true)
+    if: always() && needs.bootstrap.result == 'success'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build JAR với Maven
+        run: |
+          cd backend
+          mvn clean package -DskipTests
+
+      - name: Copy JAR lên VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "backend/target/backend-0.0.1-SNAPSHOT.jar"
+          target: "/var/www/forum/"
+          strip_components: 2
+
+      - name: Đổi tên JAR và khởi động backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            set -e
+            mv -f /var/www/forum/backend-0.0.1-SNAPSHOT.jar /var/www/forum/app.jar
+            cd /var/www/forum
+            docker compose up -d backend
+            echo "=== Docker container status ==="
+            docker compose ps
+
+      - name: Chờ backend khởi động hoàn toàn
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          command_timeout: 5m
+          script: |
+            echo "Đang chờ backend sẵn sàng..."
+            for i in $(seq 1 24); do
+              if curl -sf http://localhost:8080/api/settings/public > /dev/null 2>&1; then
+                echo "OK: Backend đã sẵn sàng!"
+                exit 0
+              fi
+              echo "  Attempt $i/24 - chờ 5s..."
+              sleep 5
+            done
+            echo "LỖI: Backend không khởi động được sau 2 phút!"
+            docker logs forum-backend --tail 100
+            exit 1
+
+      - name: Reindex OpenSearch
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            set -e
+            echo "Đang trigger reindex OpenSearch..."
+            docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
+            echo "OK: Reindex đã được trigger thành công!"
+
+      - name: Thông báo hoàn tất
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            echo "=============================================="
+            echo " HTXSL Forum - VPS Bootstrap HOÀN TẤT!"
+            echo " Thời gian: $(date)"
+            echo ""
+            echo " Trạng thái container:"
+            docker compose -f /var/www/forum/docker-compose.yml ps
+            echo ""
+            echo " Hãy kiểm tra tại: https://api.htxslvn.com"
+            echo "=============================================="
