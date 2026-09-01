@@ -5,6 +5,7 @@ import com.forum.dto.PollOptionDTO;
 import com.forum.entity.*;
 import com.forum.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -32,7 +34,9 @@ public class PollService {
             if (principal instanceof String && !principal.equals("anonymousUser")) {
                 username = (String) principal;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Không thể trích xuất thông tin authentication khi chuyển đổi PollDTO: {}", e.getMessage());
+        }
 
         User currentUser = null;
         if (username != null) {
