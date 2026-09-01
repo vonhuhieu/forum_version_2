@@ -1,8 +1,10 @@
 # Uploads directory (user uploaded files - not to be versioned)
 backend/uploads/
 
-# Sensitive notes file
+# Sensitive files and notes
 note
+.env
+.env.*
 
 # Frontend build output
 frontend/dist/
@@ -24,3 +26,5 @@ backend/target/
 /node_modules/
 /package.json
 /package-lock.json
+/chat_history_search.html
+

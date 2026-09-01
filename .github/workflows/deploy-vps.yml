@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  # Cho phép vps-bootstrap.yml gọi lại workflow này sau khi bootstrap xong
+  workflow_call:
 
 jobs:
   build-and-deploy:
