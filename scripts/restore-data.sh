@@ -116,14 +116,16 @@ echo "[5/6] Giải nén backup..."
 cd "$BACKUP_DIR"
 tar -xzf "$LATEST_BACKUP"
 
-# Kiểm tra file db.sql có tồn tại sau khi giải nén không
-if [ ! -f "$BACKUP_DIR/db.sql" ]; then
-    echo "LỖI: Không tìm thấy db.sql sau khi giải nén!"
+# Tự động tìm file .sql trong thư mục backups (bất kể nằm ở root hay trong subfolder)
+SQL_FILE=$(find "$BACKUP_DIR" -type f -name "*.sql" | head -1)
+
+if [ -z "$SQL_FILE" ] || [ ! -f "$SQL_FILE" ]; then
+    echo "LỖI: Không tìm thấy file .sql nào sau khi giải nén!"
     echo "Nội dung thư mục backups:"
-    ls -la "$BACKUP_DIR/"
+    find "$BACKUP_DIR" -maxdepth 3
     exit 1
 fi
-echo "OK: Giải nén thành công."
+echo "OK: Đã tìm thấy file database: $SQL_FILE"
 
 # ------------------------------------------------------------------------------
 # BƯỚC 6: Restore dữ liệu vào MySQL và uploads/
@@ -148,24 +150,25 @@ for i in $(seq 1 24); do
 done
 
 # 6b. Restore database
-echo "Đang restore database forum_db..."
-docker exec -i forum-mysql mysql -u root -proot_password forum_db < "$BACKUP_DIR/db.sql"
-echo "OK: Database đã được restore thành công."
+echo "Đang nạp database vào MySQL (file: $SQL_FILE)..."
+docker exec -i forum-mysql mysql -u root -proot_password forum_db < "$SQL_FILE"
+echo "OK: Database forum_db đã được nạp thành công."
 
 # 6c. Restore thư mục uploads (nếu có trong backup)
-if [ -d "$BACKUP_DIR/uploads" ]; then
-    echo "Đang restore thư mục uploads..."
-    cp -r "$BACKUP_DIR/uploads/." "$FORUM_DIR/uploads/"
-    echo "OK: Uploads đã được restore thành công."
+UPLOADS_SRC=$(find "$BACKUP_DIR" -type d -name "uploads" ! -path "$FORUM_DIR/uploads*" | head -1)
+if [ -n "$UPLOADS_SRC" ] && [ -d "$UPLOADS_SRC" ]; then
+    echo "Đang restore thư mục uploads từ: $UPLOADS_SRC..."
+    mkdir -p "$FORUM_DIR/uploads"
+    cp -r "$UPLOADS_SRC/." "$FORUM_DIR/uploads/"
+    echo "OK: Uploads đã được restore thành công ($(ls -1 "$FORUM_DIR/uploads" | wc -l) files)."
 else
-    echo "THÔNG BÁO: Không tìm thấy thư mục uploads/ trong backup (bỏ qua)."
+    echo "THÔNG BÁO: Không tìm thấy thư mục uploads/ trong file backup (bỏ qua)."
 fi
 
-# 6d. Dọn dẹp tệp tin tạm
+# 6d. Dọn dẹp tệp tin tạm giải nén
 echo "Dọn dẹp file tạm..."
+find "$BACKUP_DIR" -mindepth 1 -not -name "$LATEST_BACKUP" -delete
 rm -f "$BACKUP_DIR/$LATEST_BACKUP"
-rm -f "$BACKUP_DIR/db.sql"
-[ -d "$BACKUP_DIR/uploads" ] && rm -rf "$BACKUP_DIR/uploads"
 echo "OK: Dọn dẹp hoàn tất."
 
 # ------------------------------------------------------------------------------
