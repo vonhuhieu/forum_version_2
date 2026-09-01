@@ -83,10 +83,10 @@ jobs:
             chmod +x /var/www/forum/scripts/bootstrap.sh
             chmod +x /var/www/forum/scripts/restore-data.sh
 
-            # Truyền secret vào script dưới dạng biến môi trường
             export VPS_ENV_FILE="${{ secrets.VPS_ENV_FILE }}"
             export CERTBOT_EMAIL="${{ secrets.CERTBOT_EMAIL }}"
-            export DOMAIN_NAME="api.htxslvn.com"
+            export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
+            export GDRIVE_BACKUP_FOLDER="${{ secrets.GDRIVE_BACKUP_FOLDER }}"
 
             /var/www/forum/scripts/bootstrap.sh
 
@@ -112,6 +112,7 @@ jobs:
           command_timeout: 30m
           script: |
             export RCLONE_CONF="${{ secrets.RCLONE_CONF }}"
+            export GDRIVE_BACKUP_FOLDER="${{ secrets.GDRIVE_BACKUP_FOLDER }}"
 
             /var/www/forum/scripts/restore-data.sh
 
