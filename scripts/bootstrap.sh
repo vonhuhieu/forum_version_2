@@ -10,7 +10,7 @@
 
 set -e  # Dừng ngay nếu có lệnh nào thất bại
 
-DOMAIN=${DOMAIN_NAME:-"api.htxslvn.com"}
+DOMAIN=${DOMAIN_NAME:-"api.yourdomain.com"}
 FORUM_DIR="/var/www/forum"
 
 echo "======================================================"

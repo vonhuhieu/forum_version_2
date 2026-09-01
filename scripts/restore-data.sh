@@ -13,7 +13,7 @@
 set -e
 
 FORUM_DIR="/var/www/forum"
-GDRIVE_FOLDER=${GDRIVE_BACKUP_FOLDER:-"forum_rclone_backups_update_01_09_2026"}
+GDRIVE_FOLDER=${GDRIVE_BACKUP_FOLDER:-"forum_backups"}
 BACKUP_DIR="$FORUM_DIR/backups"
 
 echo "======================================================"
