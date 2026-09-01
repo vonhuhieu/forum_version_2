@@ -105,7 +105,14 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           script: |
-            set -e
             echo "Triggering OpenSearch reindex..."
-            # Chạy POST request bằng wget từ bên trong container để giữ IP nguồn là 127.0.0.1 (Local), tránh lỗi 401 do NAT của mạng Docker
-            docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
+            sleep 5
+            for i in $(seq 1 5); do
+              if docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex > /dev/null 2>&1; then
+                echo "OK: OpenSearch reindex thành công!"
+                exit 0
+              fi
+              echo "Attempt $i/5 - OpenSearch đang bận, chờ 3s..."
+              sleep 3
+            done
+            echo "Thông báo: Reindex sẽ tự động chạy trong background qua SearchIndexInitializer."

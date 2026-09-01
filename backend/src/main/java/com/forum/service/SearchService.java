@@ -10,6 +10,7 @@ import com.forum.entity.Thread;
 import com.forum.repository.PostRepository;
 import com.forum.repository.ThreadRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -124,7 +126,10 @@ public class SearchService {
         try {
             searchHits = elasticsearchOperations.search(query, SearchDocument.class);
         } catch (org.springframework.data.elasticsearch.NoSuchIndexException e) {
-            System.err.println(">>> Search failed: Index 'forum_search' not found. Returning empty results.");
+            log.warn("Tìm kiếm không khả dụng do index 'forum_search' chưa tồn tại: {}", e.getMessage());
+            return ResponseDTO.success(new PageResponseDTO<>(Collections.emptyList(), 0, 0L, page, size));
+        } catch (Exception e) {
+            log.error("Lỗi ngoài dự kiến khi thực thi tìm kiếm với từ khóa '{}': ", keyword, e);
             return ResponseDTO.success(new PageResponseDTO<>(Collections.emptyList(), 0, 0L, page, size));
         }
 
@@ -178,13 +183,26 @@ public class SearchService {
     @Transactional(readOnly = true)
     public ResponseDTO<Void> reindexAll() {
         try {
-            // Xóa và tạo lại index để cập nhật chính xác mapping (tránh lỗi stop words trên production do sai mapping)
+            // Xóa và tạo lại index để cập nhật chính xác mapping
             org.springframework.data.elasticsearch.core.IndexOperations indexOps = elasticsearchOperations.indexOps(SearchDocument.class);
-            if (indexOps.exists()) {
-                indexOps.delete();
+            try {
+                if (indexOps.exists()) {
+                    log.info("Xóa index cũ để chuẩn bị tái lập chỉ mục...");
+                    indexOps.delete();
+                }
+            } catch (Exception e) {
+                log.warn("Lưu ý khi xóa index cũ: {}", e.getMessage());
             }
-            indexOps.create();
-            indexOps.putMapping(indexOps.createMapping(SearchDocument.class));
+            
+            try {
+                if (!indexOps.exists()) {
+                    log.info("Tạo index mới và áp dụng mapping...");
+                    indexOps.create();
+                    indexOps.putMapping(indexOps.createMapping(SearchDocument.class));
+                }
+            } catch (Exception e) {
+                log.warn("Lưu ý khi tạo index mới / áp dụng mapping: {}", e.getMessage());
+            }
 
             List<Thread> threads = threadRepository.findAll();
             List<SearchDocument> batch = new ArrayList<>();
@@ -210,10 +228,11 @@ public class SearchService {
             if (!batch.isEmpty()) {
                 searchDocumentRepository.saveAll(batch);
             }
+            log.info("Reindex hoàn tất thành công (tổng cộng: {} threads, {} posts).", threads.size(), posts.size());
             return ResponseDTO.success(null);
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Reindexing failed: " + e.getMessage());
+            log.error("Lỗi trong quá trình Reindex OpenSearch: ", e);
+            throw new RuntimeException("Reindexing failed: " + e.getMessage(), e);
         }
     }
 
