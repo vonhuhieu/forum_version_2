@@ -19,13 +19,16 @@ echo " Domain: $DOMAIN"
 echo " Thời gian: $(date)"
 echo "======================================================"
 
+# Tránh hỏi tương tác khi apt upgrade trên Ubuntu 24.04
+export DEBIAN_FRONTEND=noninteractive
+
 # ------------------------------------------------------------------------------
 # BƯỚC 1: Cập nhật hệ điều hành
 # ------------------------------------------------------------------------------
 echo ""
 echo "[1/9] Cập nhật hệ điều hành..."
 apt-get update -y
-apt-get upgrade -y
+apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 echo "OK: Hệ điều hành đã được cập nhật."
 
 # ------------------------------------------------------------------------------
@@ -35,7 +38,7 @@ echo ""
 echo "[2/9] Cài đặt Docker, Nginx, Certbot, Rclone..."
 apt-get install -y \
     docker.io \
-    docker-compose-v2 \
+    docker-compose \
     nginx \
     certbot \
     python3-certbot-nginx \
