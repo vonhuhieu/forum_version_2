@@ -19,7 +19,7 @@ BACKUP_FILENAME="forum_backup_$TIMESTAMP.tar.gz"
 TMP_DIR="$BACKUP_DIR/tmp_$TIMESTAMP"
 
 # Cấu hình Google Drive (tự động phát hiện tên remote)
-GDRIVE_FOLDER=${GDRIVE_BACKUP_FOLDER:-"forum_rclone_backups_update_01_09_2026"}
+GDRIVE_FOLDER=${GDRIVE_BACKUP_FOLDER:-"forum_backups"}
 KEEP_DAYS=7  # Số ngày giữ backup cục bộ trên VPS
 
 echo "======================================================"

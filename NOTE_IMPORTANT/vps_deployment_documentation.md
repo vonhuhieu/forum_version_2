@@ -1,399 +1,186 @@
-# Tài Liệu Hướng Dẫn Cấu Hình, Triển Khai & Vận Hành Diễn Đàn Trên VPS (Sử Dụng Docker Compose)
+# Tài Liệu Chuẩn Hóa Triển Khai & Vận Hành Diễn Đàn Trên VPS (Hệ Thống Tự Động Hóa Dynamic VPS Migration)
 
-Tài liệu này tổng hợp toàn bộ quy trình, các câu lệnh, file cấu hình và giải thích chi tiết quá trình triển khai hệ thống diễn đàn (Spring Boot Backend + Vue.js Frontend) lên máy chủ VPS mới chạy Ubuntu 24.04, tích hợp CI/CD tự động bằng Docker Compose và cơ chế sao lưu tự động lên Google Drive.
+Tài liệu này tổng hợp toàn bộ kiến trúc, quy trình vận hành và cơ chế **tự động hóa 100% (Zero-Touch VPS Migration)** của hệ thống diễn đàn **HTXSL Forum** (Spring Boot Backend + Vue.js Frontend + MySQL + OpenSearch + Docker Compose + Google Drive Backup).
 
 ---
 
-## 1. Kiến Trúc Hệ Thống (Trước & Sau Di Trú)
+## 1. Kiến Trúc Hệ Thống Tổng Thể
 
-| Thành phần | Trước khi di trú | Sau khi di trú (Hiện tại) | Lý do thay đổi |
+| Thành phần | Công nghệ / Nền tảng | Vai trò & Đặc điểm |
+| :--- | :--- | :--- |
+| **Frontend** | Vue.js SPA trên **Vercel** | CDN toàn cầu, chứng chỉ SSL tự động, domain chính `htxslvn.com`. |
+| **Backend** | Spring Boot Java 17 trong **Docker** | Chạy độc lập trên VPS Ubuntu 24.04 (service `backend`), kết nối qua domain `api.htxslvn.com`. |
+| **Database** | **Docker MySQL 8.0** | Lưu trữ dữ liệu nội bộ trong mạng ảo Docker, dữ liệu lưu bền vững qua Volume `mysql_data`. |
+| **Search Engine** | **Docker OpenSearch 2.19.0** | Tìm kiếm full-text tiếng Việt tốc độ cao, lưu qua Volume `opensearch_data`. |
+| **Reverse Proxy** | **Nginx + Let's Encrypt SSL** | Cổng vào duy nhất của VPS, định tuyến API `/` tới Spring Boot (8080) và cấp phát trực tiếp file tĩnh `/uploads/`. |
+| **DNS & Anti-DDoS** | **Cloudflare** | Quản lý bản ghi DNS, ẩn IP gốc máy chủ (Proxied / Đám mây cam), lọc DDoS / WAF. |
+| **Sao Lưu Tự Động** | **Cron Job + Rclone + Google Drive** | Nén Database + thư mục Uploads lúc 02:00 sáng hàng ngày và đẩy lên Google Drive. |
+| **CI/CD Tự Động Hóa**| **GitHub Actions** | 2 Workflows: Deploy code hàng ngày (`deploy-vps.yml`) và Khởi tạo VPS tự động (`vps-bootstrap.yml`). |
+
+---
+
+## 2. Hệ Thống 8 GitHub Secrets Cần Thiết
+
+Để toàn bộ quy trình tự động hóa hoạt động và không bị lộ bất kỳ thông tin nào trong mã nguồn, repository GitHub được cấu hình **8 Secrets** tại **Settings > Secrets and variables > Actions**:
+
+| Secret Name | Mô tả | Định dạng / Ví dụ mẫu | Tần suất thay đổi |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | Vercel (Miễn phí) | Vercel (Miễn phí, Custom Domain) | Giữ nguyên vì Vercel chạy SPA Vue.js cực nhanh, tối ưu CDN toàn cầu. |
-| **Backend** | HuggingFace Spaces | **Docker Container (eclipse-temurin:17-jre) trên VPS** | Khắc phục triệt để lỗi ngủ đông (cold start), đóng gói gọn gàng dễ dàng vận hành bằng Docker Compose. |
-| **Database** | Aiven MySQL Cloud | **Docker MySQL 8.0 trên VPS** | Lưu trữ cục bộ không giới hạn kết nối, truy vấn nội bộ tốc độ cao và miễn phí. |
-| **Tìm kiếm** | Bonsai OpenSearch | **Docker OpenSearch 2.19.0 trên VPS** | Khắc phục giới hạn dung lượng lưu trữ của gói Bonsai Free. |
-| **Upload File** | Cloudinary | **Local Storage gắn qua Docker Volume** | Lưu trữ ảnh vĩnh viễn trực tiếp trên ổ cứng VPS, không bị khóa giới hạn băng thông. |
+| `VPS_HOST` | Địa chỉ IP của máy chủ VPS hiện tại | `${VPS_IP_ADDRESS}` | Đổi khi đổi VPS |
+| `VPS_USERNAME` | Tên người dùng SSH | `${VPS_SSH_USER}` (mặc định: `root`) | Giữ nguyên |
+| `VPS_PASSWORD` | Mật khẩu tài khoản root của VPS | `${VPS_SSH_PASSWORD}` | Đổi khi đổi VPS |
+| `DOMAIN_NAME` | Subdomain API trỏ về VPS | `${APP_API_DOMAIN}` | Cố định (1 lần) |
+| `GDRIVE_BACKUP_FOLDER` | Tên thư mục chứa backup trên Google Drive | `${GDRIVE_BACKUP_FOLDER}` | Cố định (1 lần) |
+| `CERTBOT_EMAIL` | Email đăng ký chứng chỉ SSL Let's Encrypt | `${YOUR_EMAIL_FOR_SSL}` | Cố định (1 lần) |
+| `VPS_ENV_FILE` | Toàn bộ nội dung file `.env` (chứa `JWT_SECRET`, `RESEND_API_KEY`...) đã mã hóa **base64** | Chuỗi base64 (xem mục 3.1) | Cố định (1 lần) |
+| `RCLONE_CONF` | Toàn bộ nội dung file `~/.config/rclone/rclone.conf` kết nối Google Drive đã mã hóa **base64** | Chuỗi base64 (xem mục 3.2) | Cố định (1 lần) |
 
 ---
 
-## 2. Nhật Ký Chi Tiết 6 Giai Đoạn Triển Khai
+## 3. Hướng Dẫn Chuẩn Bị Secrets Một Lần Duy Nhất
 
-### Giai Đoạn 1: Điều Chỉnh Mã Nguồn Backend
+### 3.1. Tạo giá trị cho `VPS_ENV_FILE`
+Trên máy Windows PowerShell, chạy lệnh sau để lấy chuỗi base64 (điền các giá trị thực tế của con vào):
+```powershell
+$envText = @"
+APP_JWT_SECRET=${YOUR_APP_JWT_SECRET}
+SPRING_MAIL_USERNAME=${YOUR_MAIL_USERNAME}
+SPRING_MAIL_PASSWORD=${YOUR_MAIL_APP_PASSWORD}
+RESEND_API_KEY=${YOUR_RESEND_API_KEY}
+"@
 
-Mục tiêu giai đoạn này là nâng cấp Backend hỗ trợ lưu file trực tiếp lên đĩa cứng của VPS và hỗ trợ đọc cấu hình động.
+[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($envText))
+```
+👉 Copy toàn bộ output dán vào GitHub Secret `VPS_ENV_FILE`.
 
-#### Bước 1.1: Cập nhật cấu hình động chọn Provider
-- **File thực hiện**: [application.properties](file:///d:/CONG_VIEC/FORUM_SPRING_VUEJS_VERSION_2/forum_version_2/backend/src/main/resources/application.properties)
-- **Thao tác**: Thêm 2 thuộc tính cấu hình động:
-  ```properties
-  app.upload.provider=${APP_UPLOAD_PROVIDER:local}
-  app.upload.local-dir=${APP_UPLOAD_LOCAL_DIR:uploads}
-  ```
-- **Giải thích**: `APP_UPLOAD_PROVIDER` quyết định lưu file ở đâu (`local` hoặc `cloudinary`). Nếu không có biến môi trường truyền vào, mặc định sẽ là `local`.
-
-#### Bước 1.2: Nâng cấp lớp xử lý tải file
-- **File thực hiện**: `FileUploadService.java`
-- **Thao tác**: Nhúng `@Value` đọc cấu hình và triển khai nhánh code lưu file vật lý:
-  - Tự động kiểm tra và tạo thư mục `/uploads` nếu chưa tồn tại.
-  - Sử dụng `UUID` để tạo tên file ngẫu nhiên độc nhất tránh trùng lặp.
-  - Trả về đường dẫn tương đối dạng `/uploads/filename.ext` để frontend định tuyến mượt mà qua Nginx.
-
-#### Bước 1.3: Tạo cấu hình chạy thực tế trên VPS (Production)
-- **File thực hiện**: `application-prod.properties`
-- **Thao tác**: Thiết lập các thông số kết nối nội bộ trong Docker:
-  - MySQL: kết nối thông qua service name của docker-compose: `jdbc:mysql://mysql:3306/forum_db`
-  - OpenSearch: kết nối thông qua service name: `http://opensearch:9200`
-  - CORS: Mở quyền truy cập cho tên miền chính thức `https://htxslvn.com` và `https://www.htxslvn.com`.
-
-#### Bước 1.4: Tự động khởi tạo index và phòng chống crash tìm kiếm
-- **File thực hiện**: `SearchIndexInitializer.java` và `SearchService.java`
-- **Thao tác**:
-  - Tạo `SearchIndexInitializer` thực thi `CommandLineRunner` để kiểm tra và khởi tạo index `forum_search` cùng tác vụ chạy ngầm reindex nếu index chưa tồn tại.
-  - Sửa `SearchService` dùng `try-catch` bắt `NoSuchIndexException` trả về danh sách rỗng để tránh lỗi 500 sập API tìm kiếm khi thiếu index.
+### 3.2. Cấu hình Rclone với Google Drive và tạo `RCLONE_CONF`
+1. Trên Google Cloud Console, tạo OAuth Client ID loại **Desktop App** và thêm tài khoản Gmail vào mục **Test Users** (Audience).
+2. Chạy `rclone config` kết nối Google Drive (chọn loại `drive`, nhập Client ID, Client Secret, Scope `1`).
+3. Xác thực qua trình duyệt và lưu cấu hình dưới tên remote (ví dụ: `gdrive` hoặc `forum_gdrive_remote`).
+4. Trên VPS, chạy lệnh lấy chuỗi base64:
+   ```bash
+   cat ~/.config/rclone/rclone.conf | base64 -w 0
+   ```
+👉 Copy output dán vào GitHub Secret `RCLONE_CONF`.
 
 ---
 
-### Giai Đoạn 2: Thiết Lập Môi Trường Trên VPS Ubuntu 24.04
+## 4. QUY TRÌNH DI TRÚ SANG VPS MỚI (CHỈ 3 BƯỚC THỦ CÔNG)
 
-Thực hiện trực tiếp trên Terminal của VPS.
+> **Lưu ý quan trọng:** Vì toàn bộ file cấu hình `.env` và `rclone.conf` (Google Drive) đã được lưu vĩnh viễn trong GitHub Secrets (`VPS_ENV_FILE` và `RCLONE_CONF`), nên từ lần đổi VPS này trở đi, con **KHÔNG CẦN cài đặt môi trường hay chạy `rclone config` thủ công nữa**. Hệ thống sẽ tự động giải mã và nạp vào VPS mới 100%!
 
-#### Bước 2.1: Cập nhật hệ thống
-- **Câu lệnh**:
-  ```bash
-  apt update && apt upgrade -y
-  ```
-- **Giải thích**: Nâng cấp hệ điều hành và các bản vá lỗi bảo mật lên phiên bản mới nhất.
+Khi VPS cũ bị chết hoặc con đổi sang nhà cung cấp VPS mới, toàn bộ quy trình chỉ gồm **3 thao tác**:
 
-#### Bước 2.2: Cài đặt Docker & Docker Compose
-- **Câu lệnh**:
-  ```bash
-  apt install -y docker.io docker-compose-v2 nginx certbot python3-certbot-nginx rclone
-  systemctl enable --now docker
-  ```
-- **Giải thích**: Cài đặt nền tảng ảo hóa Docker để chạy cô lập các dịch vụ MySQL, OpenSearch và Backend Spring Boot mà không cần cài đặt JDK 17 trực tiếp trên OS máy chủ.
+```
+Bước 1: Trỏ DNS trên Cloudflare
+  └─ Vào Cloudflare > DNS > Sửa bản ghi A "api" -> IP VPS mới (Bật đám mây cam Proxied)
 
-#### Bước 2.3: Cấu hình bộ nhớ ảo cho OpenSearch
-- **Câu lệnh**:
-  ```bash
-  sysctl -w vm.max_map_count=262144
-  echo "vm.max_map_count=262144" | tee -a /etc/sysctl.conf
-  ```
-- **Giải thích**: OpenSearch yêu cầu tối thiểu `262144` vùng nhớ để khởi chạy không bị crash tự thoát.
+Bước 2: Cập nhật GitHub Secrets
+  └─ Cập nhật VPS_HOST (IP mới) và VPS_PASSWORD (mật khẩu mới)
 
-#### Bước 2.4: Tạo thư mục dự án và khởi chạy Docker Compose
-- **Câu lệnh**:
-  ```bash
-  mkdir -p /var/www/forum/uploads
-  mkdir -p /var/www/forum/backups
-  ```
-- **Tạo cấu hình biến môi trường**: Ghi file bí mật `/var/www/forum/.env` trên VPS chứa thông tin kết nối thực tế. Định dạng bắt buộc là `KEY=VALUE` (không dùng từ khóa `Environment=` hay ký hiệu `${}`):
-  ```env
-  APP_JWT_SECRET=chuoi_bi_mat_cua_con
-  SPRING_MAIL_USERNAME=email_gui_thu@gmail.com
-  SPRING_MAIL_PASSWORD=mat_khau_ung_dung_email
-  RESEND_API_KEY=khoa_api_resend_cua_con
-  ```
-- **Tạo file cấu hình**: [docker-compose.yml](file:///d:/CONG_VIEC/FORUM_SPRING_VUEJS_VERSION_2/forum_version_2/docker-compose.yml) đặt tại `/var/www/forum/docker-compose.yml`:
-  ```yaml
-  version: '3.8'
+Bước 3: Kích hoạt Workflow Bootstrap
+  └─ GitHub > Actions > Chọn "VPS Bootstrap - Khởi tạo VPS mới" > Nhấn "Run workflow"
+```
 
-  services:
-    mysql:
-      image: mysql:8.0
-      container_name: forum-mysql
-      environment:
-        MYSQL_ROOT_PASSWORD: root_password
-        MYSQL_DATABASE: forum_db
-      ports:
-        - "127.0.0.1:3306:3306"
-      volumes:
-        - mysql_data:/var/lib/mysql
-      restart: always
-
-    opensearch:
-      image: opensearchproject/opensearch:2.19.0
-      container_name: forum-opensearch
-      environment:
-        - cluster.name=opensearch-cluster
-        - node.name=opensearch-node
-        - discovery.type=single-node
-        - bootstrap.memory_lock=true
-        - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-        - DISABLE_INSTALL_DEMO_CONFIG=true
-        - DISABLE_SECURITY_PLUGIN=true
-        - network.publish_host=127.0.0.1
-      ulimits:
-        memlock:
-          soft: -1
-          hard: -1
-        nofile:
-          soft: 65536
-          hard: 65536
-      ports:
-        - "127.0.0.1:9200:9200"
-      volumes:
-        - opensearch_data:/usr/share/opensearch/data
-      restart: always
-
-    backend:
-      image: eclipse-temurin:17-jre-alpine
-      container_name: forum-backend
-      working_dir: /app
-      volumes:
-        - ./app.jar:/app/app.jar
-        - ./uploads:/app/uploads
-        - .env:/app/.env
-      env_file:
-        - .env
-      environment:
-        - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/forum_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-        - OPENSEARCH_URIS=http://opensearch:9200
-      command: java -Dspring.profiles.active=prod -Duser.timezone=Asia/Ho_Chi_Minh -jar app.jar
-      ports:
-        - "127.0.0.1:8080:8080"
-      depends_on:
-        - mysql
-        - opensearch
-      restart: always
-
-  volumes:
-    mysql_data:
-    opensearch_data:
-  ```
-- **Khởi chạy ban đầu (Database & Search):**
-  ```bash
-  cd /var/www/forum && docker compose up -d mysql opensearch
-  ```
-
----
-
-### Giai Đoạn 3: Cấu Hình Tên Miền Cloudflare & Vercel
-
-Thực hiện trên các bảng điều khiển quản trị DNS/Web:
-
-#### Bước 3.1: Cấu hình DNS trên Cloudflare
-- Thêm bản ghi **`CNAME`** với tên `@` và `www` trỏ về `cname.vercel-dns.com` (Bật đám mây cam Proxy).
-- Thêm bản ghi **`A`** với tên `api` trỏ về IP mới của VPS `159.223.44.52` (Bật đám mây cam Proxy).
-
-#### Bước 3.2: Gắn tên miền và biến môi trường trên Vercel
-- Thêm tên miền `htxslvn.com` vào phần cấu hình Domains của dự án Frontend trên Vercel.
-- Thiết lập các biến môi trường trên Vercel Dashboard:
-  - `VUE_APP_API_BASE_URL` $\rightarrow$ `https://api.htxslvn.com/api`
-  - `VUE_APP_BACKEND_URL` $\rightarrow$ `https://api.htxslvn.com`
-  - `VUE_APP_WS_URL` $\rightarrow$ `wss://api.htxslvn.com/ws`
-
----
-
-### Giai Đoạn 4: Cấu Hình Nginx & CI/CD Tự Động
-
-#### Bước 4.1: Cấu hình Nginx làm Reverse Proxy và SSL HTTPS
-- **Tạo file cấu hình định tuyến**: Tạo file `/etc/nginx/sites-available/forum`:
-  ```nginx
-  server {
-      listen 80;
-      server_name api.htxslvn.com;
-      client_max_body_size 100M;
-
-      location /uploads/ {
-          alias /var/www/forum/uploads/;
-          expires 30d;
-          add_header Cache-Control "public, no-transform";
-      }
-
-      location / {
-          proxy_pass http://127.0.0.1:8080;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-
-          # Hỗ trợ kết nối Websocket
-          proxy_http_version 1.1;
-          proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection "upgrade";
-      }
-  }
-  ```
-- **Kích hoạt & cài đặt SSL**:
-  ```bash
-  ln -s /etc/nginx/sites-available/forum /etc/nginx/sites-enabled/
-  rm -f /etc/nginx/sites-enabled/default
-  nginx -t && systemctl restart nginx
-  certbot --nginx -d api.htxslvn.com
-  ```
-
-#### Bước 4.2: Thiết lập Pipeline CI/CD tự động
-- **File thực hiện**: `.github/workflows/deploy-vps.yml`
-- **Cách thức vận hành**:
-  1. Build file JAR Spring Boot bằng JDK 17 trên GitHub Actions Runner.
-  2. Đẩy file JAR lên `/var/www/forum/` thông qua SCP.
-  3. Sử dụng SSH để đổi tên file thành `app.jar`, chạy lệnh `docker compose up -d backend` và `docker compose restart backend` để khởi chạy phiên bản backend mới.
-  4. Script thực hiện kiểm tra sức khỏe tại endpoint `/api/settings/public` (chờ tối đa 2 phút). Nếu khởi chạy lỗi, script sẽ phát hiện và dừng pipeline lập tức.
-  5. Sau khi backend hoạt động, CI/CD tự động trigger tiến trình đồng bộ OpenSearch thông qua lệnh `docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex` chạy từ bên trong container (giúp giữ IP nguồn là `127.0.0.1`, vượt qua bộ lọc 401 Unauthorized do NAT của Docker).
-
----
-
-### Giai Đoạn 5: Di Trú Dữ Liệu & Re-Index OpenSearch
-
-#### Bước 5.1: Đồng bộ dữ liệu MySQL từ máy cũ hoặc máy cá nhân lên VPS mới
-- **Chạy trên máy cá nhân**: Đẩy file SQL database lên VPS mới:
-  ```powershell
-  scp "C:\Users\WIN112025\db_backup.sql" root@159.223.44.52:/var/www/forum/backups/
-  ```
-- **Chạy trên VPS mới**: Nạp dữ liệu SQL vào MySQL Container:
-  ```bash
-  docker exec -i forum-mysql mysql -u root -proot_password forum_db < /var/www/forum/backups/db_backup.sql
-  rm -f /var/www/forum/backups/db_backup.sql
-  ```
-
-#### Bước 5.2: Tái lập chỉ mục tìm kiếm (Reindex)
-Vì việc nạp SQL database không đi qua lớp xử lý của Spring Boot, OpenSearch sẽ không tự cập nhật bài viết cũ.
-- **Thực hiện trên VPS mới**:
-  ```bash
-  docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
-  ```
-- **Kết quả**: Spring Boot tự động đồng bộ hóa toàn bộ các bài viết cũ từ MySQL sang OpenSearch.
-
----
-
-### Giai Đoạn 6: Thiết Lập Tự Động Sao Lưu Dữ Liệu (Backup)
-
-Đảm bảo an toàn dữ liệu tự động hàng ngày lên Google Drive.
-
-#### Bước 6.1: Viết script nén cả Database và tệp tin Uploads
-- **File thực hiện**: `/var/www/forum/backup.sh` (cấp quyền thực thi `chmod +x`).
-- **Nội dung chính**:
-  1. Dump database từ container MySQL thành file `db.sql`.
-  2. Gom file `db.sql` và thư mục ảnh tải lên `/var/www/forum/uploads` nén thành file `.tar.gz` chứa ngày giờ.
-  3. Dọn dẹp tệp tin tạm và đồng bộ lên Google Drive qua Rclone.
-  4. Tự động xóa các file sao lưu cũ hơn 7 ngày.
-
-#### Bước 6.2: Cấu hình Rclone liên kết Google Drive
-- Cài đặt Rclone trên VPS và cấu hình liên kết OAuth Google Drive qua lệnh `rclone config`.
-
-#### Bước 6.3: Cấu hình Cron Job chạy tự động lúc 02h00 sáng
-```text
-0 2 * * * /var/www/forum/backup.sh >> /var/www/forum/backup.log 2>&1
+### Hệ thống tự động thực hiện những gì sau khi bấm Run?
+```
+[Workflow: vps-bootstrap.yml]
+  ├── 1. Job Bootstrap (Cài đặt môi trường)
+  │     ├─ Cập nhật OS Ubuntu 24.04 (non-interactive)
+  │     ├─ Cài Docker, Nginx, Certbot, Rclone
+  │     ├─ Cấu hình vm.max_map_count=262144 (OpenSearch)
+  │     ├─ Giải mã VPS_ENV_FILE thành /var/www/forum/.env
+  │     ├─ Khởi động MySQL 8.0 & OpenSearch 2.19.0 qua Docker Compose
+  │     ├─ Cấu hình Nginx Reverse Proxy (/api -> 8080, /uploads -> thư mục tĩnh)
+  │     └─ Cấp phát chứng chỉ SSL Let's Encrypt qua Certbot
+  │
+  ├── 2. Job Restore (Khôi phục dữ liệu)
+  │     ├─ Giải mã RCLONE_CONF kết nối Google Drive
+  │     ├─ Tự động tìm file backup .tar.gz mới nhất trong thư mục Google Drive
+  │     ├─ Tải về và giải nén (tự động nhận diện cấu trúc file .sql và folder uploads/)
+  │     ├─ Nạp toàn bộ dữ liệu vào MySQL container forum-mysql
+  │     ├─ Phục hồi toàn bộ ảnh vào thư mục /var/www/forum/uploads/
+  │     └─ Dọn dẹp các file nén tạm thời
+  │
+  └── 3. Job Deploy (Khởi chạy ứng dụng)
+        ├─ Biên dịch mã nguồn Spring Boot bằng Maven (JDK 17)
+        ├─ Đẩy app.jar lên VPS và khởi động container forum-backend
+        ├─ Kiểm tra Healthcheck (/api/settings/public)
+        ├─ Tự động chạy DatabaseSchemaPatcher vá các bảng/cột còn thiếu
+        └─ Kích hoạt tiến trình đồng bộ và tái lập chỉ mục (Reindex) OpenSearch
 ```
 
 ---
 
-## 3. Hướng Dẫn Vận Ngày Hàng Ngày & Di Trú Sang VPS Mới
+## 5. Quy Trình Phát Triển & Deploy Hàng Ngày (CI/CD)
 
-### Quy trình phát triển hàng ngày
-1. Môn đồ thực hiện code tính năng mới ở máy local (sử dụng Java 21 chạy local nếu muốn đồng nhất với công ty, nhưng hãy lưu ý **không commit/push file `backend/pom.xml`** để giữ nguyên cấu hình JDK 17 cho CI/CD).
-2. Thực hiện Commit & Push các thay đổi lên nhánh chính `main`.
-3. GitHub Actions sẽ tự động biên dịch, đẩy lên VPS mới và khởi chạy lại container backend.
-4. Kiểm tra logs hoạt động của container trên VPS:
+Khi phát triển tính năng mới hoặc sửa lỗi trong code:
+1. Con thực hiện lập trình và kiểm thử ở máy local.
+2. Chạy lệnh commit và push lên nhánh `main`:
    ```bash
-   docker logs -f forum-backend
+   git add .
+   git commit -m "feat: mô tả tính năng mới"
+   git push origin main
    ```
-
-### Quy trình di trú sang VPS mới (Khi VPS cũ hết hạn)
-Khi cần chuyển đổi sang một VPS hoàn toàn mới khác, con thực hiện 5 bước sau (khoảng 10-15 phút):
-
-1. **Cài đặt môi trường VPS mới:**
-   ```bash
-   apt update && apt upgrade -y
-   apt install -y docker.io docker-compose nginx certbot python3-certbot-nginx rclone
-   systemctl enable --now docker
-   sysctl -w vm.max_map_count=262144
-   echo "vm.max_map_count=262144" | tee -a /etc/sysctl.conf
-   ```
-2. **Khởi tạo thư mục và dịch vụ trên VPS mới:**
-   * Tạo thư mục `/var/www/forum/uploads` và `/var/www/forum/backups`.
-   * Tạo lại file `/var/www/forum/.env` chứa các giá trị thực tế.
-   * Copy nội dung file `docker-compose.yml` đặt vào `/var/www/forum/docker-compose.yml`. Chạy lệnh: `cd /var/www/forum && docker compose up -d mysql opensearch`.
-   * Thiết lập file Nginx `/etc/nginx/sites-available/forum` và liên kết sang `sites-enabled`.
-3. **Cập nhật DNS & Cấp lại SSL:**
-   * Thay đổi địa chỉ IP bản ghi `api.htxslvn.com` trỏ sang IP của VPS mới trên Cloudflare.
-   * Chạy lệnh cấp SSL: `certbot --nginx -d api.htxslvn.com`.
-4. **Kết nối CI/CD:**
-   * Cập nhật `VPS_HOST` và `VPS_PASSWORD` trong mục Settings > Secrets của repository GitHub.
-   * Đẩy code hoặc trigger chạy lại Actions để tải Backend lên VPS mới.
-5. **Khôi phục dữ liệu:**
-   * Tải bản backup `.tar.gz` mới nhất từ Google Drive về đặt vào `/var/www/forum/backups/` trên VPS mới.
-   * Giải nén và khôi phục:
-     ```bash
-     tar -xzf /var/www/forum/backups/tên_file_backup.tar.gz -C /var/www/forum/backups/
-     cp -r /var/www/forum/backups/uploads/* /var/www/forum/uploads/
-     docker exec -i forum-mysql mysql -u root -proot_password forum_db < /var/www/forum/backups/db.sql
-     rm -rf /var/www/forum/backups/uploads /var/www/forum/backups/db.sql
-     # Đồng bộ chỉ mục OpenSearch:
-     docker exec forum-backend wget -qO- --post-data="" http://localhost:8080/api/search/reindex
-     ```
+3. GitHub Actions sẽ tự động kích hoạt workflow **`Deploy Backend to VPS`** (`deploy-vps.yml`):
+   - Tự động Maven build ra file JAR mới.
+   - SCP đẩy file JAR lên `/var/www/forum/app.jar`.
+   - Chạy lệnh `docker compose up -d backend` và restart backend trong **~15-30 giây** mà không làm gián đoạn MySQL và OpenSearch.
+   - Tự động kiểm tra sức khỏe API và reindex OpenSearch.
 
 ---
 
-## 4. Hướng Dẫn Giám Sát Tài Nguyên Hệ Thống (CPU, RAM, Đĩa Cứng)
+## 6. Cơ Chế Tự Động Sao Lưu Dữ Liệu (Backup Hàng Ngày)
 
-Để đảm bảo VPS luôn hoạt động tốt, con có thể sử dụng các lệnh giám sát sau:
-* **Kiểm tra RAM:** `free -h` (theo dõi lượng `available` còn lại).
-* **Giám sát trực quan CPU & RAM:** `htop` (nhấn `q` để thoát).
-* **Xem tài nguyên tiêu tốn bởi các container:** `docker stats` (nhấn `Ctrl + C` để thoát).
-* **Kiểm tra đĩa cứng còn trống:** `df -h /` (đảm bảo `Use%` dưới 90%).
+Script [`scripts/backup.sh`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/scripts/backup.sh) được triển khai tại `/var/www/forum/scripts/backup.sh` trên VPS:
 
----
+### 6.1. Nguyên lý hoạt động:
+1. Chạy lệnh `mysqldump` xuất toàn bộ cơ sở dữ liệu `forum_db` ra file `db.sql`.
+2. Sao chép toàn bộ các tệp tin hình ảnh tải lên từ thư mục `/var/www/forum/uploads/`.
+3. Đóng gói và nén lại thành tệp tin duy nhất dạng `forum_backup_YYYYMMDD_HHMMSS.tar.gz`.
+4. Sử dụng `rclone` đồng bộ file nén lên Google Drive (`forum_rclone_backups_update_01_09_2026`).
+5. Tự động xóa các bản sao lưu cục bộ trên VPS có tuổi đời vượt quá **7 ngày** để giải phóng dung lượng đĩa cứng.
 
-## 5. Hướng Dẫn Cấu HÌnh Gửi Email Bất Đồng Bộ qua Resend HTTP API
-* **Gửi email bất đồng bộ (@Async):** Logic gửi email chạy ngầm giúp API phản hồi ngay lập tức cho client (< 100ms), tránh timeout Gateway 504.
-* **Xác thực tên miền:** Phải cấu hình các bản ghi DNS (DKIM, SPF, DMARC) của `htxslvn.com` sang Resend.com.
-* **API Key:** Khai báo khóa `RESEND_API_KEY` trong file `/var/www/forum/.env` của VPS mới.
+### 6.2. Cài đặt Cron Job trên VPS mới (Chạy lúc 02:00 sáng):
+```bash
+# Mở bảng lập lịch Cron
+crontab -e
 
----
-
-## 6. Khắc Phục Lỗi Index OpenSearch Bị Xóa (Lỗ hổng bảo mật & Cơ chế Tự Động Khởi Tạo)
-* **Lỗ hổng cũ:** Map cổng `"9200:9200"` ra internet công cộng khiến tin tặc quét IP và xóa index.
-* **Biện pháp bảo mật:** docker-compose cấu hình chỉ lắng nghe local loopback `"127.0.0.1:9200:9200"` hoặc giao tiếp thuần nội bộ trong mạng ảo Docker.
-* **Khởi tạo tự động:** `SearchIndexInitializer` kiểm tra index khi khởi động, nếu trống sẽ chạy tác vụ ngầm tạo lại index và reindex tự động để chống crash trang chủ.
+# Thêm dòng sau vào cuối file
+0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1
+```
 
 ---
 
-## 7. Hướng Dẫn Kết Nối Database Production Bằng DBeaver (Qua SSH Tunnel)
-Vì MySQL Docker chỉ lắng nghe tại loopback `127.0.0.1:3306`, con kết nối thông qua DBeaver bằng tính năng **SSH Tunnel**:
-1. **Tab SSH**: Tích chọn *Use SSH Tunnel*, điền IP VPS `159.223.44.52`, port `22`, user `root`, và mật khẩu SSH.
-2. **Tab Main**: Điền Host `127.0.0.1`, Port `3306`, Database `forum_db`, User `root`, và mật khẩu MySQL (`root_password`).
+## 7. Tổng Hợp Các Lỗi Thường Gặp & Biện Pháp Khắc Phục (Troubleshooting)
+
+### 7.1. Lỗi Google OAuth 403 `access_denied` khi cấu hình Rclone
+- **Nguyên nhân**: Ứng dụng Google Cloud Console ở chế độ *Testing* nhưng chưa thêm email vào danh sách người dùng thử nghiệm.
+- **Khắc phục**: Vào Google Cloud Console > **Google Auth Platform** > **Audience** > Kéo xuống mục **Test users** > Nhấn **`+ ADD USERS`** và nhập email Gmail của con.
+
+### 7.2. Lỗi `Unknown column 'assigned_title_id' in field list` (Mã lỗi 500 sau khi restore)
+- **Nguyên nhân**: File backup database cũ thiếu một số cột/bảng do code backend mới bổ sung sau này.
+- **Khắc phục**: Class `DatabaseSchemaPatcher.java` được cấu hình chạy `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...` và `CREATE TABLE IF NOT EXISTS ...` khi backend khởi động, tự động đồng bộ hóa cấu trúc DB cũ lên phiên bản mới nhất.
+
+### 7.3. Lỗi `rclone exit status 3` trong quá trình Bootstrap
+- **Nguyên nhân**: Script cài đặt `install.sh` của Rclone trả về status 3 khi phát hiện Rclone đã được cài đặt sẵn trên máy.
+- **Khắc phục**: Script `bootstrap.sh` sử dụng `if ! command -v rclone` để kiểm tra trước, tránh gọi lại script cài đặt khi đã có Rclone.
+
+### 7.4. Lỗi Race Condition khi Reindex OpenSearch
+- **Nguyên nhân**: Khi backend khởi động, `SearchIndexInitializer` đã kích hoạt reindex ngầm, đồng thời CI/CD gọi thêm endpoint `/api/search/reindex` gây xung đột index.
+- **Khắc phục**: Phương thức `reindexAll()` trong `SearchService.java` được bọc try-catch an toàn khi xóa/tạo index, và workflow được bổ sung vòng lặp retry 5 lần kèm độ trễ 5 giây.
+
+### 7.5. Lỗi Upload ảnh dung lượng lớn bị mã 413 hoặc CORS giả
+- **Nguyên nhân**: Giới hạn mặc định `client_max_body_size` của Nginx là 1MB.
+- **Khắc phục**: Nginx được cấu hình sẵn `client_max_body_size 100M;` trong `sites-available/forum` để đồng bộ với giới hạn 100MB của Spring Boot.
 
 ---
 
-## 8. Khắc Phục Các Sự Cố Liên Quan Đến Upload Ảnh Lên VPS
+## 8. Danh Mục Các File Cốt Lõi Của Hệ Thống
 
-### Sự cố 1: Upload ảnh thành công (mã 200) nhưng ảnh không hiển thị (lỗi 404)
-* **Triệu chứng**:
-  * API `/api/upload/multiple` trả về HTTP 200 kèm đường dẫn `/uploads/uuid.png`.
-  * Trên giao diện hiển thị icon ảnh bị vỡ. Request tải ảnh trả về lỗi HTTP 404.
-* **Nguyên nhân**: 
-  * Backend Spring Boot chạy trong Docker với `working_dir: /app` nên mặc định ghi ảnh vào thư mục `/app/uploads`.
-  * Tuy nhiên, cấu hình volume mount của container backend bị lệch: `- ./uploads:/var/www/forum/uploads` khiến ảnh lưu trong container không được ghi ra thư mục `./uploads` trên host VPS để Nginx truy xuất.
-* **Giải pháp**:
-  * Sửa lại cấu hình volumes của service `backend` trong `docker-compose.yml` thành:
-    ```yaml
-    volumes:
-      - ./uploads:/app/uploads
-    ```
-  * Chạy lệnh tái tạo container trên VPS để áp dụng cấu hình mới:
-    ```bash
-    docker compose up -d backend
-    ```
-
-### Sự cố 2: Upload nhiều ảnh hoặc ảnh dung lượng lớn bị lỗi 413 (hoặc báo lỗi CORS giả)
-* **Triệu chứng**:
-  * Khi upload 1 ảnh dung lượng nhỏ thì thành công.
-  * Khi upload nhiều ảnh cùng lúc hoặc ảnh lớn, API trả về lỗi **HTTP 413 Request Entity Too Large**. Trong một số trường hợp, console trình duyệt lại báo lỗi **CORS** do Nginx chặn request từ trước khi chạm tới Spring Boot và trả về trang lỗi 413 mặc định không có header CORS.
-* **Nguyên nhân**:
-  * Máy chủ Nginx trên VPS có giới hạn dung lượng request gửi lên mặc định là **1MB** (`client_max_body_size 1M`).
-* **Giải pháp**:
-  * Cấu hình tăng giới hạn `client_max_body_size` của Nginx lên **100M** (để khớp với giới hạn tối đa `100MB` cấu hình trong file `application-prod.properties` của Spring Boot).
-  * Chỉnh sửa cấu hình Nginx `/etc/nginx/sites-available/forum` trên VPS, thêm vào trong block `server`:
-    ```nginx
-    server {
-        ...
-        client_max_body_size 100M;
-        ...
-    }
-    ```
-  * Reload lại Nginx để áp dụng cấu hình mới:
-    ```bash
-    sudo nginx -t && sudo systemctl reload nginx
-    ```
-
+- 📜 [`.github/workflows/vps-bootstrap.yml`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/.github/workflows/vps-bootstrap.yml): Workflow GitHub Actions tự động hóa khởi tạo VPS mới và khôi phục dữ liệu.
+- 📜 [`.github/workflows/deploy-vps.yml`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/.github/workflows/deploy-vps.yml): Workflow GitHub Actions triển khai backend hàng ngày.
+- 📜 [`scripts/bootstrap.sh`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/scripts/bootstrap.sh): Script cài đặt OS, Docker, Nginx, SSL trên VPS mới.
+- 📜 [`scripts/restore-data.sh`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/scripts/restore-data.sh): Script tự động tải và khôi phục database + uploads từ Google Drive.
+- 📜 [`scripts/backup.sh`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/scripts/backup.sh): Script sao lưu dữ liệu tự động hàng ngày.
+- 📜 [`docker-compose.yml`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/docker-compose.yml): Cấu hình chạy MySQL 8.0, OpenSearch 2.19.0 và Backend Java 17.
+- 📜 [`backend/src/main/java/com/forum/config/DatabaseSchemaPatcher.java`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/backend/src/main/java/com/forum/config/DatabaseSchemaPatcher.java): Tự động vá và đồng bộ cấu trúc cơ sở dữ liệu khi khởi động.

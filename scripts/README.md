@@ -6,7 +6,7 @@ Khi VPS cũ chết, con chỉ cần làm **3 thao tác thủ công**, toàn bộ
 
 | Thao tác | Thực hiện ở đâu | Thời gian |
 |:---|:---|:---|
-| 1. Đổi bản ghi `A` `api.htxslvn.com` → IP VPS mới | Cloudflare Dashboard | ~1 phút |
+| 1. Đổi bản ghi `A` của API subdomain → IP VPS mới | Cloudflare Dashboard | ~1 phút |
 | 2. Cập nhật `VPS_HOST` và `VPS_PASSWORD` | GitHub Secrets | ~2 phút |
 | 3. Nhấn "Run workflow" | GitHub Actions → `vps-bootstrap.yml` | ~2 phút |
 
@@ -16,18 +16,20 @@ Khi VPS cũ chết, con chỉ cần làm **3 thao tác thủ công**, toàn bộ
 
 ## Cài Đặt Một Lần (Setup Secrets lần đầu tiên)
 
-Con cần thêm các GitHub Secrets sau vào repository trước khi dùng hệ thống này.
+### Các Secrets cần thiết trên GitHub Actions
+
 Truy cập: **GitHub → Settings → Secrets and variables → Actions → New repository secret**
 
-### Các Secrets đã có (chỉ cần cập nhật khi đổi VPS)
-
-| Secret | Mô tả | Ví dụ giá trị |
-|:---|:---|:---|
-| `VPS_HOST` | IP của VPS mới | `103.x.x.x` |
-| `VPS_USERNAME` | Username SSH | `root` |
-| `VPS_PASSWORD` | Mật khẩu SSH của VPS mới | `your_vps_password` |
-
-### Các Secrets mới cần thêm (setup 1 lần duy nhất)
+| Secret Name | Mô tả | Giá trị mẫu | Tần suất cập nhật |
+|:---|:---|:---|:---|
+| `VPS_HOST` | IP của VPS hiện tại | `${VPS_IP_ADDRESS}` | Đổi khi có VPS mới |
+| `VPS_USERNAME` | Username SSH | `root` | Giữ nguyên |
+| `VPS_PASSWORD` | Mật khẩu SSH của VPS | `${VPS_SSH_PASSWORD}` | Đổi khi có VPS mới |
+| `DOMAIN_NAME` | Subdomain API trỏ về VPS | `api.htxslvn.com` | 1 lần duy nhất |
+| `GDRIVE_BACKUP_FOLDER` | Thư mục backup trên Google Drive | `forum_rclone_backups_update_01_09_2026` | 1 lần duy nhất |
+| `CERTBOT_EMAIL` | Email đăng ký SSL Let's Encrypt | `${YOUR_EMAIL_FOR_SSL}` | 1 lần duy nhất |
+| `VPS_ENV_FILE` | Nội dung file `.env` (base64) | Chuỗi base64 | 1 lần duy nhất |
+| `RCLONE_CONF` | Nội dung `rclone.conf` (base64) | Chuỗi base64 | 1 lần duy nhất |
 
 #### 1. `VPS_ENV_FILE` — Nội dung file `.env` của VPS
 
@@ -37,10 +39,10 @@ File `.env` chứa tất cả key bí mật của hệ thống. Cách tạo giá
 ```powershell
 # Tạo file .env tạm với nội dung thực tế
 $envContent = @"
-APP_JWT_SECRET=chuoi_bi_mat_cua_con
-SPRING_MAIL_USERNAME=email_cua_con@gmail.com
-SPRING_MAIL_PASSWORD=mat_khau_ung_dung_gmail
-RESEND_API_KEY=re_xxxxxxxxxx
+APP_JWT_SECRET=${YOUR_APP_JWT_SECRET}
+SPRING_MAIL_USERNAME=${YOUR_MAIL_USERNAME}
+SPRING_MAIL_PASSWORD=${YOUR_MAIL_APP_PASSWORD}
+RESEND_API_KEY=${YOUR_RESEND_API_KEY}
 "@
 # Encode sang base64
 [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($envContent))
@@ -57,7 +59,7 @@ Copy toàn bộ output (chuỗi base64) → dán vào giá trị Secret `VPS_ENV
 
 #### 2. `CERTBOT_EMAIL` — Email đăng ký SSL
 
-Nhập thẳng địa chỉ email của con (không cần encode). Ví dụ: `admin@htxslvn.com`
+Nhập thẳng địa chỉ email của con (không cần encode). Ví dụ: `${YOUR_EMAIL_FOR_SSL}`
 
 ---
 
