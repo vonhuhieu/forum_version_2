@@ -48,6 +48,29 @@ jobs:
           source: "docker-compose.yml"
           target: "/var/www/forum/"
 
+      - name: Copy scripts to VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "scripts/"
+          target: "/var/www/forum/"
+
+      - name: Ensure Scripts Executable & Register Cron Job
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            chmod +x /var/www/forum/scripts/*.sh
+            CRON_JOB="0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "/var/www/forum/scripts/backup.sh" ; echo "$CRON_JOB") | crontab -
+            echo "OK: Scripts and Cron Job updated successfully."
+
       - name: Rename and Restart Backend via SSH
         uses: appleboy/ssh-action@master
         with:

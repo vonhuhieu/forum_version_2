@@ -3,14 +3,15 @@
 # backup.sh - Script sao lưu tự động Database + Uploads lên Google Drive
 # Chạy hàng ngày lúc 02:00 sáng qua Cron Job
 #
-# Cài đặt Cron Job:
-#   crontab -e
-#   0 2 * * * /var/www/forum/backup.sh >> /var/www/forum/backup.log 2>&1
+# Cài đặt Cron Job (Tự động đăng ký khi chạy bootstrap.sh):
+#   0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1
 #
 # Yêu cầu: Rclone đã được cấu hình kết nối Google Drive
 # =============================================================================
 
 set -e
+
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
 
 FORUM_DIR="/var/www/forum"
 BACKUP_DIR="$FORUM_DIR/backups"

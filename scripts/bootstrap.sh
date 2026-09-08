@@ -181,7 +181,7 @@ echo "OK: Nginx đã được cấu hình và khởi động."
 # BƯỚC 8: Cấp SSL bằng Certbot
 # ------------------------------------------------------------------------------
 echo ""
-echo "[8/9] Cấp chứng chỉ SSL cho $DOMAIN..."
+echo "[8/10] Cấp chứng chỉ SSL cho $DOMAIN..."
 if [ -z "$CERTBOT_EMAIL" ]; then
     echo "CẢNH BÁO: Biến môi trường CERTBOT_EMAIL chưa được cung cấp!"
     echo "Bỏ qua bước cấp SSL. Con cần chạy thủ công: certbot --nginx -d $DOMAIN"
@@ -197,7 +197,17 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# BƯỚC 9: Tổng kết
+# BƯỚC 9: Tự động cấu hình Cron Job cho Backup hàng ngày
+# ------------------------------------------------------------------------------
+echo ""
+echo "[9/10] Tự động cấu hình Cron Job backup hàng ngày..."
+chmod +x "$FORUM_DIR/scripts/backup.sh"
+CRON_JOB="0 2 * * * $FORUM_DIR/scripts/backup.sh >> $FORUM_DIR/backup.log 2>&1"
+(crontab -l 2>/dev/null | grep -v "$FORUM_DIR/scripts/backup.sh" ; echo "$CRON_JOB") | crontab -
+echo "OK: Cron job backup hàng ngày (02:00 AM) đã được đăng ký tự động."
+
+# ------------------------------------------------------------------------------
+# BƯỚC 10: Tổng kết
 # ------------------------------------------------------------------------------
 echo ""
 echo "======================================================"
