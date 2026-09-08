@@ -133,22 +133,16 @@ scripts/
 
 ---
 
-## Cài Đặt Backup Tự Động Trên VPS Mới
+## Cài Đặt Backup Tự Động Trên VPS (Đã Tự Động Hóa 100%)
 
-Sau khi bootstrap xong, cần cài Cron Job để backup tự động hàng ngày:
+Script `bootstrap.sh` sẽ **tự động cài đặt và đăng ký Cron Job** cho `scripts/backup.sh` lúc **02:00 AM hàng ngày**. Con không cần thực hiện thêm bất kỳ thao tác thủ công nào trên VPS mới!
 
+Để kiểm tra lại danh sách Cron Job trên VPS nếu cần:
 ```bash
-# SSH vào VPS mới
-ssh root@<IP_VPS_MỚI>
-
-# Mở crontab
-crontab -e
-
-# Thêm dòng sau (backup lúc 02:00 sáng hàng ngày)
-0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1
+crontab -l
+# Output kỳ vọng:
+# 0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1
 ```
-
-> **Lưu ý:** Script `bootstrap.sh` sẽ copy file `scripts/backup.sh` lên VPS nhưng **không tự setup Cron Job** (để tránh chạy backup khi VPS mới chưa có dữ liệu đầy đủ). Con setup Cron Job thủ công sau khi đã verify hệ thống chạy ổn định.
 
 ---
 

@@ -91,7 +91,8 @@ Bước 3: Kích hoạt Workflow Bootstrap
   │     ├─ Giải mã VPS_ENV_FILE thành /var/www/forum/.env
   │     ├─ Khởi động MySQL 8.0 & OpenSearch 2.19.0 qua Docker Compose
   │     ├─ Cấu hình Nginx Reverse Proxy (/api -> 8080, /uploads -> thư mục tĩnh)
-  │     └─ Cấp phát chứng chỉ SSL Let's Encrypt qua Certbot
+  │     ├─ Cấp phát chứng chỉ SSL Let's Encrypt qua Certbot
+  │     └─ Tự động đăng ký Cron Job backup hàng ngày (02:00 AM)
   │
   ├── 2. Job Restore (Khôi phục dữ liệu)
   │     ├─ Giải mã RCLONE_CONF kết nối Google Drive
@@ -140,13 +141,16 @@ Script [`scripts/backup.sh`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/scripts/back
 4. Sử dụng `rclone` đồng bộ file nén lên Google Drive (`forum_rclone_backups_update_01_09_2026`).
 5. Tự động xóa các bản sao lưu cục bộ trên VPS có tuổi đời vượt quá **7 ngày** để giải phóng dung lượng đĩa cứng.
 
-### 6.2. Cài đặt Cron Job trên VPS mới (Chạy lúc 02:00 sáng):
-```bash
-# Mở bảng lập lịch Cron
-crontab -e
+### 6.2. Tự Động Đăng Ký Cron Job Trên VPS Mới (Zero-Touch):
+Script `bootstrap.sh` đã được thiết lập để **tự động đăng ký Cron Job** vào hệ thống VPS mới mà không cần thao tác thủ công. Dòng lệnh được thêm tự động vào `crontab`:
 
-# Thêm dòng sau vào cuối file
+```bash
 0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1
+```
+
+Để kiểm tra lại danh sách Cron Job trên VPS:
+```bash
+crontab -l
 ```
 
 ---
