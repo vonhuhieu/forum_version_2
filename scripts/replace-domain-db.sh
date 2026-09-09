@@ -53,11 +53,6 @@ SET content = REPLACE(content, '$OLD_DOMAIN', '$NEW_DOMAIN')
 WHERE content LIKE '%$OLD_DOMAIN%';
 SELECT ROW_COUNT() AS 'Posts_Updated';
 
--- 2. Cập nhật thumbnail chủ đề
-UPDATE threads 
-SET thumbnail = REPLACE(thumbnail, '$OLD_DOMAIN', '$NEW_DOMAIN') 
-WHERE thumbnail LIKE '%$OLD_DOMAIN%';
-SELECT ROW_COUNT() AS 'Threads_Thumbnail_Updated';
 
 -- 3. Cập nhật cấu hình cài đặt hệ thống
 UPDATE settings 
