@@ -143,7 +143,7 @@
                           class="stat-avatar-circle" 
                           :style="!isAvatarUrl(item.avatar) ? { backgroundColor: getAvatarColor(item) } : {}" 
                         >
-                          <img v-if="isAvatarUrl(item.avatar)" :src="item.avatar" alt="avatar" />
+                          <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
@@ -174,7 +174,7 @@
                           class="stat-avatar-circle" 
                           :style="!isAvatarUrl(item.avatar) ? { backgroundColor: getAvatarColor(item) } : {}" 
                         >
-                          <img v-if="isAvatarUrl(item.avatar)" :src="item.avatar" alt="avatar" />
+                          <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
@@ -205,7 +205,7 @@
                           class="stat-avatar-circle" 
                           :style="!isAvatarUrl(item.avatar) ? { backgroundColor: getAvatarColor(item) } : {}" 
                         >
-                          <img v-if="isAvatarUrl(item.avatar)" :src="item.avatar" alt="avatar" />
+                          <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                         <span class="user-name-link">
@@ -247,7 +247,7 @@
                         class="list-avatar-circle" 
                         :style="!isAvatarUrl(userItem.avatar) ? { backgroundColor: getAvatarColor(userItem) } : {}"
                       >
-                        <img v-if="isAvatarUrl(userItem.avatar)" :src="userItem.avatar" alt="avatar" />
+                        <img v-if="isAvatarUrl(userItem.avatar)" :src="formatAvatarUrl(userItem.avatar)" alt="avatar" />
                         <span v-else>{{ (userItem.displayName || userItem.username || '?').charAt(0).toUpperCase() }}</span>
                       </div>
                     </UserProfilePopup>
@@ -307,7 +307,7 @@ import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import { MEMBER_KEYS } from '@/shared/utils/constants'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 
@@ -360,6 +360,9 @@ export default {
     }
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },

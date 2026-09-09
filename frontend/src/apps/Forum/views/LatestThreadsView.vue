@@ -26,7 +26,7 @@
             <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center min-height-100-on-pc" @click="goToThread($event, thread)">
               <user-profile-popup :user="thread.author" v-if="thread.author">
                 <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
                   <template v-else>
                     {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
                   </template>
@@ -112,7 +112,7 @@
                 </div>
                 <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
                   <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
                     <template v-else>
                       {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
                     </template>
@@ -194,7 +194,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser, isAvatarUrl } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'LatestThreadsView',
@@ -261,6 +261,9 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },

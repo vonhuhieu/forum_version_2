@@ -68,7 +68,7 @@
             <div class="post-sidebar">
               <user-profile-popup :user="thread.author" v-if="thread.author">
                 <div class="avatar-large" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
                   <template v-else>
                     {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
                   </template>
@@ -161,7 +161,7 @@
             <div class="post-sidebar">
               <user-profile-popup :user="item.author" v-if="item.author">
                 <div class="avatar-large" :style="!isAvatarUrl(item.author?.avatar) ? { backgroundColor: item.author?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(item.author?.avatar)" :src="item.author.avatar" />
+                  <img v-if="isAvatarUrl(item.author?.avatar)" :src="formatAvatarUrl(item.author?.avatar)" />
                   <template v-else>
                     {{ item.author ? (item.author.displayName || item.author.username).charAt(0).toUpperCase() : '?' }}
                   </template>
@@ -941,12 +941,10 @@ export default {
     formatPostContent(content) {
       if (!content) return ''
       
-      // Tự động gắn Backend Base URL cho các ảnh /uploads/ trong nội dung bài viết
       const backendUrl = getBackendBaseUrl()
-      let processedContent = content.replace(/(src=["'])\/uploads\//gi, `$1${backendUrl}/uploads/`)
 
       // 1. Xử lý các thẻ media trước
-      let processed = this.processMediaTags(processedContent)
+      let processed = this.processMediaTags(content)
       
       // 2. Đồng bộ quote động từ dữ liệu mới nhất
       try {
@@ -990,6 +988,11 @@ export default {
         console.error('Lỗi khi tự động cập nhật nội dung trích dẫn:', err)
       }
       
+      // 3. Tự động gắn Backend Base URL cho tất cả các ảnh /uploads/ (bao gồm cả ảnh trong khối blockquote trích dẫn)
+      if (processed) {
+        processed = processed.replace(/(src=["'])\/uploads\//gi, `$1${backendUrl}/uploads/`)
+      }
+
       return processed
     },
     stripBlockQuotes(html) {

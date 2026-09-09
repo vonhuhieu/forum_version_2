@@ -10,7 +10,7 @@
         <div v-for="thread in latestThreads" :key="thread.id" class="thread-row home-thread-row thread-row-center pt-and-pb-10-and-pl-and-pr-8 min-height-100-on-pc" @click="goToThread($event, thread)">
           <user-profile-popup :user="thread.author" v-if="thread.author">
             <div class="thread-avatar" :style="!isAvatarUrl(thread.author.avatar) ? { backgroundColor: thread.author.avatar || '#ccc', color: '#fff' } : {}">
-              <img v-if="isAvatarUrl(thread.author.avatar)" :src="thread.author.avatar" />
+              <img v-if="isAvatarUrl(thread.author.avatar)" :src="formatAvatarUrl(thread.author.avatar)" />
               <template v-else>
                 {{ (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() }}
               </template>
@@ -117,7 +117,7 @@
             </div>
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
               <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
                 <template v-else>
                   {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
                 </template>
@@ -181,7 +181,7 @@
             <div v-if="lastThreadByCat[cat.id]" class="last-thread-box home-last-thread-box">
               <user-profile-popup :user="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author" v-if="lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author">
                 <div class="last-thread-avatar" :style="!isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar) ? { backgroundColor: (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" :src="(lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar" />
+                  <img v-if="isAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" :src="formatAvatarUrl((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.avatar)" />
                   <template v-else>
                     {{ ((lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.displayName || (lastThreadByCat[cat.id].lastPostAuthor || lastThreadByCat[cat.id].author)?.username || 'A').charAt(0).toUpperCase() }}
                   </template>
@@ -237,7 +237,7 @@
           <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
             <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
               <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
                 <template v-else>
                   {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
                 </template>
@@ -335,7 +335,7 @@
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
@@ -400,6 +400,9 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     async fetchData() {
       this.loading = true
       try {

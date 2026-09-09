@@ -80,7 +80,7 @@
                 <div class="post-sidebar">
                   <user-profile-popup :user="msg.sender" v-if="msg.sender">
                     <div class="avatar-large" :style="!isAvatarUrl(msg.sender?.avatar) ? { backgroundColor: msg.sender?.avatar || '#ccc', color: '#fff' } : {}">
-                      <img v-if="isAvatarUrl(msg.sender?.avatar)" :src="msg.sender.avatar" />
+                      <img v-if="isAvatarUrl(msg.sender?.avatar)" :src="formatAvatarUrl(msg.sender?.avatar)" />
                       <template v-else>
                         {{ msg.sender ? (msg.sender.displayName || msg.sender.username).charAt(0).toUpperCase() : '?' }}
                       </template>
@@ -227,7 +227,7 @@
               <div v-for="part in conversation.participants" :key="part.id" class="participant-row">
                 <user-profile-popup :user="part" v-if="part">
                   <div class="avatar-mini" :style="!isAvatarUrl(part.avatar) ? { backgroundColor: part.avatar || '#ccc', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl(part.avatar)" :src="part.avatar" />
+                    <img v-if="isAvatarUrl(part.avatar)" :src="formatAvatarUrl(part.avatar)" />
                     <template v-else>
                       {{ (part.displayName || part.username).charAt(0).toUpperCase() }}
                     </template>
@@ -284,7 +284,7 @@ import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
@@ -441,6 +441,9 @@ export default {
     }
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     async fetchConversation(silent = false) {
       if (!silent) this.loading = true
       try {
