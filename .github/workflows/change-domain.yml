@@ -1,0 +1,111 @@
+name: "Đổi tên miền hệ thống (Change System Domain)"
+
+# =============================================================================
+# Workflow này tự động hoá 100% quy trình đổi tên miền hệ thống:
+#   Job 1: update-vps      → SSH vào VPS, cấu hình Nginx vhost mới, cấp SSL Certbot, cập nhật .env VPS, restart Backend
+#   Job 2 (Tùy chọn)       → Thay thế URL domain cũ trong MySQL database
+#
+# TRIGGER: Thủ công (workflow_dispatch) - Con vào tab Actions trên GitHub, chọn workflow và bấm "Run workflow"
+#
+# GitHub Secrets cần có:
+#   VPS_HOST       - IP của VPS (VD: 180.93.111.191)
+#   VPS_USERNAME   - SSH username (thường là root)
+#   VPS_PASSWORD   - SSH password
+#   CERTBOT_EMAIL  - Email đăng ký chứng chỉ SSL Let's Encrypt
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_domain:
+        description: "Tên miền chính Frontend (VD: hoptacxavuive.com)"
+        required: true
+        default: "hoptacxavuive.com"
+      api_domain:
+        description: "Tên miền Backend API trỏ về VPS (VD: api.hoptacxavuive.com)"
+        required: true
+        default: "api.hoptacxavuive.com"
+      old_domain:
+        description: "Tên miền cũ cần thay thế trong DB (VD: htxslvn.com)"
+        required: false
+        default: "htxslvn.com"
+      replace_db_links:
+        description: "Thay thế link tên miền cũ trong Database? (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: write
+
+jobs:
+  # ============================================================================
+  # JOB 1: Cập nhật VPS (Nginx, SSL Certbot, .env VPS, Restart Backend)
+  # ============================================================================
+  update-vps:
+    name: "1. Cập nhật Nginx, SSL và Backend trên VPS"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy scripts mới lên VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          source: "scripts/"
+          target: "/var/www/forum/"
+
+      - name: Thực thi update-domain.sh trên VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            chmod +x /var/www/forum/scripts/*.sh
+
+            export NEW_API_DOMAIN="${{ inputs.api_domain }}"
+            export NEW_FRONTEND_DOMAIN="${{ inputs.frontend_domain }}"
+            export CERTBOT_EMAIL="${{ secrets.CERTBOT_EMAIL }}"
+
+            /var/www/forum/scripts/update-domain.sh
+
+      - name: Thay thế liên kết tên miền cũ trong Database MySQL
+        if: ${{ inputs.replace_db_links == 'true' }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            chmod +x /var/www/forum/scripts/replace-domain-db.sh
+            /var/www/forum/scripts/replace-domain-db.sh "${{ inputs.old_domain }}" "${{ inputs.frontend_domain }}"
+
+      - name: Tổng kết và Báo cáo trạng thái
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            echo "=============================================="
+            echo " HTXSL Forum - ĐỔI TÊN MIỀN HOÀN TẤT!"
+            echo " Thời gian: $(date)"
+            echo " API:       https://${{ inputs.api_domain }}"
+            echo " Frontend:  https://${{ inputs.frontend_domain }}"
+            echo ""
+            echo " Trạng thái Docker containers:"
+            docker compose -f /var/www/forum/docker-compose.yml ps
+            echo "=============================================="
