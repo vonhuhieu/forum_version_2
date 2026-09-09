@@ -70,18 +70,25 @@ export function formatUploadUrl(url) {
   if (url.startsWith('/uploads/')) {
     return `${getBackendBaseUrl()}${url}`;
   }
+  if (url.startsWith('uploads/')) {
+    return `${getBackendBaseUrl()}/${url}`;
+  }
   return url;
 }
 
 /**
- * Định dạng URL avatar nếu avatar là đường dẫn relative /uploads/...
+ * Định dạng URL avatar nếu avatar là đường dẫn relative /uploads/... hoặc uploads/...
  * @param {string} avatar
  * @returns {string}
  */
 export function formatAvatarUrl(avatar) {
   if (!avatar) return '';
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
   if (avatar.startsWith('/uploads/')) {
     return `${getBackendBaseUrl()}${avatar}`;
+  }
+  if (avatar.startsWith('uploads/')) {
+    return `${getBackendBaseUrl()}/${avatar}`;
   }
   return avatar;
 }

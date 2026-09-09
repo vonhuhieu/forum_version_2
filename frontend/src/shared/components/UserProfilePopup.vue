@@ -31,7 +31,7 @@
             <!-- Cột trái: avatar -->
             <div class="popup-avatar-col" @click="goToProfile">
               <div class="popup-avatar-large" :style="!isAvatarUrl(userData.avatar) ? { backgroundColor: userData.avatar || '#1a507a', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(userData.avatar)" :src="userData.avatar" />
+                <img v-if="isAvatarUrl(userData.avatar)" :src="formatAvatarUrl(userData.avatar)" />
                 <template v-else>
                   {{ (userData.displayName || userData.username || 'A').charAt(0).toUpperCase() }}
                 </template>
@@ -85,7 +85,7 @@ import userService from '@/apps/Forum/services/user.service'
 import userFollowService from '@/apps/Forum/services/user-follow.service'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import { formatForumDate } from '@/shared/utils/date'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
@@ -136,6 +136,9 @@ export default {
     window.removeEventListener('scroll', this.handleScroll)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },

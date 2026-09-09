@@ -57,7 +57,7 @@
         <div class="nav-right">
           <div class="nav-group-user" :class="{ 'active': showUserDropdown }" v-if="isLoggedIn" ref="userContainer" @click="toggleUserDropdown" style="cursor: pointer;">
             <div class="user-info-header">
-              <img v-if="isAvatarUrl(currentUser.avatar)" :src="currentUser.avatar" class="user-avatar-small user-avatar-img" />
+              <img v-if="isAvatarUrl(currentUser.avatar)" :src="formatAvatarUrl(currentUser.avatar)" class="user-avatar-small user-avatar-img" />
               <span v-else class="user-avatar-small" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
                 {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
               </span>
@@ -88,7 +88,7 @@
                   <!-- User Brief Info -->
                   <div class="xamvn-user-brief">
                     <div class="xamvn-avatar-wrapper" @click.stop="openAvatarModal">
-                      <img v-if="isAvatarUrl(currentUser.avatar)" :src="currentUser.avatar" class="xamvn-avatar-large xamvn-avatar-img" />
+                      <img v-if="isAvatarUrl(currentUser.avatar)" :src="formatAvatarUrl(currentUser.avatar)" class="xamvn-avatar-large xamvn-avatar-img" />
                       <div v-else class="xamvn-avatar-large" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
                         {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
                       </div>
@@ -192,7 +192,7 @@
                       <div class="notif-avatar-wrapper">
                          <user-profile-popup :user="getConvoUser(convo)" v-if="getConvoUser(convo)">
                             <div class="notif-avatar" :style="!isAvatarUrl(getConvoAvatarBg(convo)) ? { backgroundColor: getConvoAvatarBg(convo) } : {}">
-                               <img v-if="isAvatarUrl(getConvoAvatarBg(convo))" :src="getConvoAvatarBg(convo)" />
+                               <img v-if="isAvatarUrl(getConvoAvatarBg(convo))" :src="formatAvatarUrl(getConvoAvatarBg(convo))" />
                                <template v-else>
                                   {{ getConvoAvatarText(convo) }}
                                </template>
@@ -311,7 +311,7 @@
                       <div class="notif-avatar-wrapper">
                          <user-profile-popup :user="getNotifUser(notif)" v-if="getNotifUser(notif)">
                             <div class="notif-avatar" :style="!isAvatarUrl(notif.actorAvatar) ? { backgroundColor: notif.actorAvatar || '#3498db' } : {}">
-                               <img v-if="isAvatarUrl(notif.actorAvatar)" :src="notif.actorAvatar" />
+                               <img v-if="isAvatarUrl(notif.actorAvatar)" :src="formatAvatarUrl(notif.actorAvatar)" />
                                <template v-else>
                                   {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
                                </template>
@@ -487,7 +487,7 @@ import menuService from '@/apps/Forum/services/menu.service'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { alertSuccess, alertWarning } from '@/shared/utils/swal'
-import { isNonOfficialUser, truncateString } from '@/shared/utils/utils'
+import { isNonOfficialUser, truncateString, formatAvatarUrl, isAvatarUrl } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
@@ -643,6 +643,12 @@ export default {
     window.removeEventListener('notifications-updated', this.fetchNotifSummary)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
     isMenuActive(menu) {
       if (!menu || !menu.url) return false
       const path = this.$route.path
@@ -1080,10 +1086,6 @@ export default {
         avatar: notif.actorAvatar,
         isVerifiedBadge: notif.actorIsVerifiedBadge || notif.isVerifiedBadge
       }
-    },
-    isAvatarUrl(avatar) {
-      if (!avatar) return false
-      return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')
     },
     openAvatarModal() {
       this.showAvatarModal = true

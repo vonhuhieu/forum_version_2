@@ -32,7 +32,7 @@
               <!-- Block trái (Avatar) -->
               <user-profile-popup :user="getConvoCreator(convo)" v-if="getConvoCreator(convo)">
                 <div class="thread-avatar" :style="!isAvatarUrl(convo.creatorAvatar) ? { backgroundColor: convo.creatorAvatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(convo.creatorAvatar)" :src="convo.creatorAvatar" />
+                  <img v-if="isAvatarUrl(convo.creatorAvatar)" :src="formatAvatarUrl(convo.creatorAvatar)" />
                   <template v-else>
                     {{ (convo.creatorDisplayName || convo.creatorUsername || 'C').charAt(0).toUpperCase() }}
                   </template>
@@ -112,7 +112,7 @@
                 </div>
                 <user-profile-popup :user="getConvoLastSender(convo)" v-if="getConvoLastSender(convo)">
                   <div class="last-post-avatar" :style="!isAvatarUrl(convo.lastMessageSenderAvatar) ? { backgroundColor: convo.lastMessageSenderAvatar || '#ccc', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl(convo.lastMessageSenderAvatar)" :src="convo.lastMessageSenderAvatar" />
+                    <img v-if="isAvatarUrl(convo.lastMessageSenderAvatar)" :src="formatAvatarUrl(convo.lastMessageSenderAvatar)" />
                     <template v-else>
                       {{ (convo.lastMessageSenderDisplayName || convo.lastMessageSenderUsername || 'A').charAt(0).toUpperCase() }}
                     </template>
@@ -155,7 +155,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ConversationList',
@@ -206,6 +206,9 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     goToCreateConversation() {
       this.$router.push({ name: 'AddConversation' })
     },
