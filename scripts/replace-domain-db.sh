@@ -55,10 +55,10 @@ SELECT ROW_COUNT() AS 'Posts_Updated';
 
 
 -- 3. Cập nhật cấu hình cài đặt hệ thống
-UPDATE settings 
+UPDATE system_settings 
 SET setting_value = REPLACE(setting_value, '$OLD_DOMAIN', '$NEW_DOMAIN') 
 WHERE setting_value LIKE '%$OLD_DOMAIN%';
-SELECT ROW_COUNT() AS 'Settings_Updated';
+SELECT ROW_COUNT() AS 'System_Settings_Updated';
 
 -- 4. Cập nhật avatar người dùng nếu có link tuyệt đối
 UPDATE users 
