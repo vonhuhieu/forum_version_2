@@ -34,7 +34,7 @@
           @click="selectUser(user)"
         >
           <div class="tagging-avatar" :style="!isAvatarUrl(user.avatar) ? { backgroundColor: getAvatarColor(user) } : {}">
-            <img v-if="isAvatarUrl(user.avatar)" :src="user.avatar" alt="avatar" />
+            <img v-if="isAvatarUrl(user.avatar)" :src="formatAvatarUrl(user.avatar)" alt="avatar" />
             <span v-else>{{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}</span>
           </div>
           <div class="tagging-name-wrapper">
@@ -98,7 +98,7 @@ import 'ckeditor5/ckeditor5.css'
 import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
  
 class QuoteSourcePlugin extends Plugin {
   static get requires() {
@@ -313,6 +313,9 @@ export default {
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
     },
     scrollToHighlighted() {
       this.$nextTick(() => {
