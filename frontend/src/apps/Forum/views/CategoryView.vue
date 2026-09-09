@@ -48,7 +48,7 @@
                   <div v-if="lastThreadByCat[sub.id]" class="last-thread-box">
                     <user-profile-popup :user="lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author" v-if="lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author">
                       <div class="last-thread-avatar" :style="!isAvatarUrl((lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar) ? { backgroundColor: (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar || '#ccc', color: '#fff' } : {}">
-                        <img v-if="isAvatarUrl((lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar)" :src="(lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar" />
+                        <img v-if="isAvatarUrl((lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar)" :src="formatAvatarUrl((lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.avatar)" />
                         <template v-else>
                           {{ ((lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.displayName || (lastThreadByCat[sub.id].lastPostAuthor || lastThreadByCat[sub.id].author)?.username || 'A').charAt(0).toUpperCase() }}
                         </template>
@@ -312,7 +312,7 @@
             <div v-for="thread in paginatedThreads" :key="thread.id" class="thread-row thread-row-center min-height-100-on-pc" @click="goToThread($event, thread)">
               <user-profile-popup :user="thread.author" v-if="thread.author">
                 <div class="thread-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#ccc', color: '#fff' } : {}">
-                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="thread.author.avatar" />
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
                   <template v-else>
                     {{ thread.author ? (thread.author.displayName || thread.author.username).charAt(0).toUpperCase() : 'A' }}
                   </template>
@@ -398,7 +398,7 @@
                 </div>
                 <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
                   <div class="last-post-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#ccc', color: '#fff' } : {}">
-                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="(thread.lastPostAuthor || thread.author)?.avatar" />
+                    <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
                     <template v-else>
                       {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
                     </template>
@@ -441,7 +441,7 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser, isAvatarUrl, getImeValue } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, getImeValue } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
@@ -676,6 +676,9 @@ export default {
     document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },

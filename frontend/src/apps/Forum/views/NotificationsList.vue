@@ -32,7 +32,7 @@
                 <div class="notif-avatar-wrapper">
                   <user-profile-popup :user="getNotifUser(notif)" v-if="getNotifUser(notif)">
                     <div class="notif-avatar" :style="!isAvatarUrl(notif.actorAvatar) ? { backgroundColor: notif.actorAvatar || '#3498db' } : {}">
-                      <img v-if="isAvatarUrl(notif.actorAvatar)" :src="notif.actorAvatar" />
+                      <img v-if="isAvatarUrl(notif.actorAvatar)" :src="formatAvatarUrl(notif.actorAvatar)" />
                       <template v-else>
                         {{ (notif.actorDisplayName || notif.actorUsername || '?').charAt(0).toUpperCase() }}
                       </template>
@@ -102,7 +102,7 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import userMixin from '@/shared/mixins/user.mixin.js'
 import { alertSuccess } from '@/shared/utils/swal'
 
@@ -142,6 +142,9 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },

@@ -46,7 +46,7 @@
             <div class="reactor-info">
               <user-profile-popup :user="participant.user" v-if="participant.user">
                 <div class="avatar-circle" :style="!isAvatarUrl(participant.user.avatar) ? { backgroundColor: participant.user.avatar || '#ccc' } : {}">
-                  <img v-if="isAvatarUrl(participant.user.avatar)" :src="participant.user.avatar" />
+                  <img v-if="isAvatarUrl(participant.user.avatar)" :src="formatAvatarUrl(participant.user.avatar)" />
                   <template v-else>
                     {{ (participant.user.displayName || participant.user.username).charAt(0).toUpperCase() }}
                   </template>
@@ -99,7 +99,7 @@ import UserProfilePopup from './UserProfilePopup.vue'
 import VerifiedBadge from './VerifiedBadge.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'ReactionListPopup',
@@ -166,6 +166,9 @@ export default {
     }
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     changeTab(tabId) {
       this.activeTab = tabId
       this.currentPage = 1

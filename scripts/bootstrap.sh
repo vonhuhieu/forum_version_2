@@ -109,6 +109,15 @@ if [ -n "$FRONTEND_DOMAIN" ]; then
     else
         echo "APP_CORS_ALLOWED_ORIGINS=https://${FRONTEND_DOMAIN},https://www.${FRONTEND_DOMAIN}" >> "$FORUM_DIR/.env"
     fi
+    if grep -q "^RESEND_FROM_EMAIL=" "$FORUM_DIR/.env"; then
+        sed -i "s|^RESEND_FROM_EMAIL=.*|RESEND_FROM_EMAIL=admin@${FRONTEND_DOMAIN}|" "$FORUM_DIR/.env"
+    else
+        echo "RESEND_FROM_EMAIL=admin@${FRONTEND_DOMAIN}" >> "$FORUM_DIR/.env"
+    fi
+else
+    if ! grep -q "^RESEND_FROM_EMAIL=" "$FORUM_DIR/.env"; then
+        echo "RESEND_FROM_EMAIL=admin@hoptacxavuive.com" >> "$FORUM_DIR/.env"
+    fi
 fi
 
 # ------------------------------------------------------------------------------

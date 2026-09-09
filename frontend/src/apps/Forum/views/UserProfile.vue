@@ -26,7 +26,7 @@
               :class="{ 'text-white': !!userStats.profileBanner, 'positioned-absolute': !!userStats.profileBanner }"
             >
               <div class="profile-avatar-wrapper" :class="{ 'clickable': isCurrentUser }" @click="isCurrentUser && openUploadModal('avatar')">
-                <img v-if="isAvatarUrl(userStats.avatar)" :src="userStats.avatar" class="profile-avatar-img" />
+                <img v-if="isAvatarUrl(userStats.avatar)" :src="formatAvatarUrl(userStats.avatar)" class="profile-avatar-img" />
                 <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
                   {{ userInitial }}
                 </div>
@@ -256,7 +256,7 @@ import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import userFollowService from '@/apps/Forum/services/user-follow.service'
 import api from '@/shared/services/api.service'
@@ -344,6 +344,9 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       if (this.userStats && this.userStats.username === username) {

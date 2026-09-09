@@ -25,7 +25,7 @@
         @click="selectUser(user)"
       >
         <div class="user-avatar-circle" :style="!isAvatarUrl(user.avatar) ? { backgroundColor: getAvatarColor(user) } : {}">
-          <img v-if="isAvatarUrl(user.avatar)" :src="user.avatar" alt="avatar" />
+          <img v-if="isAvatarUrl(user.avatar)" :src="formatAvatarUrl(user.avatar)" alt="avatar" />
           <span v-else>{{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}</span>
         </div>
         <div class="user-info-text">
@@ -40,7 +40,7 @@
 <script>
 import userService from '@/apps/Forum/services/user.service'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'UserSearchInput',
@@ -110,6 +110,9 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },
