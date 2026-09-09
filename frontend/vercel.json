@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/uploads/:path*",
-      "destination": "https://api.htxslvn.com/uploads/:path*"
-    },
-    {
       "source": "/:path*",
       "destination": "/index.html"
     }
