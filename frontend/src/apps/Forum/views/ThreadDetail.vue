@@ -358,7 +358,8 @@ import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
-import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml, formatUploadUrl, formatAvatarUrl } from '@/shared/utils/utils'
+import { getBackendBaseUrl } from '@/shared/services/api.service'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
@@ -659,6 +660,12 @@ export default {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
+    },
+    formatUploadUrl(url) {
+      return formatUploadUrl(url)
+    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       if (this.thread && this.thread.author && this.thread.author.username === username) {
@@ -917,7 +924,7 @@ export default {
            let fixedUrl = url;
            const uploadsIndex = fixedUrl.indexOf('/uploads/');
            if (uploadsIndex !== -1) {
-               fixedUrl = fixedUrl.substring(uploadsIndex);
+               fixedUrl = `${getBackendBaseUrl()}${fixedUrl.substring(uploadsIndex)}`;
            }
            return `<figure class="media"><video controls style="width: 100%; max-height: 500px; object-fit: contain; background: #000;" src="${fixedUrl}"></video></figure>`
         }
@@ -934,8 +941,12 @@ export default {
     formatPostContent(content) {
       if (!content) return ''
       
+      // Tự động gắn Backend Base URL cho các ảnh /uploads/ trong nội dung bài viết
+      const backendUrl = getBackendBaseUrl()
+      let processedContent = content.replace(/(src=["'])\/uploads\//gi, `$1${backendUrl}/uploads/`)
+
       // 1. Xử lý các thẻ media trước
-      let processed = this.processMediaTags(content)
+      let processed = this.processMediaTags(processedContent)
       
       // 2. Đồng bộ quote động từ dữ liệu mới nhất
       try {

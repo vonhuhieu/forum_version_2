@@ -1,7 +1,45 @@
 import axios from 'axios'
 
+/**
+ * Lấy Base URL cho API:
+ * 1. Ưu tiên biến môi trường VUE_APP_API_BASE_URL (từ Vercel hoặc .env)
+ * 2. Fallback tự động nhận diện hostname của trình duyệt (Dynamic Origin Detection)
+ */
+export function getApiBaseUrl() {
+  if (process.env.VUE_APP_API_BASE_URL && !process.env.VUE_APP_API_BASE_URL.startsWith('${')) {
+    return process.env.VUE_APP_API_BASE_URL
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8080/api'
+    }
+    const rootDomain = hostname.replace(/^www\./, '')
+    return `${window.location.protocol}//api.${rootDomain}/api`
+  }
+  return 'http://localhost:8080/api'
+}
+
+/**
+ * Lấy Backend Root URL (cho uploads và tài nguyên tĩnh):
+ */
+export function getBackendBaseUrl() {
+  if (process.env.VUE_APP_BACKEND_URL && !process.env.VUE_APP_BACKEND_URL.startsWith('${')) {
+    return process.env.VUE_APP_BACKEND_URL
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8080'
+    }
+    const rootDomain = hostname.replace(/^www\./, '')
+    return `${window.location.protocol}//api.${rootDomain}`
+  }
+  return 'http://localhost:8080'
+}
+
 const api = axios.create({
-  baseURL: process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080/api'
+  baseURL: getApiBaseUrl()
 })
 
 // Interceptor đính kèm Token vào Header

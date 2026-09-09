@@ -17,7 +17,21 @@ class WebSocketService {
     this.username = username
 
     // Initialize STOMP client using SockJS fallback mechanism
-    let wsUrl = process.env.VUE_APP_WS_URL || 'http://localhost:8080/ws'
+    let wsUrl = (process.env.VUE_APP_WS_URL && !process.env.VUE_APP_WS_URL.startsWith('${')) ? process.env.VUE_APP_WS_URL : null
+    if (!wsUrl) {
+      if (typeof window !== 'undefined' && window.location) {
+        const hostname = window.location.hostname
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          wsUrl = 'http://localhost:8080/ws'
+        } else {
+          const rootDomain = hostname.replace(/^www\./, '')
+          const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
+          wsUrl = `${protocol}//api.${rootDomain}/ws`
+        }
+      } else {
+        wsUrl = 'http://localhost:8080/ws'
+      }
+    }
     if (wsUrl.startsWith('ws://')) {
       wsUrl = wsUrl.replace('ws://', 'http://')
     } else if (wsUrl.startsWith('wss://')) {

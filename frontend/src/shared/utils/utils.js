@@ -47,6 +47,8 @@ export const THREAD_SCOPES = {
   INTERNAL: 'INTERNAL'
 };
 
+import { getBackendBaseUrl } from '@/shared/services/api.service';
+
 /**
  * Kiểm tra xem chuỗi đại diện avatar có phải là đường dẫn URL ảnh hay không.
  * @param {string} avatar
@@ -55,6 +57,33 @@ export const THREAD_SCOPES = {
 export function isAvatarUrl(avatar) {
   if (!avatar) return false;
   return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/');
+}
+
+/**
+ * Định dạng URL của tài nguyên tải lên (ảnh, video) sang URL đầy đủ của VPS Backend nếu là đường dẫn relative /uploads/...
+ * @param {string} url
+ * @returns {string}
+ */
+export function formatUploadUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) {
+    return `${getBackendBaseUrl()}${url}`;
+  }
+  return url;
+}
+
+/**
+ * Định dạng URL avatar nếu avatar là đường dẫn relative /uploads/...
+ * @param {string} avatar
+ * @returns {string}
+ */
+export function formatAvatarUrl(avatar) {
+  if (!avatar) return '';
+  if (avatar.startsWith('/uploads/')) {
+    return `${getBackendBaseUrl()}${avatar}`;
+  }
+  return avatar;
 }
 
 /**
