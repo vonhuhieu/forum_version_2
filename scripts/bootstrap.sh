@@ -96,6 +96,21 @@ if [ ! -s "$FORUM_DIR/.env" ]; then
     exit 1
 fi
 
+# Tự động đồng bộ FRONTEND_DOMAIN nếu có cung cấp
+if [ -n "$FRONTEND_DOMAIN" ]; then
+    echo "Đồng bộ FRONTEND_DOMAIN ($FRONTEND_DOMAIN) vào .env..."
+    if grep -q "^APP_FRONTEND_URL=" "$FORUM_DIR/.env"; then
+        sed -i "s|^APP_FRONTEND_URL=.*|APP_FRONTEND_URL=https://${FRONTEND_DOMAIN}|" "$FORUM_DIR/.env"
+    else
+        echo "APP_FRONTEND_URL=https://${FRONTEND_DOMAIN}" >> "$FORUM_DIR/.env"
+    fi
+    if grep -q "^APP_CORS_ALLOWED_ORIGINS=" "$FORUM_DIR/.env"; then
+        sed -i "s|^APP_CORS_ALLOWED_ORIGINS=.*|APP_CORS_ALLOWED_ORIGINS=https://${FRONTEND_DOMAIN},https://www.${FRONTEND_DOMAIN}|" "$FORUM_DIR/.env"
+    else
+        echo "APP_CORS_ALLOWED_ORIGINS=https://${FRONTEND_DOMAIN},https://www.${FRONTEND_DOMAIN}" >> "$FORUM_DIR/.env"
+    fi
+fi
+
 # ------------------------------------------------------------------------------
 # BƯỚC 6: Copy docker-compose.yml và khởi động MySQL + OpenSearch
 # ------------------------------------------------------------------------------
