@@ -154,7 +154,8 @@ echo ""
 echo "[4/5] Khởi động lại Backend container để nạp biến môi trường mới..."
 
 cd "$FORUM_DIR"
-docker compose restart backend
+# Dùng --force-recreate để Docker bắt buộc nạp lại các biến môi trường mới từ .env
+docker compose up -d --force-recreate --no-deps backend
 
 echo "Đang chờ Backend sẵn sàng..."
 for i in $(seq 1 24); do
