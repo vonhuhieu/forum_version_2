@@ -143,3 +143,10 @@ Sau khi GitHub Actions báo xanh lá (Success):
   - Tab Console: Không có lỗi CORS hoặc lỗi kết nối WebSocket.
 - [ ] Thử đăng nhập tài khoản và tạo một bài viết mới có đính kèm ảnh:
   - Ảnh upload thành công và hiển thị rõ ràng.
+- [ ] **Cloudflare Turnstile:**
+  - Vào Cloudflare Dashboard > Turnstile > chọn Widget > Settings: Thêm domain mới (ví dụ `hoptacxavuive.com`) vào mục **Hostnames**.
+- [ ] **Resend Email:**
+  - Vào Resend Dashboard > Domains: Thêm domain mới và cấu hình các bản ghi DNS (SPF, DKIM, MX) trên Cloudflare DNS để đạt trạng thái "Verified".
+- [ ] **Kiểm tra chức năng liên quan:**
+  - Thử tính năng "Quên mật khẩu": Đảm bảo mã OTP được gửi về hòm thư qua Resend thành công.
+  - Thử tính năng "Đăng ký tài khoản": Đảm bảo widget Turnstile chống Bot hoạt động trơn tru và tài khoản được tạo thành công.

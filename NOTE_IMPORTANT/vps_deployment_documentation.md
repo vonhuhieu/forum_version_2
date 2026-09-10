@@ -47,6 +47,10 @@ Trên máy Windows PowerShell, chạy lệnh sau để lấy chuỗi base64 (đi
 $envText = @"
 APP_JWT_SECRET=${YOUR_APP_JWT_SECRET}
 RESEND_API_KEY=${YOUR_RESEND_API_KEY}
+TURNSTILE_SECRET_KEY=${YOUR_TURNSTILE_SECRET_KEY}
+APP_FRONTEND_URL=https://hoptacxavuive.com
+APP_CORS_ALLOWED_ORIGINS=https://hoptacxavuive.com,https://www.hoptacxavuive.com
+RESEND_FROM_EMAIL=admin@hoptacxavuive.com
 
 "@
 
