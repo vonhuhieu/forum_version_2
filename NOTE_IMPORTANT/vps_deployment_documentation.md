@@ -40,12 +40,14 @@ Tài liệu này tổng hợp toàn bộ kiến trúc, quy trình vận hành v�
 
 ### 3.1. Tạo giá trị cho `VPS_ENV_FILE`
 Trên máy Windows PowerShell, chạy lệnh sau để lấy chuỗi base64 (điền các giá trị thực tế của con vào):
+
+> ⚠️ **QUAN TRỌNG:** Phải giữ nguyên dòng trống trước `"@` để đảm bảo file `.env` có ký tự xuống dòng ở cuối. Nếu thiếu, các biến môi trường sẽ bị nối dính khi hệ thống tự động append thêm biến mới.
+
 ```powershell
 $envText = @"
 APP_JWT_SECRET=${YOUR_APP_JWT_SECRET}
-SPRING_MAIL_USERNAME=${YOUR_MAIL_USERNAME}
-SPRING_MAIL_PASSWORD=${YOUR_MAIL_APP_PASSWORD}
 RESEND_API_KEY=${YOUR_RESEND_API_KEY}
+
 "@
 
 [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($envText))

@@ -88,6 +88,9 @@ if [ -z "$VPS_ENV_FILE" ]; then
     exit 1
 fi
 echo "$VPS_ENV_FILE" | base64 -d > "$FORUM_DIR/.env"
+# Đảm bảo file .env luôn kết thúc bằng ký tự xuống dòng (newline)
+# Ngăn ngừa bug nối dính biến môi trường khi append bằng echo >>
+sed -i -e '$a\' "$FORUM_DIR/.env"
 echo "OK: File .env đã được tạo tại $FORUM_DIR/.env"
 
 # Kiểm tra file .env có nội dung không

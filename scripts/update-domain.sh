@@ -136,6 +136,10 @@ if [ ! -f "$ENV_FILE" ]; then
     touch "$ENV_FILE"
 fi
 
+# Đảm bảo file .env kết thúc bằng newline trước khi cập nhật
+# Ngăn ngừa bug nối dính biến môi trường khi file thiếu ký tự xuống dòng cuối
+sed -i -e '$a\' "$ENV_FILE"
+
 # Cập nhật các biến tên miền
 update_env_var "APP_FRONTEND_URL" "https://${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
 update_env_var "APP_CORS_ALLOWED_ORIGINS" "https://${NEW_FRONTEND_DOMAIN},https://www.${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
