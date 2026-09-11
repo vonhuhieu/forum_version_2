@@ -19,6 +19,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final com.forum.repository.ThreadRepository threadRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public void enrichCategoryDTOs(List<CategoryDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) return;
@@ -124,4 +125,59 @@ public class CategoryService {
         categoryRepository.deleteById(id);
         return ResponseDTO.success(null);
     }
+
+    public ResponseDTO<Void> deleteCategoriesByGroupId(Long groupId) {
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+        try {
+            // Delete threads and related objects of categories in this group if any exist
+            entityManager.createNativeQuery(
+                "DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM polls WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM reactions WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)) " +
+                "OR post_id IN (SELECT id FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM thread_subscriptions WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM notifications WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)) " +
+                "OR post_id IN (SELECT id FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId))"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM threads WHERE category_id IN (SELECT id FROM categories WHERE category_group_id = :groupId)"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "UPDATE categories SET parent_id = NULL WHERE category_group_id = :groupId"
+            ).setParameter("groupId", groupId).executeUpdate();
+
+            entityManager.createNativeQuery(
+                "DELETE FROM categories WHERE category_group_id = :groupId"
+            ).setParameter("groupId", groupId).executeUpdate();
+        } finally {
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+        }
+
+        entityManager.clear();
+        com.forum.service.ThreadService.clearAllCaches();
+        return ResponseDTO.success(null);
+    }
 }
+

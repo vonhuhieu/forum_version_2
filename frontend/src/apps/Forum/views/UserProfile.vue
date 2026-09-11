@@ -15,7 +15,7 @@
             <div 
               v-if="userStats.profileBanner"
               class="profile-banner-area" 
-              :style="{ backgroundImage: `url(${userStats.profileBanner})` }"
+              :style="{ backgroundImage: `url(${formatAvatarUrl(userStats.profileBanner)})` }"
             >
               <div class="banner-overlay-gradient"></div>
             </div>
@@ -148,7 +148,7 @@
                       <div class="item-avatar-col">
                         <user-profile-popup :user="item.author || userStats">
                           <span class="item-avatar" :style="!isAvatarUrl((item.author || userStats).avatar) ? { backgroundColor: (item.author || userStats).avatar || '#ccc' } : {}">
-                            <img v-if="isAvatarUrl((item.author || userStats).avatar)" :src="(item.author || userStats).avatar" />
+                            <img v-if="isAvatarUrl((item.author || userStats).avatar)" :src="formatAvatarUrl((item.author || userStats).avatar)" />
                             <template v-else>
                               {{ ((item.author || userStats).displayName || (item.author || userStats).username || userInitial).charAt(0).toUpperCase() }}
                             </template>

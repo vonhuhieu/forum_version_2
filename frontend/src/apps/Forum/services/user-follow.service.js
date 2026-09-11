@@ -8,6 +8,10 @@ class UserFollowService {
   toggleFollow(username, following) {
     return api.post(`/user-follows/${username}?following=${following}`)
   }
+
+  getFollowingUsers(params) {
+    return api.get('/user-follows/following', { params })
+  }
 }
 
 export default new UserFollowService()

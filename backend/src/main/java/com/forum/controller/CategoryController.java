@@ -43,4 +43,13 @@ public class CategoryController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @DeleteMapping("/by-group/{groupId}")
+    public ResponseEntity<ResponseDTO<Void>> deleteCategoriesByGroupId(@PathVariable Long groupId) {
+        try {
+            return ResponseEntity.ok(categoryService.deleteCategoriesByGroupId(groupId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
 }

@@ -61,8 +61,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/reaction-icons/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/users/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/settings/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/threads/delete-all").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/notifications/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
                 .requestMatchers("/api/conversations/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
+                .requestMatchers("/api/user-follows/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
                 .requestMatchers("/api/users/search", "/api/users/by-name", "/api/users/me/active").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN", "NON_OFFICIAL_USER")
                 // Còn lại yêu cầu đăng nhập và thuộc các nhóm quyền chính thức
                 .anyRequest().hasAnyRole("USER", "ADMIN", "SUPER_ADMIN")
