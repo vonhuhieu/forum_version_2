@@ -11,8 +11,8 @@ class AuthService {
       baseUrl: getCurrentOrigin()
     })
   }
-  forgotPassword(username, email) {
-    return api.post('/auth/forgot-password', { username, email })
+  forgotPassword(email) {
+    return api.post('/auth/forgot-password', { email })
   }
   resetPassword(payload) {
     return api.post('/auth/reset-password', payload)
@@ -26,8 +26,13 @@ class AuthService {
   verifyConfirmationToken(token) {
     return api.get('/auth/verify-token', { params: { token } })
   }
-  confirmEmail(token, currentPassword, newPassword) {
-    return api.post('/auth/confirm-email', { token, currentPassword, newPassword })
+  confirmEmail(token, password, newPassword = null) {
+    return api.post('/auth/confirm-email', { 
+      token, 
+      password, 
+      currentPassword: password, 
+      newPassword 
+    })
   }
 }
 

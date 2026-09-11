@@ -5,16 +5,16 @@
       <div class="card-header">ĐĂNG NHẬP HỆ THỐNG</div>
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
-          <label>Tên đăng nhập</label>
-          <input v-model="username" required>
+          <label>Email</label>
+          <input v-model="email" required placeholder="example@domain.com">
         </div>
         <div class="form-group">
           <label>Mật khẩu</label>
           <div class="password-wrapper">
-            <input :type="showPassword ? 'text' : 'password'" v-model="password" required>
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" required placeholder="Nhập mật khẩu">
             <span class="toggle-icon" @click="showPassword = !showPassword">
               <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
           </div>
         </div>
@@ -44,7 +44,7 @@ export default {
   },
   data() {
     return {
-      username: '',
+      email: '',
       password: '',
       showPassword: false,
       rememberMe: false,
@@ -53,10 +53,10 @@ export default {
     }
   },
   mounted() {
-    const savedUser = localStorage.getItem('remembered_username')
+    const savedEmail = localStorage.getItem('remembered_email') || localStorage.getItem('remembered_username')
     const savedPass = localStorage.getItem('remembered_password')
-    if (savedUser && savedPass) {
-      this.username = savedUser
+    if (savedEmail && savedPass) {
+      this.email = savedEmail
       this.password = savedPass
       this.rememberMe = true
     }
@@ -67,14 +67,16 @@ export default {
       this.error = ''
       try {
         const response = await AuthService.login({
-          username: this.username,
+          email: this.email,
+          username: this.email,
           password: this.password
         })
 
         if (this.rememberMe) {
-          localStorage.setItem('remembered_username', this.username)
+          localStorage.setItem('remembered_email', this.email)
           localStorage.setItem('remembered_password', this.password)
         } else {
+          localStorage.removeItem('remembered_email')
           localStorage.removeItem('remembered_username')
           localStorage.removeItem('remembered_password')
         }
@@ -88,7 +90,7 @@ export default {
           this.$router.push({ name: 'Home' })
         }
       } catch (err) {
-        this.error = 'Tài khoản hoặc mật khẩu không chính xác'
+        this.error = 'Email hoặc mật khẩu không chính xác'
       } finally {
         this.isLoading = false
       }

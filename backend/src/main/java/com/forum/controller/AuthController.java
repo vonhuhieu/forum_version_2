@@ -20,14 +20,17 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
+        String identifier = loginRequest.get("email");
+        if (identifier == null || identifier.trim().isEmpty()) {
+            identifier = loginRequest.get("username");
+        }
         String password = loginRequest.get("password");
 
-        Map<String, Object> authData = authService.authenticateUser(username, password);
+        Map<String, Object> authData = authService.authenticateUser(identifier, password);
         if (authData != null) {
             return ResponseEntity.ok(authData);
         } else {
-            return ResponseEntity.status(401).body(Map.of("message", "Sai tài khoản hoặc mật khẩu"));
+            return ResponseEntity.status(401).body(Map.of("message", "Email hoặc mật khẩu không chính xác"));
         }
     }
 
@@ -78,11 +81,14 @@ public class AuthController {
     @PostMapping("/confirm-email")
     public ResponseEntity<?> confirmEmail(@RequestBody Map<String, String> request) {
         String token = request.get("token");
-        String currentPassword = request.get("currentPassword");
+        String password = request.get("password");
+        if (password == null) {
+            password = request.get("currentPassword");
+        }
         String newPassword = request.get("newPassword");
         try {
-            authService.confirmEmailAndUpgradeRole(token, currentPassword, newPassword);
-            return ResponseEntity.ok(Map.of("message", "Xác nhận email thành công! Mật khẩu đã được cập nhật và tài khoản đã được nâng cấp thành viên chính thức."));
+            authService.confirmEmailAndUpgradeRole(token, password, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Xác nhận email thành công! Tài khoản đã được nâng cấp thành viên chính thức."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -90,10 +96,9 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
         String email = request.get("email");
         try {
-            authService.generatePasswordResetCode(username, email);
+            authService.generatePasswordResetCode(email);
             return ResponseEntity.ok(Map.of("message", "Mã xác nhận đã được gửi đến email của bạn"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
