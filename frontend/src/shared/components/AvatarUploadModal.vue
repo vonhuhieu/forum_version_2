@@ -20,8 +20,8 @@
           <div class="avatar-preview-header">
             <div :class="mode === 'banner' ? 'banner-preview-rect' : 'avatar-preview-circle-large'" :style="mode === 'banner' ? { borderRadius: '6px', width: '240px', height: '60px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' } : {}">
               <img v-if="previewDataUrl" :src="previewDataUrl" :style="mode === 'banner' ? { width: '240px', height: '60px', objectFit: 'cover' } : {}" class="avatar-img-large" />
-              <img v-else-if="mode !== 'banner' && isAvatarUrl(currentAvatar)" :src="currentAvatar" class="avatar-img-large" />
-              <img v-else-if="mode === 'banner' && currentUser && currentUser.profileBanner" :src="currentUser.profileBanner" :style="{ width: '240px', height: '60px', objectFit: 'cover' }" />
+              <img v-else-if="mode !== 'banner' && isAvatarUrl(currentAvatar)" :src="formatAvatarUrl(currentAvatar)" class="avatar-img-large" />
+              <img v-else-if="mode === 'banner' && currentUser && currentUser.profileBanner" :src="formatAvatarUrl(currentUser.profileBanner)" :style="{ width: '240px', height: '60px', objectFit: 'cover' }" />
               <div v-else-if="mode === 'banner'" class="avatar-color-large" :style="{ backgroundColor: '#edf6fd', color: '#1a507a', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }">
                 Chưa có banner
               </div>
@@ -146,6 +146,7 @@ import api from '@/shared/services/api.service'
 import Loading from '@/shared/components/Loading.vue'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import { convertHeicToJpegIfNeeded } from '@/shared/utils/heicUtils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 
 export default {
   name: 'AvatarUploadModal',
@@ -211,8 +212,10 @@ export default {
   methods: {
     close() { this.$emit('close') },
     isAvatarUrl(avatar) {
-      if (!avatar) return false
-      return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')
+      return isAvatarUrl(avatar)
+    },
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
     },
     triggerFileInput() { this.$refs.fileInput.click() },
 

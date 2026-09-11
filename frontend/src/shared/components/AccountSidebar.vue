@@ -90,13 +90,14 @@
             >
               Tùy chọn
             </a>
-            <a 
-              href="#" 
+            <router-link 
+              :to="{ name: 'FollowingList' }" 
               class="menu-item" 
-              @click.prevent="isOpen = false"
+              :class="{ 'is-active': activeMenu === 'following' }"
+              @click="isOpen = false"
             >
               Đang theo dõi
-            </a>
+            </router-link>
             <a 
               href="#" 
               class="menu-item" 

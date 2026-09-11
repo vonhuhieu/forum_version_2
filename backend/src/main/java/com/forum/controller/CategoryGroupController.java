@@ -36,8 +36,21 @@ public class CategoryGroupController {
         return ResponseEntity.ok(categoryGroupService.updateGroup(id, groupDTO));
     }
 
+    @DeleteMapping("/delete-all")
+    public ResponseEntity<ResponseDTO<Void>> deleteAllGroups() {
+        try {
+            return ResponseEntity.ok(categoryGroupService.deleteAllGroups());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseDTO<Void>> deleteGroup(@PathVariable Long id) {
-        return ResponseEntity.ok(categoryGroupService.deleteGroup(id));
+        try {
+            return ResponseEntity.ok(categoryGroupService.deleteGroup(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
     }
 }

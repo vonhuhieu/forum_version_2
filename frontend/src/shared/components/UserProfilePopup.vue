@@ -25,7 +25,7 @@
         <!-- Vùng ảnh bìa chứa thông tin đè lên -->
         <div 
           class="popup-banner-header"
-          :style="userData.profileBanner ? { backgroundImage: `url(${userData.profileBanner})` } : { backgroundColor: '#edf6fd' }"
+          :style="userData.profileBanner ? { backgroundImage: `url(${formatAvatarUrl(userData.profileBanner)})` } : { backgroundColor: '#edf6fd' }"
         >
           <div class="popup-header-content">
             <!-- Cột trái: avatar -->

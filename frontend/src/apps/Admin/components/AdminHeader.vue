@@ -5,8 +5,11 @@
     </div>
     <div class="header-right">
       <div class="user-info" v-if="currentUser">
-        <span class="user-avatar" :style="{ backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' }">
-          {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
+        <span class="user-avatar" :style="!isAvatarUrl(currentUser.avatar) ? { backgroundColor: currentUser.avatar || '#fff', color: currentUser.avatar ? '#fff' : '#1a507a' } : {}">
+          <img v-if="isAvatarUrl(currentUser.avatar)" :src="formatAvatarUrl(currentUser.avatar)" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+          <template v-else>
+            {{ (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() }}
+          </template>
         </span>
         <span class="user-name">Chào, {{ currentUser.displayName || currentUser.username }}</span>
       </div>
@@ -15,6 +18,8 @@
 </template>
 
 <script>
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
+
 export default {
   name: 'AdminHeader',
   data() {
@@ -26,6 +31,14 @@ export default {
     const user = localStorage.getItem('user')
     if (user) {
       this.currentUser = JSON.parse(user)
+    }
+  },
+  methods: {
+    isAvatarUrl(avatar) {
+      return isAvatarUrl(avatar)
+    },
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
     }
   }
 }

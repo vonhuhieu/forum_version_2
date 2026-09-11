@@ -169,7 +169,7 @@
             <div class="post-layout">
               <div class="post-sidebar" style="background: #f8f9fa; border-right: none;">
                   <div class="avatar-large" :style="!isAvatarUrl(currentUserAvatar) ? { backgroundColor: currentUserAvatar || '#ccc', color: '#fff' } : {}">
-                     <img v-if="isAvatarUrl(currentUserAvatar)" :src="currentUserAvatar" />
+                     <img v-if="isAvatarUrl(currentUserAvatar)" :src="formatAvatarUrl(currentUserAvatar)" />
                      <template v-else>
                         {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : '?' }}
                      </template>

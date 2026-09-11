@@ -17,6 +17,21 @@
       @delete="deleteUser"
       @sort="handleSort"
     >
+      <template #divAction>
+        <button class="btn-add-new" @click="openAddModal">
+          <span class="icon">+</span> Thêm thành viên mới
+        </button>
+        <button 
+          type="button" 
+          class="btn-delete-all" 
+          @click="deleteAllRegularUsers" 
+          :disabled="loading || totalElements === 0"
+          title="Xóa tất cả thành viên thông thường (không xóa Admin/SuperAdmin)"
+        >
+          <span class="icon">🗑️</span> Xóa tất cả
+        </button>
+      </template>
+
       <!-- Slot cho bộ lọc thêm -->
       <template #extra-filters>
         <div class="filter-item-mini">
@@ -409,6 +424,25 @@ export default {
         }
       }
     },
+    async deleteAllRegularUsers() {
+      const result = await alertConfirm(
+        'CẢNH BÁO NGUY HIỂM!',
+        'Hành động này sẽ XÓA TOÀN BỘ thành viên thông thường (không phải Admin hoặc SuperAdmin) khỏi diễn đàn và không thể khôi phục! Con có chắc chắn muốn xóa không?'
+      )
+      if (result.isConfirmed) {
+        this.loading = true
+        try {
+          await AdminService.deleteAllNonAdminUsers()
+          toastSuccess('Đã xóa tất cả thành viên thông thường thành công')
+          this.currentPage = 1
+          this.fetchUsers()
+        } catch (error) {
+          toastError(error.response?.data?.message || 'Có lỗi xảy ra khi xóa thành viên')
+        } finally {
+          this.loading = false
+        }
+      }
+    },
     formatDate(dateStr) {
       if (!dateStr) return 'Chưa có thông tin'
       return new Date(dateStr).toLocaleString('vi-VN')
@@ -628,5 +662,42 @@ export default {
 
 .mini-select:focus {
   border-color: #3498db;
+}
+
+.btn-add-new {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-delete-all {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-delete-all:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete-all:disabled {
+  background-color: #e57373;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

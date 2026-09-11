@@ -27,6 +27,21 @@
         </div>
       </template>
 
+      <template #divAction>
+        <button class="btn-add-new" @click="openAddModal">
+          <span class="icon">+</span> Thêm chuyên mục
+        </button>
+        <button 
+          type="button" 
+          class="btn-delete-all" 
+          @click="deleteAllCategoriesInGroup"
+          :disabled="loading || filteredCategories.length === 0 || !filterGroupId"
+          title="Xóa tất cả chuyên mục của nhóm này"
+        >
+          <span class="icon">🗑️</span> Xóa tất cả
+        </button>
+      </template>
+
       <template #extra-actions="{ item }">
         <button class="action-btn sub-cat-btn" @click="openSubModal(item)" title="Quản lý chuyên mục con">📁</button>
       </template>
@@ -381,6 +396,30 @@ export default {
         }
       }
     },
+    async deleteAllCategoriesInGroup() {
+      if (!this.filterGroupId) {
+        toastError('Vui lòng chọn một nhóm chuyên mục để xóa tất cả chuyên mục bên trong.')
+        return
+      }
+      const groupName = this.selectedGroupName || 'nhóm này'
+      const result = await alertConfirm(
+        'CẢNH BÁO NGUY HIỂM!',
+        `Hành động này sẽ XÓA TOÀN BỘ chuyên mục (kể cả chuyên mục con và bài viết) thuộc "${groupName}"! Bạn có chắc chắn muốn xóa không?`
+      )
+      if (result.isConfirmed) {
+        this.loading = true
+        try {
+          await AdminService.deleteCategoriesByGroupId(this.filterGroupId)
+          toastSuccess('Đã xóa tất cả chuyên mục của nhóm thành công')
+          this.currentPage = 1
+          await this.fetchCategories()
+        } catch (error) {
+          toastError(error.response?.data?.message || 'Lỗi khi xóa chuyên mục của nhóm')
+        } finally {
+          this.loading = false
+        }
+      }
+    },
     resetForm() {
       this.form = { id: null, name: '', description: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null }
       this.isEditing = false
@@ -475,4 +514,41 @@ export default {
 
 .sub-manager-content { padding: 0 1.5rem; overflow-y: auto; max-height: 60vh; }
 .sub-cat-btn:hover { color: #f39c12; }
+
+.btn-add-new {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-delete-all {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-delete-all:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete-all:disabled {
+  background-color: #e57373;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>
