@@ -485,33 +485,48 @@ public class UserService {
             throw new IllegalStateException("Access denied: only administrators can perform this action");
         }
 
+        @SuppressWarnings("unchecked")
+        List<Number> rawIds = entityManager.createNativeQuery(
+            "SELECT u.id FROM users u WHERE u.id NOT IN (" +
+            "  SELECT ur.user_id FROM user_roles ur WHERE ur.role IN ('" + Constants.ROLE_ADMIN + "', '" + Constants.ROLE_SUPER_ADMIN + "')" +
+            ")"
+        ).getResultList();
+
+        if (rawIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> nonAdminIds = rawIds.stream().map(Number::longValue).toList();
+
         entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
         try {
-            // Target non-admin user IDs
-            String nonAdminSubQuery = "SELECT u.id FROM users u WHERE u.id NOT IN (SELECT ur.user_id FROM user_roles ur WHERE ur.role IN ('" 
-                    + Constants.ROLE_ADMIN + "', '" + Constants.ROLE_SUPER_ADMIN + "'))";
+            int chunkSize = 500;
+            for (int i = 0; i < nonAdminIds.size(); i += chunkSize) {
+                List<Long> chunk = nonAdminIds.subList(i, Math.min(i + chunkSize, nonAdminIds.size()));
+                String ids = chunk.stream().map(String::valueOf).collect(Collectors.joining(","));
 
-            entityManager.createNativeQuery("DELETE FROM thread_subscriptions WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM notifications WHERE recipient_id IN (" + nonAdminSubQuery + ") OR actor_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM reactions WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM poll_votes WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM user_follows WHERE follower_id IN (" + nonAdminSubQuery + ") OR following_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM search_history WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM conversation_participants WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM thread_subscriptions WHERE user_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM notifications WHERE recipient_id IN (" + ids + ") OR actor_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM reactions WHERE user_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM poll_votes WHERE user_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM user_follows WHERE follower_id IN (" + ids + ") OR following_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM search_history WHERE user_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM conversation_participants WHERE user_id IN (" + ids + ")").executeUpdate();
 
-            entityManager.createNativeQuery("DELETE FROM reactions WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + "))").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM notifications WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + "))").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM reactions WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM notifications WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM conversation_messages WHERE sender_id IN (" + ids + ")").executeUpdate();
 
-            entityManager.createNativeQuery("UPDATE conversations SET creator_id = NULL WHERE creator_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("UPDATE threads SET author_id = NULL WHERE author_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("UPDATE posts SET author_id = NULL WHERE author_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+                entityManager.createNativeQuery("UPDATE conversations SET creator_id = NULL WHERE creator_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("UPDATE threads SET author_id = NULL WHERE author_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("UPDATE posts SET author_id = NULL WHERE author_id IN (" + ids + ")").executeUpdate();
 
-            entityManager.createNativeQuery("DELETE FROM reports WHERE reporter_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("UPDATE reports SET resolved_by_id = NULL WHERE resolved_by_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM reports WHERE reporter_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("UPDATE reports SET resolved_by_id = NULL WHERE resolved_by_id IN (" + ids + ")").executeUpdate();
 
-            entityManager.createNativeQuery("DELETE FROM user_roles WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
-            entityManager.createNativeQuery("DELETE FROM users WHERE id IN (" + nonAdminSubQuery + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM user_roles WHERE user_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM users WHERE id IN (" + ids + ")").executeUpdate();
+            }
         } finally {
             entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
         }
