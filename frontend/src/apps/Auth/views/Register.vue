@@ -5,23 +5,18 @@
       <div class="card-header">ĐĂNG KÝ THÀNH VIÊN</div>
       <form @submit.prevent="handleRegister" class="login-form">
         <div class="form-group">
-          <label>Tên đăng nhập <span class="required">*</span></label>
-          <input v-model="username" required pattern="^[a-zA-Z0-9_]{3,20}$" title="Chỉ cho phép chữ cái không dấu, số và dấu gạch dưới (3-20 ký tự)" placeholder="Chỉ dùng chữ, số, gạch dưới (3-20 ký tự)">
-          <small class="hint">Tên này dùng để đăng nhập và không đổi được.</small>
-        </div>
-        <div class="form-group">
-          <label>Tên hiển thị</label>
-          <input v-model="displayName" placeholder="Nhập tên sẽ hiện trên diễn đàn (có thể đổi)">
-          <small class="hint">Để trống nếu muốn lấy Tên đăng nhập làm Tên hiển thị.</small>
+          <label>Tên hiển thị <span class="required">*</span></label>
+          <input v-model="displayName" required>
+          <small class="hint">Đây là tên hiển thị ở mỗi bài viết của bạn. Bạn có thể dùng bất cứ tên nào mình muốn. Một khi đã đặt thì không thể đổi.</small>
         </div>
         <div class="form-group">
           <label>Email <span class="required">*</span></label>
-          <input type="email" v-model="email" required placeholder="example@domain.com">
+          <input type="email" v-model="email" required>
         </div>
         <div class="form-group">
           <label>Mật khẩu <span class="required">*</span></label>
           <div class="password-wrapper">
-            <input :type="showPassword ? 'text' : 'password'" v-model="password" required placeholder="Nhập mật khẩu">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" required>
             <span class="toggle-icon" @click="showPassword = !showPassword">
               <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -54,7 +49,6 @@ export default {
   },
   data() {
     return {
-      username: '',
       displayName: '',
       email: '',
       password: '',
@@ -124,18 +118,11 @@ export default {
         return
       }
 
-      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-      if (!usernameRegex.test(this.username)) {
-        this.error = 'Tên đăng nhập không hợp lệ. Chỉ được phép chứa chữ không dấu, số, gạch dưới (3-20 kí tự) và không có dấu cách.'
-        return
-      }
-
       this.loading = true
       this.error = ''
       this.success = ''
       try {
         const res = await AuthService.register({
-          username: this.username,
           displayName: this.displayName,
           password: this.password,
           email: this.email,

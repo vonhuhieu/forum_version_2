@@ -9,7 +9,7 @@
           <div></div>
           <div></div>
         </div>
-        <p class="loading-text">Đang tải...</p>
+        <p class="loading-text">{{ text || 'Đang tải...' }}</p>
       </div>
     </div>
   </Transition>
@@ -22,6 +22,10 @@ export default {
     visible: {
       type: Boolean,
       default: false
+    },
+    text: {
+      type: String,
+      default: 'Đang tải...'
     }
   }
 }

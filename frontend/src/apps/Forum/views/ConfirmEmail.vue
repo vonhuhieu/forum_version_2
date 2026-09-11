@@ -6,7 +6,7 @@
       <!-- Banner Onboarding Kích hoạt -->
       <div class="pending-approval-banner-wrapper" style="margin-top: 0; margin-bottom: 1.5rem;">
         <div class="pending-approval-banner">
-          Vui lòng nhập mật khẩu hiện tại của bạn để hoàn tất xác thực email và nâng cấp thành viên chính thức.
+          Vui lòng nhập mật khẩu bạn đã sử dụng để đăng ký nhằm hoàn tất xác thực email và nâng cấp thành viên chính thức.
         </div>
       </div>
 
@@ -43,98 +43,37 @@
             </div>
           </div>
 
-          <!-- Màn hình Form Onboarding Nhập Mật khẩu & Cập nhật Mật khẩu mới -->
+          <!-- Màn hình Form Onboarding Nhập Mật khẩu -->
           <div v-else class="password-card card">
             <form @submit.prevent="handleConfirm" class="password-form">
-              <!-- Hàng 1: Mật khẩu hiện tại -->
+              <!-- Hàng: Mật khẩu đăng ký -->
               <div class="form-row">
                 <div class="form-label-col">
-                  <label for="current-password">Mật khẩu hiện tại của bạn:</label>
+                  <label for="password">Mật khẩu đăng ký của bạn:</label>
                 </div>
                 <div class="form-input-col">
                   <div class="password-input-wrapper">
                     <input 
-                      id="current-password"
-                      :type="showCurrentPassword ? 'text' : 'password'" 
-                      v-model="currentPassword" 
+                      id="password"
+                      :type="showPassword ? 'text' : 'password'" 
+                      v-model="password" 
                       required
-                      placeholder="Nhập mật khẩu hiện tại"
+                      placeholder="Nhập mật khẩu đã đăng ký"
                       class="form-input"
                     />
                     <button 
                       type="button" 
                       class="btn-toggle-pass" 
-                      @click="showCurrentPassword = !showCurrentPassword"
+                      @click="showPassword = !showPassword"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
-                      <span>{{ showCurrentPassword ? 'Ẩn' : 'Hiện' }}</span>
+                      <span>{{ showPassword ? 'Ẩn' : 'Hiện' }}</span>
                     </button>
                   </div>
-                  <span class="field-help">Vì lý do an ninh, bạn phải xác minh mật khẩu hiện tại trước khi kích hoạt thành viên.</span>
-                </div>
-              </div>
-
-              <!-- Hàng 2: Mật khẩu mới -->
-              <div class="form-row">
-                <div class="form-label-col">
-                  <label for="new-password">Mật khẩu mới:</label>
-                </div>
-                <div class="form-input-col">
-                  <div class="password-input-wrapper">
-                    <input 
-                      id="new-password"
-                      :type="showNewPassword ? 'text' : 'password'" 
-                      v-model="newPassword" 
-                      required
-                      placeholder="Nhập mật khẩu mới"
-                      class="form-input"
-                    />
-                    <button 
-                      type="button" 
-                      class="btn-toggle-pass" 
-                      @click="showNewPassword = !showNewPassword"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                      <span>{{ showNewPassword ? 'Ẩn' : 'Hiện' }}</span>
-                    </button>
-                  </div>
-                  <span class="field-help">Bắt buộc nhập mật khẩu mới và phải khác mật khẩu hiện tại.</span>
-                </div>
-              </div>
-
-              <!-- Hàng 3: Xác nhận mật khẩu mới -->
-              <div class="form-row">
-                <div class="form-label-col">
-                  <label for="confirm-new-password">Xác nhận mật khẩu mới:</label>
-                </div>
-                <div class="form-input-col">
-                  <div class="password-input-wrapper">
-                    <input 
-                      id="confirm-new-password"
-                      :type="showConfirmNewPassword ? 'text' : 'password'" 
-                      v-model="confirmNewPassword" 
-                      required
-                      placeholder="Nhập lại mật khẩu mới"
-                      class="form-input"
-                    />
-                    <button 
-                      type="button" 
-                      class="btn-toggle-pass" 
-                      @click="showConfirmNewPassword = !showConfirmNewPassword"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                      <span>{{ showConfirmNewPassword ? 'Ẩn' : 'Hiện' }}</span>
-                    </button>
-                  </div>
+                  <span class="field-help">Nhập chính xác mật khẩu bạn đã tạo khi đăng ký để xác minh chính chủ và kích hoạt tài khoản.</span>
                 </div>
               </div>
 
@@ -146,7 +85,7 @@
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
                     <polyline points="7 3 7 8 15 8"></polyline>
                   </svg>
-                  Lưu &amp; Kích hoạt
+                  Xác nhận &amp; Kích hoạt
                 </button>
               </div>
             </form>
@@ -175,12 +114,8 @@ export default {
     return {
       isLoading: false,
       token: '',
-      currentPassword: '',
-      newPassword: '',
-      confirmNewPassword: '',
-      showCurrentPassword: false,
-      showNewPassword: false,
-      showConfirmNewPassword: false,
+      password: '',
+      showPassword: false,
       isExpired: false,
       userEmail: '',
       resendEmail: ''
@@ -222,24 +157,14 @@ export default {
   },
   methods: {
     async handleConfirm() {
-      if (!this.currentPassword || !this.newPassword || !this.confirmNewPassword) {
-        toastError('Vui lòng điền đầy đủ tất cả các trường mật khẩu.')
-        return
-      }
-
-      if (this.newPassword !== this.confirmNewPassword) {
-        toastError('Mật khẩu mới và xác nhận mật khẩu mới không trùng khớp.')
-        return
-      }
-
-      if (this.newPassword === this.currentPassword) {
-        toastError('Mật khẩu mới phải khác với mật khẩu hiện tại.')
+      if (!this.password) {
+        toastError('Vui lòng nhập mật khẩu đăng ký của bạn.')
         return
       }
 
       this.isLoading = true
       try {
-        await AuthService.confirmEmail(this.token, this.currentPassword, this.newPassword)
+        await AuthService.confirmEmail(this.token, this.password)
         
         // Logout tài khoản tạm thời
         localStorage.removeItem('token')
@@ -254,14 +179,13 @@ export default {
         // Chuyển hướng sang trang đăng nhập
         this.$router.push({ name: 'Login' })
       } catch (err) {
-        const msg = err.response?.data?.message || 'Có lỗi xảy ra khi xác nhận email.'
+        this.isLoading = false
+        const msg = err.response?.data?.message || 'Mật khẩu không chính xác hoặc liên kết đã hết hạn.'
         if (msg.includes('EXPIRED') || msg.includes('hết hạn')) {
           this.isExpired = true
         } else {
           toastError(msg)
         }
-      } finally {
-        this.isLoading = false
       }
     },
     async handleResendExpired() {

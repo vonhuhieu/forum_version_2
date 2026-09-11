@@ -28,10 +28,22 @@ public class AuthService {
     @Autowired
     private EmailService emailService;
 
-    public Map<String, Object> authenticateUser(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username)
-                .filter(user -> user.getUsername().equals(username)) // Bắt buộc khớp chính xác chữ hoa/thường
-                .filter(user -> passwordEncoder.matches(password, user.getPassword()));
+    public Map<String, Object> authenticateUser(String identifier, String password) {
+        if (identifier == null || identifier.trim().isEmpty() || password == null) {
+            return null;
+        }
+        String trimmed = identifier.trim();
+
+        // 1. Ưu tiên tìm theo Email (không phân biệt hoa/thường)
+        Optional<User> userOpt = userRepository.findFirstByEmail(trimmed.toLowerCase());
+
+        // 2. Nếu không tìm thấy bằng email, thử tìm theo username (để tương thích ngược với tài khoản cũ như admin)
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByUsername(trimmed)
+                    .filter(user -> user.getUsername().equals(trimmed));
+        }
+
+        userOpt = userOpt.filter(user -> passwordEncoder.matches(password, user.getPassword()));
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -42,7 +54,7 @@ public class AuthService {
                 userRepository.save(user);
             }
 
-            String token = jwtUtils.generateJwtToken(username, user.getRoles());
+            String token = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles());
             java.util.Map<String, Object> response = new java.util.HashMap<>();
             response.put("id", user.getId());
             response.put("token", token);
@@ -50,6 +62,7 @@ public class AuthService {
             response.put("displayName", user.getDisplayName()); // Có thể null
             response.put("roles", user.getRoles());
             response.put("avatar", user.getAvatar());
+            response.put("email", user.getEmail());
             return response;
         }
         return null;
@@ -61,28 +74,72 @@ public class AuthService {
         return String.format("hsl(%d, 70%%, 45%%)", hue);
     }
 
-    public Map<String, Object> registerUser(String username, String password, String email, String displayName, String baseUrl) {
-        // Kiểm định định dạng tài khoản nghiêm ngặt
-        if (username == null || !username.matches("^[a-zA-Z0-9_]{3,20}$")) {
-            throw new IllegalArgumentException("Tên đăng nhập không hợp lệ. Chỉ bao gồm chữ cái, số, gạch dưới (3-20 ký tự) và KHÔNG dấu/khoảng trắng.");
+    private String generateUniqueUsernameFromEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "user_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        }
+        String prefix = email.split("@")[0].toLowerCase();
+        String cleanPrefix = prefix.replaceAll("[^a-z0-9_]", "_");
+        cleanPrefix = cleanPrefix.replaceAll("^_+|_+$", "");
+        if (cleanPrefix.length() < 3) {
+            cleanPrefix = "user_" + cleanPrefix;
+        }
+        if (cleanPrefix.length() > 15) {
+            cleanPrefix = cleanPrefix.substring(0, 15);
         }
 
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+        String candidate = cleanPrefix;
+        int counter = 1;
+        while (userRepository.findByUsername(candidate).isPresent()) {
+            int randomSuffix = new Random().nextInt(900) + 100;
+            candidate = cleanPrefix + "_" + randomSuffix;
+            counter++;
+            if (counter > 20) {
+                candidate = "u_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                break;
+            }
         }
-        if (userRepository.findFirstByEmail(email).isPresent()) {
+        return candidate;
+    }
+
+    public Map<String, Object> registerUser(String username, String password, String email, String displayName, String baseUrl) {
+        if (!org.springframework.util.StringUtils.hasText(email) || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new IllegalArgumentException("Địa chỉ email không hợp lệ");
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+
+        if (userRepository.findFirstByEmail(normalizedEmail).isPresent()) {
             throw new IllegalArgumentException("Email đã được sử dụng");
         }
 
+        // Tự động sinh username nếu không được truyền từ phía client
+        String finalUsername;
+        if (org.springframework.util.StringUtils.hasText(username)) {
+            finalUsername = username.trim();
+            if (!finalUsername.matches("^[a-zA-Z0-9_]{3,20}$")) {
+                throw new IllegalArgumentException("Tên đăng nhập không hợp lệ. Chỉ bao gồm chữ cái, số, gạch dưới (3-20 ký tự) và KHÔNG dấu/khoảng trắng.");
+            }
+            if (userRepository.findByUsername(finalUsername).isPresent()) {
+                throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+            }
+        } else {
+            finalUsername = generateUniqueUsernameFromEmail(normalizedEmail);
+        }
+
+        if (!org.springframework.util.StringUtils.hasText(password) || password.length() < 3) {
+            throw new IllegalArgumentException("Mật khẩu phải có ít nhất 3 ký tự");
+        }
+
         User user = new User();
-        user.setUsername(username);
+        user.setUsername(finalUsername);
         user.setPassword(passwordEncoder.encode(password));
-        user.setEmail(email);
+        user.setEmail(normalizedEmail);
         
         if (org.springframework.util.StringUtils.hasText(displayName)) {
             user.setDisplayName(displayName.trim());
         } else {
-            user.setDisplayName(username);
+            String emailPrefix = normalizedEmail.split("@")[0];
+            user.setDisplayName(emailPrefix);
         }
 
         // Dùng HashSet khả biến để tránh UnsupportedOperationException trong Hibernate
@@ -99,7 +156,7 @@ public class AuthService {
         // Thử gửi email xác thực ban đầu (bắt ngoại lệ an toàn để đăng ký không bị đổ vỡ nếu rớt mạng)
         boolean emailSent = false;
         try {
-            emailService.sendConfirmationEmailSync(email, user.getDisplayName(), token, baseUrl);
+            emailService.sendConfirmationEmailSync(normalizedEmail, user.getDisplayName(), token, baseUrl);
             emailSent = true;
         } catch (Exception e) {
             System.err.println("CẢNH BÁO: Thử gửi email xác thực khi đăng ký thất bại: " + e.getMessage());
@@ -107,7 +164,7 @@ public class AuthService {
         }
 
         // Sinh JWT Token tự động đăng nhập vai trò ROLE_NON_OFFICIAL_USER
-        String jwtToken = jwtUtils.generateJwtToken(username, user.getRoles());
+        String jwtToken = jwtUtils.generateJwtToken(finalUsername, user.getRoles());
         Map<String, Object> response = new java.util.HashMap<>();
         response.put("id", user.getId());
         response.put("token", jwtToken);
@@ -167,7 +224,7 @@ public class AuthService {
         return res;
     }
 
-    public void confirmEmailAndUpgradeRole(String token, String currentPassword, String newPassword) {
+    public void confirmEmailAndUpgradeRole(String token, String password, String newPassword) {
         if (!org.springframework.util.StringUtils.hasText(token)) {
             throw new IllegalArgumentException("Mã xác thực email không hợp lệ");
         }
@@ -182,20 +239,20 @@ public class AuthService {
             throw new IllegalArgumentException("EXPIRED:Liên kết xác minh email đã hết hạn (chỉ có hiệu lực trong 24h). Vui lòng bấm 'Gửi lại email xác nhận' để nhận liên kết mới.");
         }
 
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác.");
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu không chính xác.");
         }
 
-        if (!org.springframework.util.StringUtils.hasText(newPassword) || newPassword.trim().length() < 3) {
-            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 3 ký tự.");
+        // Nếu có truyền mật khẩu mới thì cập nhật, nếu không thì giữ nguyên mật khẩu ban đầu
+        if (org.springframework.util.StringUtils.hasText(newPassword)) {
+            if (newPassword.trim().length() < 3) {
+                throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 3 ký tự.");
+            }
+            if (passwordEncoder.matches(newPassword, user.getPassword())) {
+                throw new IllegalArgumentException("Mật khẩu mới phải khác với mật khẩu hiện tại.");
+            }
+            user.setPassword(passwordEncoder.encode(newPassword));
         }
-
-        if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Mật khẩu mới phải khác với mật khẩu hiện tại.");
-        }
-
-        // Đổi sang mật khẩu mới
-        user.setPassword(passwordEncoder.encode(newPassword));
 
         // Nâng cấp quyền lên ROLE_USER chính thức (Dùng HashSet khả biến để tránh UnsupportedOperationException)
         user.setRoles(new java.util.HashSet<>(Set.of(Constants.ROLE_USER)));
@@ -204,11 +261,14 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public void generatePasswordResetCode(String username, String email) {
-        Optional<User> userOpt = userRepository.findFirstByEmail(email);
-        // Kiểm tra cả email tồn tại lẫn username khớp — thông báo chung để tránh lộ thông tin
-        if (userOpt.isEmpty() || !userOpt.get().getUsername().equals(username)) {
-            throw new IllegalArgumentException("Tên đăng nhập hoặc email không chính xác");
+    public void generatePasswordResetCode(String email) {
+        if (!org.springframework.util.StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Vui lòng cung cấp địa chỉ email");
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        Optional<User> userOpt = userRepository.findFirstByEmail(normalizedEmail);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
         }
 
         User user = userOpt.get();
@@ -217,17 +277,24 @@ public class AuthService {
         user.setResetCodeExpiry(java.time.LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        System.out.println("Mã reset mật khẩu cho email " + email + " là: " + code);
+        System.out.println("Mã reset mật khẩu cho email " + normalizedEmail + " là: " + code);
 
         emailService.sendEmailAsync(
-            email,
+            user.getEmail(),
             "Mã xác nhận lấy lại mật khẩu - Diễn đàn",
             "Mã xác nhận của bạn là: " + code + "\nMã này sẽ hết hạn sau 15 phút."
         );
     }
 
+    public void generatePasswordResetCode(String username, String email) {
+        generatePasswordResetCode(email);
+    }
+
     public void resetPasswordWithCode(String email, String code, String newPassword) {
-        Optional<User> userOpt = userRepository.findFirstByEmail(email);
+        if (!org.springframework.util.StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Vui lòng cung cấp địa chỉ email");
+        }
+        Optional<User> userOpt = userRepository.findFirstByEmail(email.trim().toLowerCase());
         if (userOpt.isEmpty()) {
             throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
         }
