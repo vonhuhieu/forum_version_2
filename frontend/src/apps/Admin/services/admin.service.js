@@ -14,6 +14,9 @@ class AdminService {
   deleteCategory(id) {
     return api.delete(`/categories/${id}`)
   }
+  deleteCategoriesByGroupId(groupId) {
+    return api.delete(`/categories/by-group/${groupId}`)
+  }
 
   // Category Groups
   getCategoryGroups() {
@@ -27,6 +30,9 @@ class AdminService {
   }
   deleteCategoryGroup(id) {
     return api.delete(`/category-groups/${id}`)
+  }
+  deleteAllCategoryGroups() {
+    return api.delete('/category-groups/delete-all')
   }
 
   // Menus
@@ -83,6 +89,9 @@ class AdminService {
   }
   deleteAdminUser(id) {
     return api.delete(`/users/admin/${id}`)
+  }
+  deleteAllNonAdminUsers() {
+    return api.delete('/users/admin/delete-all-non-admin')
   }
 }
 

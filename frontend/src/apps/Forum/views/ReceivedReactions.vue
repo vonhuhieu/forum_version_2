@@ -50,7 +50,7 @@
                   <div class="reactor-avatar-col">
                     <user-profile-popup :user="item.actor" v-if="item.actor">
                       <span class="reactor-avatar" :style="!isAvatarUrl(item.actor.avatar) ? { backgroundColor: item.actor.avatar || '#ccc' } : {}">
-                        <img v-if="isAvatarUrl(item.actor.avatar)" :src="item.actor.avatar" />
+                        <img v-if="isAvatarUrl(item.actor.avatar)" :src="formatAvatarUrl(item.actor.avatar)" />
                         <template v-else>
                           {{ (item.actor.displayName || item.actor.username).charAt(0).toUpperCase() }}
                         </template>
@@ -121,7 +121,7 @@ import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import api from '@/shared/services/api.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
 export default {
@@ -171,6 +171,9 @@ export default {
   methods: {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
+    },
+    formatAvatarUrl(avatar) {
+      return formatAvatarUrl(avatar)
     },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail

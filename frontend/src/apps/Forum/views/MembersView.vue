@@ -115,7 +115,7 @@
                           class="member-avatar-circle" 
                           :style="!isAvatarUrl(u.avatar) ? { backgroundColor: getAvatarColor(u) } : {}"
                         >
-                          <img v-if="isAvatarUrl(u.avatar)" :src="u.avatar" alt="avatar" />
+                          <img v-if="isAvatarUrl(u.avatar)" :src="formatAvatarUrl(u.avatar)" alt="avatar" />
                           <span v-else>{{ (u.displayName || u.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
                       </UserProfilePopup>

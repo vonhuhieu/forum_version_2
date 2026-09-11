@@ -21,6 +21,7 @@ public class CategoryGroupService {
     private final CategoryGroupRepository categoryGroupRepository;
     private final CategoryGroupMapper categoryGroupMapper;
     private final CategoryService categoryService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public ResponseDTO<List<CategoryGroupDTO>> getAllGroups() {
         List<CategoryGroupDTO> groups = categoryGroupMapper.toDTOList(categoryGroupRepository.findAllByOrderByPositionOrderAsc());
@@ -71,7 +72,31 @@ public class CategoryGroupService {
     }
 
     public ResponseDTO<Void> deleteGroup(Long id) {
+        categoryService.deleteCategoriesByGroupId(id);
         categoryGroupRepository.deleteById(id);
+        return ResponseDTO.success(null);
+    }
+
+    public ResponseDTO<Void> deleteAllGroups() {
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+        try {
+            entityManager.createNativeQuery("DELETE FROM poll_votes").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM poll_options").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM polls").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM reactions WHERE thread_id IS NOT NULL OR post_id IS NOT NULL").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM thread_subscriptions").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM notifications WHERE thread_id IS NOT NULL OR post_id IS NOT NULL").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM posts").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM threads").executeUpdate();
+            entityManager.createNativeQuery("UPDATE categories SET parent_id = NULL").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM categories").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM category_groups").executeUpdate();
+        } finally {
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+        }
+
+        entityManager.clear();
+        com.forum.service.ThreadService.clearAllCaches();
         return ResponseDTO.success(null);
     }
 }

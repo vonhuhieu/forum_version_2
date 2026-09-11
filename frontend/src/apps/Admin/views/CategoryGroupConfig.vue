@@ -18,6 +18,21 @@
       @view="openEditModal"
       @sort="handleSort"
     >
+      <template #divAction>
+        <button class="btn-add-new" @click="openAddModal">
+          <span class="icon">+</span> Thêm nhóm mới
+        </button>
+        <button 
+          type="button" 
+          class="btn-delete-all" 
+          @click="deleteAllGroups" 
+          :disabled="isTableLoading || filteredGroups.length === 0"
+          title="Xóa tất cả nhóm chuyên mục"
+        >
+          <span class="icon">🗑️</span> Xóa tất cả
+        </button>
+      </template>
+
       <template #extra-actions="{ item }">
         <button class="action-btn cat-btn" @click="openCategoryModal(item)" title="Quản lý chuyên mục">📁</button>
       </template>
@@ -193,6 +208,25 @@ export default {
         }
       }
     },
+    async deleteAllGroups() {
+      const result = await alertConfirm(
+        'CẢNH BÁO NGUY HIỂM!',
+        'Hành động này sẽ XÓA TOÀN BỘ nhóm chuyên mục (kể cả toàn bộ chuyên mục và bài viết bên trong)! Bạn có chắc chắn muốn xóa không?'
+      )
+      if (result.isConfirmed) {
+        this.isSubmitting = true
+        try {
+          await AdminService.deleteAllCategoryGroups()
+          toastSuccess('Đã xóa tất cả nhóm chuyên mục thành công')
+          this.currentPage = 1
+          this.fetchGroups()
+        } catch (error) {
+          toastError(error.response?.data?.message || 'Lỗi khi xóa tất cả nhóm chuyên mục')
+        } finally {
+          this.isSubmitting = false
+        }
+      }
+    },
     resetForm() {
       this.form = { id: null, name: '', positionOrder: 0, active: true }
       this.isEditing = false
@@ -226,4 +260,41 @@ export default {
 .btn-cancel { background: #95a5a6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; }
 
 .cat-btn:hover { color: #f39c12; }
+
+.btn-add-new {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-delete-all {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-delete-all:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete-all:disabled {
+  background-color: #e57373;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>

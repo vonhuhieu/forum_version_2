@@ -30,6 +30,7 @@ import UserProfile from '@/apps/Forum/views/UserProfile.vue'
 import ChangePassword from '@/apps/Forum/views/ChangePassword.vue'
 import NotificationsList from '@/apps/Forum/views/NotificationsList.vue'
 import MembersView from '@/apps/Forum/views/MembersView.vue'
+import FollowingList from '@/apps/Forum/views/FollowingList.vue'
 import { activeTracker } from '@/shared/services/activeTracker'
 
 const routes = [
@@ -110,6 +111,12 @@ const routes = [
         path: 'account/password',
         name: 'ChangePassword',
         component: ChangePassword,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account/following',
+        name: 'FollowingList',
+        component: FollowingList,
         meta: { requiresAuth: true }
       },
       {

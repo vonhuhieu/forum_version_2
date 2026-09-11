@@ -39,6 +39,7 @@ public class ThreadService {
     private final SystemSettingService systemSettingService;
     private final UserTitleService userTitleService;
     private final com.forum.repository.UserFollowRepository userFollowRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -721,6 +722,33 @@ public class ThreadService {
                 e.printStackTrace();
             }
         });
+        return ResponseDTO.success(null);
+    }
+
+    public ResponseDTO<Void> deleteAllThreads() {
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+        try {
+            entityManager.createNativeQuery("DELETE FROM poll_votes").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM poll_options").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM polls").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM reactions WHERE thread_id IS NOT NULL OR post_id IS NOT NULL").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM thread_subscriptions").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM notifications WHERE thread_id IS NOT NULL OR post_id IS NOT NULL").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM reports WHERE target_type IN ('THREAD', 'POST')").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM posts").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM threads").executeUpdate();
+        } finally {
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+        }
+
+        entityManager.clear();
+        clearAllCaches();
+
+        try {
+            searchDocumentRepository.deleteAll();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return ResponseDTO.success(null);
     }
 

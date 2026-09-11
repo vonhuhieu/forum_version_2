@@ -125,7 +125,7 @@
                     <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>
                     <router-link :to="{ name: 'ChangePassword' }" class="xamvn-link-item">Mật khẩu</router-link>
-                    <a href="#" class="xamvn-link-item" @click.prevent>Đang theo dõi</a>
+                    <router-link :to="{ name: 'FollowingList' }" class="xamvn-link-item">Đang theo dõi</router-link>
                     <a href="#" class="xamvn-link-item" @click.prevent>Bảo mật cá nhân</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Phớt lờ</a>
                   </div>

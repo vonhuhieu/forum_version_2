@@ -25,6 +25,10 @@ class ThreadService {
     return api.delete(`/threads/${id}`)
   }
 
+  deleteAll() {
+    return api.delete('/threads/delete-all')
+  }
+
   pin(id) {
     return api.patch(`/threads/${id}/pin`)
   }

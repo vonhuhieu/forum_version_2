@@ -83,6 +83,15 @@ public class ThreadController {
         }
     }
 
+    @DeleteMapping("/delete-all")
+    public ResponseEntity<ResponseDTO<Void>> deleteAllThreads() {
+        try {
+            return ResponseEntity.ok(threadService.deleteAllThreads());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseDTO<Void>> deleteThread(@PathVariable Long id) {
         try {

@@ -203,6 +203,14 @@ public class UserService {
         });
     }
 
+    public UserDTO getUserSummaryDTO(User user) {
+        if (user == null) return null;
+        UserDTO dto = convertToDTO(user);
+        enrichUserStats(dto);
+        dto.setEmail(null);
+        return dto;
+    }
+
     public List<UserDTO> getAdminUsers(String currentUsername) {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -466,6 +474,50 @@ public class UserService {
                 .executeUpdate();
 
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public void deleteAllNonAdminUsers(String currentUsername) {
+        User currentUser = userRepository.findByUsername(currentUsername).orElseThrow();
+        boolean isSuperAdmin = currentUser.getRoles().contains(Constants.ROLE_SUPER_ADMIN);
+        boolean isAdmin = currentUser.getRoles().contains(Constants.ROLE_ADMIN);
+        if (!isSuperAdmin && !isAdmin) {
+            throw new IllegalStateException("Access denied: only administrators can perform this action");
+        }
+
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+        try {
+            // Target non-admin user IDs
+            String nonAdminSubQuery = "SELECT u.id FROM users u WHERE u.id NOT IN (SELECT ur.user_id FROM user_roles ur WHERE ur.role IN ('" 
+                    + Constants.ROLE_ADMIN + "', '" + Constants.ROLE_SUPER_ADMIN + "'))";
+
+            entityManager.createNativeQuery("DELETE FROM thread_subscriptions WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM notifications WHERE recipient_id IN (" + nonAdminSubQuery + ") OR actor_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM reactions WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM poll_votes WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM user_follows WHERE follower_id IN (" + nonAdminSubQuery + ") OR following_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM search_history WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM conversation_participants WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+
+            entityManager.createNativeQuery("DELETE FROM reactions WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + "))").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM notifications WHERE conversation_message_id IN (SELECT id FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + "))").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM conversation_messages WHERE sender_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+
+            entityManager.createNativeQuery("UPDATE conversations SET creator_id = NULL WHERE creator_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("UPDATE threads SET author_id = NULL WHERE author_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("UPDATE posts SET author_id = NULL WHERE author_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+
+            entityManager.createNativeQuery("DELETE FROM reports WHERE reporter_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("UPDATE reports SET resolved_by_id = NULL WHERE resolved_by_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+
+            entityManager.createNativeQuery("DELETE FROM user_roles WHERE user_id IN (" + nonAdminSubQuery + ")").executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM users WHERE id IN (" + nonAdminSubQuery + ")").executeUpdate();
+        } finally {
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+        }
+
+        entityManager.clear();
+        com.forum.service.ThreadService.clearAllCaches();
     }
 
     @Transactional

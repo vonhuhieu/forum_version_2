@@ -247,4 +247,18 @@ public class UserController {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null));
         }
     }
+
+    @DeleteMapping("/admin/delete-all-non-admin")
+    public ResponseEntity<ResponseDTO<Void>> deleteAllNonAdminUsers() {
+        try {
+            String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            userService.deleteAllNonAdminUsers(currentUsername);
+            return ResponseEntity.ok(ResponseDTO.success(null));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
+    }
 }

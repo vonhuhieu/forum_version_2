@@ -1,11 +1,15 @@
 package com.forum.service;
 
 import com.forum.dto.ResponseDTO;
+import com.forum.dto.UserDTO;
 import com.forum.entity.User;
 import com.forum.entity.UserFollow;
 import com.forum.repository.UserFollowRepository;
 import com.forum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,7 @@ public class UserFollowService {
 
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     public ResponseDTO<Boolean> getFollowStatus(String username) {
         String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -66,5 +71,22 @@ public class UserFollowService {
         }
 
         return ResponseDTO.success(null);
+    }
+
+    @Transactional(readOnly = true)
+    public ResponseDTO<Page<UserDTO>> getFollowedUsers(int page, int size) {
+        String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if ("anonymousUser".equals(currentUsername) || currentUsername == null) {
+            throw new RuntimeException("User must be logged in to view followed members");
+        }
+
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<UserFollow> followPage = userFollowRepository.findByFollowerIdOrderByIdDesc(currentUser.getId(), pageable);
+
+        Page<UserDTO> dtoPage = followPage.map(uf -> userService.getUserSummaryDTO(uf.getFollowing()));
+        return ResponseDTO.success(dtoPage);
     }
 }

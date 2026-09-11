@@ -30,6 +30,21 @@
         </div>
       </template>
 
+      <template #divAction>
+        <button class="btn-add-new" @click="$router.push({ name: 'AdminThreadCreate' })">
+          <span class="icon">+</span> Đăng bài mới
+        </button>
+        <button 
+          type="button" 
+          class="btn-delete-all" 
+          @click="deleteAllThreads" 
+          :disabled="loading || totalElements === 0"
+          title="Xóa tất cả bài viết trên diễn đàn"
+        >
+          <span class="icon">🗑️</span> Xóa tất cả
+        </button>
+      </template>
+
       <template #item-title="{ item }">
         <div class="title-cell-wrapper">
           <span v-if="item.label" class="label-tag" :style="{ backgroundColor: item.label.colorCode, color: item.label.textColor, borderColor: item.label.borderColor || 'transparent' }">{{ item.label.name }}</span>
@@ -227,6 +242,25 @@ export default {
         }
       }
     },
+    async deleteAllThreads() {
+      const result = await alertConfirm(
+        'CẢNH BÁO NGUY HIỂM!',
+        'Hành động này sẽ XÓA TOÀN BỘ bài viết cùng bình luận, cảm xúc trên diễn đàn và không thể khôi phục! Con có chắc chắn muốn xóa toàn bộ không?'
+      )
+      if (result.isConfirmed) {
+        this.loading = true
+        try {
+          await threadService.deleteAll()
+          toastSuccess('Đã xóa tất cả bài viết thành công')
+          this.currentPage = 1
+          await this.fetchThreads()
+        } catch (error) {
+          toastError(error.response?.data?.message || 'Có lỗi xảy ra khi xóa toàn bộ bài viết')
+        } finally {
+          this.loading = false
+        }
+      }
+    },
     formatDate(dateStr) {
       return new Date(dateStr).toLocaleString('vi-VN')
     }
@@ -311,6 +345,43 @@ export default {
 
 .thread-title-text {
   line-height: 1.2;
+}
+
+.btn-add-new {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-delete-all {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-delete-all:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete-all:disabled {
+  background-color: #e57373;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
 
