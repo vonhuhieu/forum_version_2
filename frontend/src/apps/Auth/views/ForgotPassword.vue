@@ -1,15 +1,11 @@
 <template>
   <div class="login-page">
-    <Loading :visible="isLoading" />
+    <Loading :visible="isLoading" :text="loadingText" />
     <div class="card login-card">
       <div class="card-header">QUÊN MẬT KHẨU</div>
       
       <!-- Bước 1: Nhập Email -->
       <form v-if="step === STEPS.ENTER_CREDENTIALS" @submit.prevent="handleSendCode" class="login-form">
-        <div class="form-group">
-          <label>Tên đăng nhập</label>
-          <input type="text" v-model="username" required placeholder="Nhập tên đăng nhập">
-        </div>
         <div class="form-group">
           <label>Nhập Email đã đăng ký</label>
           <input type="email" v-model="email" required placeholder="example@domain.com">
@@ -32,20 +28,20 @@
         <div class="form-group">
           <label>Mật khẩu mới</label>
           <div class="password-wrapper">
-            <input :type="showPassword ? 'text' : 'password'" v-model="newPassword" required>
+            <input :type="showPassword ? 'text' : 'password'" v-model="newPassword" required placeholder="Nhập mật khẩu mới">
             <span class="toggle-icon" @click="showPassword = !showPassword">
               <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
           </div>
         </div>
         <div class="form-group">
           <label>Nhập lại mật khẩu mới</label>
           <div class="password-wrapper">
-            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" required>
+            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" required placeholder="Nhập lại mật khẩu mới">
             <span class="toggle-icon" @click="showConfirmPassword = !showConfirmPassword">
               <svg v-if="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
           </div>
         </div>
@@ -75,7 +71,6 @@ export default {
     return {
       STEPS: FORGOT_PASSWORD_STEPS,
       step: FORGOT_PASSWORD_STEPS.ENTER_CREDENTIALS,
-      username: '',
       email: '',
       code: '',
       newPassword: '',
@@ -84,22 +79,27 @@ export default {
       showConfirmPassword: false,
       error: '',
       success: '',
-      isLoading: false
+      isLoading: false,
+      loadingText: 'Đang tải...'
     }
   },
   methods: {
     async handleSendCode() {
       this.success = ''
+      this.error = ''
       this.isLoading = true
+      this.loadingText = 'Đang gửi mã xác nhận đến email của bạn...'
       try {
-        const response = await AuthService.forgotPassword(this.username, this.email)
-        this.success = response.data.message || 'Đã gửi mã xác nhận'
+        const response = await AuthService.forgotPassword(this.email)
+        this.success = response.data.message || 'Mã xác nhận đã được gửi đến email của bạn'
         setTimeout(() => {
           this.step = FORGOT_PASSWORD_STEPS.RESET_PASSWORD
           this.success = ''
-        }, 1500)
+          this.isLoading = false
+        }, 1200)
       } catch (err) {
-        const msg = err.response?.data?.message || 'Tên đăng nhập hoặc email không đúng. Vui lòng kiểm tra lại.'
+        this.isLoading = false
+        const msg = err.response?.data?.message || 'Email không đúng hoặc không tồn tại trong hệ thống. Vui lòng kiểm tra lại.'
         Swal.fire({
           icon: 'error',
           title: 'Thông tin không chính xác',
@@ -107,8 +107,6 @@ export default {
           confirmButtonText: 'Thử lại',
           confirmButtonColor: '#1a507a'
         })
-      } finally {
-        this.isLoading = false
       }
     },
     async handleResetPassword() {
@@ -119,6 +117,7 @@ export default {
         return
       }
       this.isLoading = true
+      this.loadingText = 'Đang cập nhật mật khẩu mới...'
       try {
         const response = await AuthService.resetPassword({
           email: this.email,
@@ -127,12 +126,12 @@ export default {
         })
         this.success = response.data.message || 'Đổi mật khẩu thành công!'
         setTimeout(() => {
+          this.isLoading = false
           this.$router.push({ name: 'Login' })
-        }, 2000)
+        }, 1500)
       } catch (err) {
-        this.error = err.response?.data?.message || 'Mã xác nhận không đúng hoặc đã hết hạn'
-      } finally {
         this.isLoading = false
+        this.error = err.response?.data?.message || 'Mã xác nhận không đúng hoặc đã hết hạn'
       }
     }
   }
@@ -178,6 +177,26 @@ export default {
 .btn-login { width: 100%; background: #1a507a; color: white; border: none; padding: 1rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
 .btn-login:hover:not(:disabled) { background: #154267; }
 .btn-login:disabled { background: #95a5a6; cursor: not-allowed; }
-.error-msg { color: #e74c3c; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
-.success-msg { color: #2ecc71; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
+.error-msg {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.success-msg {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
 </style>
