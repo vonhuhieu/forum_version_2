@@ -123,6 +123,16 @@ else
     fi
 fi
 
+# Tự động đồng bộ GDRIVE_BACKUP_FOLDER nếu có cung cấp
+if [ -n "$GDRIVE_BACKUP_FOLDER" ]; then
+    echo "Đồng bộ GDRIVE_BACKUP_FOLDER ($GDRIVE_BACKUP_FOLDER) vào .env..."
+    if grep -q "^GDRIVE_BACKUP_FOLDER=" "$FORUM_DIR/.env"; then
+        sed -i "s|^GDRIVE_BACKUP_FOLDER=.*|GDRIVE_BACKUP_FOLDER=${GDRIVE_BACKUP_FOLDER}|" "$FORUM_DIR/.env"
+    else
+        echo "GDRIVE_BACKUP_FOLDER=${GDRIVE_BACKUP_FOLDER}" >> "$FORUM_DIR/.env"
+    fi
+fi
+
 # ------------------------------------------------------------------------------
 # BƯỚC 6: Copy docker-compose.yml và khởi động MySQL + OpenSearch
 # ------------------------------------------------------------------------------
@@ -229,7 +239,7 @@ fi
 echo ""
 echo "[9/10] Tự động cấu hình Cron Job backup hàng ngày..."
 chmod +x "$FORUM_DIR/scripts/backup.sh"
-CRON_JOB="0 2 * * * $FORUM_DIR/scripts/backup.sh >> $FORUM_DIR/backup.log 2>&1"
+CRON_JOB="0 2 * * * /bin/bash $FORUM_DIR/scripts/backup.sh >> $FORUM_DIR/backup.log 2>&1"
 (crontab -l 2>/dev/null | grep -v "$FORUM_DIR/scripts/backup.sh" ; echo "$CRON_JOB") | crontab -
 echo "OK: Cron job backup hàng ngày (02:00 AM) đã được đăng ký tự động."
 

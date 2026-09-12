@@ -470,7 +470,7 @@
 
   <div class="container header-banner-container">
     <div class="banner-box" style="margin-top: 1rem;">
-      <img src="/675456323_122106804740812631_4737388993277477397_n.jpg" alt="HTXHS Banner">
+      <img src="7126c73d-cd13-4f6b-90e6-3f6b79afee61.jpg" alt="HTXHS Banner">
     </div>
   </div>
 

@@ -13,6 +13,15 @@
 set -e
 
 FORUM_DIR="/var/www/forum"
+
+# Tự động nạp cấu hình từ .env nếu có
+if [ -f "$FORUM_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    . "$FORUM_DIR/.env"
+    set +a
+fi
+
 GDRIVE_FOLDER=${GDRIVE_BACKUP_FOLDER:-"forum_backups"}
 BACKUP_DIR="$FORUM_DIR/backups"
 
