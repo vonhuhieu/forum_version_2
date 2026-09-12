@@ -179,13 +179,49 @@ crontab -l
 - **Nguyên nhân**: Khi backend khởi động, `SearchIndexInitializer` đã kích hoạt reindex ngầm, đồng thời CI/CD gọi thêm endpoint `/api/search/reindex` gây xung đột index.
 - **Khắc phục**: Phương thức `reindexAll()` trong `SearchService.java` được bọc try-catch an toàn khi xóa/tạo index, và workflow được bổ sung vòng lặp retry 5 lần kèm độ trễ 5 giây.
 
-### 7.5. Lỗi Upload ảnh dung lượng lớn bị mã 413 hoặc CORS giả
+### 7.5. Lỗi Backup Tự Động Dừng Đột Ngột Sau Vài Ngày (Google OAuth Token Hết Hạn 7 Ngày)
+- **Nguyên nhân**: Khi tạo Google OAuth Client ID trên Google Cloud Console, nếu OAuth Consent Screen ở trạng thái **"Testing"**, Google áp dụng chính sách bảo mật: **Refresh Token sẽ tự động hết hạn và bị thu hồi sau đúng 7 ngày**. Khi đó lệnh `rclone copy` sẽ báo lỗi `Error 400: invalid_grant, Token has been expired or revoked`, làm script backup bị dừng tại Bước 4.
+- **Khắc phục triệt để**:
+  1. Vào [Google Cloud Console](https://console.cloud.google.com/) > **APIs & Services** > **OAuth consent screen** > Nhấn nút **PUBLISH APP** (Chuyển trạng thái từ *Testing* sang *In production*).
+  2. SSH vào VPS và cấp lại token cho Rclone:
+     ```bash
+     rclone config reconnect $(rclone listremotes | head -1)
+     ```
+  3. Cập nhật lại Secret `RCLONE_CONF` trên GitHub:
+     ```bash
+     cat ~/.config/rclone/rclone.conf | base64 -w 0
+     ```
+     Copy chuỗi output dán đè vào GitHub Secret `RCLONE_CONF`.
+
+### 7.6. Lỗi Backup Nhầm Thư Mục `forum_backups` Thay Vì Thư Mục Cấu Hình
+- **Nguyên nhân**: Cron job trên Linux chạy độc lập và không tự động tải file `/var/www/forum/.env`. Do đó biến `GDRIVE_BACKUP_FOLDER` không tồn tại trong môi trường Cron, dẫn đến script tự động fallback về thư mục mặc định `forum_backups`.
+- **Khắc phục**: Script `scripts/backup.sh` đã được cập nhật để tự động nạp cấu hình từ `/var/www/forum/.env`. Đồng thời script `bootstrap.sh` cũng tự động đồng bộ biến `GDRIVE_BACKUP_FOLDER` vào file `.env` khi khởi tạo VPS.
+
+### 7.7. Lỗi Upload ảnh dung lượng lớn bị mã 413 hoặc CORS giả
 - **Nguyên nhân**: Giới hạn mặc định `client_max_body_size` của Nginx là 1MB.
 - **Khắc phục**: Nginx được cấu hình sẵn `client_max_body_size 100M;` trong `sites-available/forum` để đồng bộ với giới hạn 100MB của Spring Boot.
 
 ---
 
-## 8. Danh Mục Các File Cốt Lõi Của Hệ Thống
+## 8. Các Lệnh Thao Tác Nhanh Với Backup Trên VPS
+
+```bash
+# 1. Xem nhật ký log chạy backup gần nhất:
+cat /var/www/forum/backup.log | tail -n 50
+
+# 2. Chạy thử nghiệm backup ngay lập tức bằng tay:
+/bin/bash /var/www/forum/scripts/backup.sh
+
+# 3. Kiểm tra danh sách Cron Job trên VPS:
+crontab -l
+
+# 4. Kiểm tra kết nối Google Drive qua Rclone:
+rclone lsd $(rclone listremotes | head -1)
+```
+
+---
+
+## 9. Danh Mục Các File Cốt Lõi Của Hệ Thống
 
 - 📜 [`.github/workflows/vps-bootstrap.yml`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/.github/workflows/vps-bootstrap.yml): Workflow GitHub Actions tự động hóa khởi tạo VPS mới và khôi phục dữ liệu.
 - 📜 [`.github/workflows/deploy-vps.yml`](file:///d:/CONGVIEC/FORUM_SPRING_VUEJS/.github/workflows/deploy-vps.yml): Workflow GitHub Actions triển khai backend hàng ngày.

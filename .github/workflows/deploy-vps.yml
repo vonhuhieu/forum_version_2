@@ -67,8 +67,19 @@ jobs:
           port: 22
           script: |
             chmod +x /var/www/forum/scripts/*.sh
-            CRON_JOB="0 2 * * * /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1"
-            (crontab -l 2>/dev/null | grep -v "/var/www/forum/scripts/backup.sh" ; echo "$CRON_JOB") | crontab -
+
+            # Tự động đồng bộ GDRIVE_BACKUP_FOLDER từ GitHub Secret vào .env nếu có
+            if [ -n "${{ secrets.GDRIVE_BACKUP_FOLDER }}" ]; then
+              if grep -q "^GDRIVE_BACKUP_FOLDER=" /var/www/forum/.env 2>/dev/null; then
+                sed -i "s|^GDRIVE_BACKUP_FOLDER=.*|GDRIVE_BACKUP_FOLDER=${{ secrets.GDRIVE_BACKUP_FOLDER }}|" /var/www/forum/.env
+              else
+                echo "GDRIVE_BACKUP_FOLDER=${{ secrets.GDRIVE_BACKUP_FOLDER }}" >> /var/www/forum/.env
+              fi
+              echo "OK: Đã đồng bộ GDRIVE_BACKUP_FOLDER vào .env thành công."
+            fi
+
+            CRON_JOB="0 2 * * * /bin/bash /var/www/forum/scripts/backup.sh >> /var/www/forum/backup.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "scripts/backup.sh" ; echo "$CRON_JOB") | crontab -
             echo "OK: Scripts and Cron Job updated successfully."
 
       - name: Rename and Restart Backend via SSH
