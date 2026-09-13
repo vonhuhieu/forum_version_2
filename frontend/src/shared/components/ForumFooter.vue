@@ -4,9 +4,11 @@
       <div class="footer-columns">
         <!-- Cột 1: Giới thiệu & Logo -->
         <div class="footer-col brand-col">
-          <div class="footer-logo" @click="$router.push({ name: 'Home' })">HTXSL</div>
+          <div class="footer-logo" @click="$router.push({ name: 'Home' })" title="HỢP TÁC XÃ VUI VẺ">
+            <img src="/favicon.png" alt="Hợp Tác Xã Vui Vẻ" class="footer-logo-image" />
+          </div>
           <p class="brand-description">
-            Hợp tác xã Sinh Lý - Diễn đàn thảo luận và chia sẻ kiến thức, kinh nghiệm sống, sức khỏe và các mối quan hệ xã hội một cách văn minh, khách quan.
+            Hợp tác xã Vui Vẻ - Diễn đàn thảo luận và chia sẻ kiến thức, kinh nghiệm sống, sức khỏe và các mối quan hệ xã hội một cách văn minh, khách quan.
           </p>
           <div class="social-links">
             <a href="#" aria-label="Telegram" class="social-icon">
@@ -75,7 +77,7 @@
     <div class="footer-bottom">
       <div class="container footer-bottom-container">
         <p class="copyright">
-          &copy; {{ currentYear }} HTXSL. Tất cả quyền được bảo lưu.
+          &copy; {{ currentYear }} HỢP TÁC XÃ VUI VẺ. Tất cả quyền được bảo lưu.
         </p>
         <p class="credits">
           Thiết kế dựa trên nền tảng Vue 3 & Spring Boot.
@@ -173,14 +175,23 @@ export default {
 }
 
 .footer-logo {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 1px;
   margin-bottom: 1.2rem;
   cursor: pointer;
-  display: inline-block;
-  transition: transform 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.footer-logo-image {
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s ease;
+}
+
+.footer-logo:hover .footer-logo-image {
+  transform: scale(1.06);
 }
 
 .footer-logo:hover {
