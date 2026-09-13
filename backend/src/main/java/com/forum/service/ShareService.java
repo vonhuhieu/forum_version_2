@@ -115,8 +115,8 @@ public class ShareService {
         html.append("  <meta property=\"og:site_name\" content=\"").append(escapeMeta(SITE_NAME)).append("\">\n");
         html.append("  <meta property=\"og:title\" content=\"").append(escapeMeta(rawTitle)).append("\">\n");
         html.append("  <meta property=\"og:description\" content=\"").append(escapeMeta(plainText)).append("\">\n");
-        // og:url trỏ về chính proxy endpoint hiện tại để Facebook không bị redirect sang cào Vercel
-        html.append("  <meta property=\"og:url\" content=\"").append(escapeMeta(currentShareUrl)).append("\">\n");
+        // og:url trỏ về URL web bài viết để Facebook hiển thị đúng tên miền hệ thống
+        html.append("  <meta property=\"og:url\" content=\"").append(escapeMeta(targetUrl)).append("\">\n");
 
         if (!imageUrl.isEmpty()) {
             html.append("  <meta property=\"og:image\" content=\"").append(escapeMeta(imageUrl)).append("\">\n");
