@@ -2,6 +2,7 @@ package com.forum.service;
 
 import com.forum.entity.Thread;
 import com.forum.repository.ThreadRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,18 +30,32 @@ public class ShareService {
      * Sinh trang HTML tĩnh chứa Open Graph meta tags phục vụ social bots (Facebook Crawler, Zalo...)
      * và tự động chuyển hướng người dùng thật về giao diện Vue SPA tương ứng.
      */
-    public String generateShareHtml(Long threadId, String postId) {
+    public String generateShareHtml(Long threadId, String postId, HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+        String clientIp = request.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isEmpty()) {
+            clientIp = request.getRemoteAddr();
+        }
+        log.info("Social share request received: threadId={}, postId={}, IP={}, User-Agent={}", threadId, postId, clientIp, userAgent);
+
         String baseFront = frontendUrl;
         if (baseFront != null && baseFront.endsWith("/")) {
             baseFront = baseFront.substring(0, baseFront.length() - 1);
         }
 
+        // URL của chính endpoint share hiện tại (được Facebook Bot cào)
+        String currentShareUrl = request.getRequestURL().toString();
+        if (request.getQueryString() != null && !request.getQueryString().isEmpty()) {
+            currentShareUrl += "?" + request.getQueryString();
+        }
+
         Optional<Thread> threadOpt = threadRepository.findById(threadId);
         if (threadOpt.isEmpty()) {
             String fallbackUrl = baseFront != null ? baseFront + "/" : "/";
+            log.warn("Social share threadId={} not found, fallback to home: {}", threadId, fallbackUrl);
             return "<!DOCTYPE html><html><head>"
-                    + "<meta http-equiv=\"refresh\" content=\"0;url=" + HtmlUtils.htmlEscape(fallbackUrl) + "\">"
                     + "<script>window.location.replace('" + HtmlUtils.htmlEscape(fallbackUrl) + "');</script>"
+                    + "<noscript><meta http-equiv=\"refresh\" content=\"0;url=" + HtmlUtils.htmlEscape(fallbackUrl) + "\"></noscript>"
                     + "</head><body>Đang chuyển hướng...</body></html>";
         }
 
@@ -65,7 +80,7 @@ public class ShareService {
             imageUrl = matcher.group(1);
         }
 
-        // Xác định link đích trên Vue SPA
+        // Xác định link đích trên Vue SPA để chuyển hướng người dùng thật
         String targetUrl;
         if (postId != null && !postId.trim().isEmpty() && !"main_thread_entry".equals(postId.trim())) {
             targetUrl = baseFront + "/thread/" + threadId + "?postId=" + postId.trim() + "#post-" + postId.trim();
@@ -84,7 +99,8 @@ public class ShareService {
         html.append("  <meta property=\"og:site_name\" content=\"").append(HtmlUtils.htmlEscape(SITE_NAME)).append("\">\n");
         html.append("  <meta property=\"og:title\" content=\"").append(HtmlUtils.htmlEscape(rawTitle)).append("\">\n");
         html.append("  <meta property=\"og:description\" content=\"").append(HtmlUtils.htmlEscape(plainText)).append("\">\n");
-        html.append("  <meta property=\"og:url\" content=\"").append(HtmlUtils.htmlEscape(targetUrl)).append("\">\n");
+        // og:url PHẢI trỏ về chính URL mà crawler đang truy cập để Facebook không cào sang trang Vue SPA
+        html.append("  <meta property=\"og:url\" content=\"").append(HtmlUtils.htmlEscape(currentShareUrl)).append("\">\n");
 
         if (!imageUrl.isEmpty()) {
             html.append("  <meta property=\"og:image\" content=\"").append(HtmlUtils.htmlEscape(imageUrl)).append("\">\n");
@@ -95,11 +111,14 @@ public class ShareService {
         html.append("  <meta name=\"twitter:title\" content=\"").append(HtmlUtils.htmlEscape(rawTitle)).append("\">\n");
         html.append("  <meta name=\"twitter:description\" content=\"").append(HtmlUtils.htmlEscape(plainText)).append("\">\n");
 
-        // Tự động chuyển hướng người dùng thật khi mở link vào Vue SPA
-        html.append("  <meta http-equiv=\"refresh\" content=\"0;url=").append(HtmlUtils.htmlEscape(targetUrl)).append("\">\n");
+        // Chuyển hướng người dùng thật bằng JavaScript.
+        // Bot (Facebook, Zalo, Twitter) không chạy JavaScript nên sẽ ở lại đọc trọn vẹn thẻ Open Graph.
         html.append("  <script type=\"text/javascript\">\n");
         html.append("    window.location.replace(\"").append(HtmlUtils.htmlEscape(targetUrl)).append("\");\n");
         html.append("  </script>\n");
+        html.append("  <noscript>\n");
+        html.append("    <meta http-equiv=\"refresh\" content=\"0;url=").append(HtmlUtils.htmlEscape(targetUrl)).append("\">\n");
+        html.append("  </noscript>\n");
         html.append("</head>\n<body>\n");
         html.append("  <p>Đang chuyển hướng đến bài viết: <a href=\"").append(HtmlUtils.htmlEscape(targetUrl)).append("\">")
                 .append(HtmlUtils.htmlEscape(rawTitle)).append("</a>...</p>\n");
