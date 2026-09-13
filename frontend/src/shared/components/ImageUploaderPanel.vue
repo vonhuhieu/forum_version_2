@@ -23,7 +23,7 @@
 
     <div v-if="uploadedImages.length > 0" class="uploaded-images-container">
       <div v-for="(img, index) in uploadedImages" :key="index" class="image-thumbnail-wrapper" @mouseleave="activeInsertIndex = null">
-        <img :src="img.url" :alt="img.name" class="image-thumbnail" @click="handleImageClick(img.url, index)" :title="isMultipleSelectionMode ? 'Click để chọn' : 'Click để xem ảnh lớn'" :class="{ 'selected-img': selectedImages.includes(index) }" />
+        <img :src="resolveImageUrl(img.url)" :alt="img.name" class="image-thumbnail" @click="handleImageClick(resolveImageUrl(img.url), index)" :title="isMultipleSelectionMode ? 'Click để chọn' : 'Click để xem ảnh lớn'" :class="{ 'selected-img': selectedImages.includes(index) }" />
         
         <div v-if="isMultipleSelectionMode" class="checkbox-container" @click="toggleSelectImage(index)">
           <input type="checkbox" :checked="selectedImages.includes(index)" @click.stop="toggleSelectImage(index)" />
@@ -74,6 +74,7 @@
 import uploadService from '@/apps/Forum/services/upload.service'
 import { processFilesForUpload } from '@/shared/utils/heicUtils'
 import Loading from '@/shared/components/Loading.vue'
+import { getBackendBaseUrl } from '@/shared/services/api.service'
 
 export default {
   name: 'ImageUploaderPanel',
@@ -216,7 +217,13 @@ export default {
       this.uploadedImages.splice(index, 1)
     },
     enlargeImage(url) {
-      window.open(url, '_blank')
+      window.open(this.resolveImageUrl(url), '_blank')
+    },
+    resolveImageUrl(url) {
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) return url
+      const backendBase = getBackendBaseUrl()
+      return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`
     }
   }
 }

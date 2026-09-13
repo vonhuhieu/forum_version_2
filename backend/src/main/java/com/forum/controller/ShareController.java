@@ -14,7 +14,7 @@ public class ShareController {
 
     private final ShareService shareService;
 
-    @GetMapping(value = "/thread/{id}", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
+    @GetMapping(value = "/thread/{id:\\d+}", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
     public ResponseEntity<String> getSharePage(
             @PathVariable Long id,
             @RequestParam(required = false) String postId,

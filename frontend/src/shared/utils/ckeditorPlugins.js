@@ -1,6 +1,7 @@
 import uploadService from '@/apps/Forum/services/upload.service'
 import { ButtonView } from 'ckeditor5'
 import { convertHeicToJpegIfNeeded, processFilesForUpload } from '@/shared/utils/heicUtils'
+import { getBackendBaseUrl } from '@/shared/services/api.service'
 
 // Custom Upload Adapter cho hình ảnh (khi paste ảnh hoặc dùng nút imageUpload)
 class MyUploadAdapter {
@@ -19,10 +20,14 @@ class MyUploadAdapter {
       })
       .then(res => {
         const url = res.data.url;
+        let fullUrl = url;
+        if (fullUrl && !fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+          fullUrl = `${getBackendBaseUrl()}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`;
+        }
         if (this.editor) {
           this.editor.fire('imageUploaded', { url: url, name: file.name, type: res.data.type || 'image/jpeg' });
         }
-        resolve({ default: url })
+        resolve({ default: fullUrl })
       })
       .catch(err => {
         reject(err)
@@ -94,14 +99,19 @@ export function CustomUploadPlugin(editor) {
                 const fileUrl = result.url;
                 const fileName = result.name;
 
+                let fullUrl = fileUrl;
+                if (fullUrl && !fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+                  fullUrl = `${getBackendBaseUrl()}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`;
+                }
+
                 if (fileType.startsWith('image/')) {
-                  elementToInsert = writer.createElement('imageBlock', { src: fileUrl });
+                  elementToInsert = writer.createElement('imageBlock', { src: fullUrl });
                 } else if (fileType.startsWith('video/')) {
-                  elementToInsert = writer.createElement('media', { url: fileUrl });
+                  elementToInsert = writer.createElement('media', { url: fullUrl });
                 } else {
                   // Đối với tài liệu (.docx, .pdf...), tạo một đoạn văn chứa icon và link
                   elementToInsert = writer.createElement('paragraph');
-                  const linkedText = writer.createText(`📎 ${fileName}`, { linkHref: fileUrl });
+                  const linkedText = writer.createText(`📎 ${fileName}`, { linkHref: fullUrl });
                   writer.insert(linkedText, elementToInsert, 'end');
                 }
 

@@ -1,5 +1,22 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.hoptacxavuive.com"
+        }
+      ],
+      "destination": "https://hoptacxavuive.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://api.hoptacxavuive.com/uploads/:path*"
+    },
     {
       "source": "/thread/:id",
       "has": [

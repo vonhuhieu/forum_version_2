@@ -114,7 +114,8 @@ export default {
   },
   computed: {
     shareUrl() {
-      const origin = window.location.origin
+      // Loại bỏ tiền tố www. để URL luôn chuẩn mực và chuyên nghiệp
+      const origin = window.location.origin.replace(/^(https?:\/\/)www\./i, '$1')
       if (this.isMain || String(this.postId) === 'main_thread_entry') {
         return `${origin}/thread/${this.threadId}#post-main_thread_entry`
       }
