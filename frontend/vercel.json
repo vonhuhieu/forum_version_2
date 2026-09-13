@@ -1,6 +1,17 @@
 {
   "rewrites": [
     {
+      "source": "/thread/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|Pinterest|LinkedInBot|TelegramBot|WhatsApp|vkShare|Slackbot|Discordbot).*"
+        }
+      ],
+      "destination": "/api/share?id=:id"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }
