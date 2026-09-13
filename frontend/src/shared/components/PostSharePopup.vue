@@ -84,6 +84,7 @@
 
 <script>
 import { toastSuccess } from '@/shared/utils/swal'
+import { getBackendBaseUrl } from '@/shared/services/api.service'
 
 export default {
   name: 'PostSharePopup',
@@ -214,8 +215,12 @@ export default {
       }
     },
     shareToFacebook() {
-      const url = encodeURIComponent(this.shareUrl)
-      const shareTarget = `https://www.facebook.com/sharer/sharer.php?u=${url}`
+      const backendUrl = getBackendBaseUrl()
+      let shareProxyUrl = `${backendUrl}/api/share/thread/${this.threadId}`
+      if (!this.isMain && this.postId && String(this.postId) !== 'main_thread_entry') {
+        shareProxyUrl += `?postId=${this.postId}`
+      }
+      const shareTarget = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareProxyUrl)}`
       const width = 640
       const height = 580
       const left = Math.max(0, Math.floor((window.innerWidth - width) / 2 + (window.screenX || 0)))
