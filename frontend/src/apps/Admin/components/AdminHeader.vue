@@ -1,7 +1,9 @@
 <template>
   <header class="admin-header">
     <div class="header-left">
-      <div class="logo" @click="$router.push({ name: 'Home' })">HTXSL</div>
+      <div class="logo" @click="$router.push({ name: 'Home' })" title="HỢP TÁC XÃ VUI VẺ">
+        <img src="/favicon.png" alt="Hợp Tác XÃ Vui Vẻ" class="admin-logo-image" />
+      </div>
     </div>
     <div class="header-right">
       <div class="user-info" v-if="currentUser">
@@ -57,11 +59,22 @@ export default {
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  color: white;
+}
+
+.admin-logo-image {
+  height: 58px;
+  width: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.logo:hover .admin-logo-image {
+  transform: scale(1.08);
 }
 
 .header-right {

@@ -5,7 +5,7 @@
     <main class="container">
       <div class="home-action-bar container" style="display: flex; justify-content: space-between; align-items: center; padding: 0;">
         <div class="forum-slogan" style="font-weight: bold; color: #1a507a; font-size: 1.1rem;">
-          HỢP TÁC XÃ SINH LÝ
+          HỢP TÁC XÃ VUI VẺ
         </div>
         <div v-if="isLoggedIn && !isNonOfficial" class="user-actions">
           <button @click="openPostModal" class="btn-post-thread">Đăng bài...</button>
