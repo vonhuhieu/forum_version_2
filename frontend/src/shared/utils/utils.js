@@ -111,7 +111,7 @@ export function getImeValue(event) {
  */
 export function getCurrentOrigin() {
   if (typeof window !== 'undefined' && window.location) {
-    return window.location.origin;
+    return window.location.origin.replace(/^(https?:\/\/)www\./i, '$1');
   }
   return '';
 }
