@@ -2,7 +2,9 @@
   <header>
     <div class="header-top">
       <div class="container">
-        <div class="logo" style="cursor: pointer;" @click="goToHome">HTXSL</div>
+        <div class="logo header-logo" style="cursor: pointer;" @click="goToHome" title="HỢP TÁC XÃ VUI VẺ">
+          <img src="/favicon.png" alt="Hợp Tác Xã Vui Vẻ" class="logo-image" />
+        </div>
       </div>
     </div>
     <div class="header-nav">
@@ -16,7 +18,9 @@
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <div class="mobile-logo logo" @click="goToHome">HTXSL</div>
+          <div class="mobile-logo logo" @click="goToHome" title="HỢP TÁC XÃ VUI VẺ">
+            <img src="/favicon.png" alt="Hợp Tác Xã Vui Vẻ" class="mobile-logo-image" />
+          </div>
         </div>
 
         <div class="nav-scroll-wrapper">
@@ -445,7 +449,9 @@
       <div class="sidebar-backdrop" @click="isSidebarOpen = false"></div>
       <div class="sidebar-content">
         <div class="sidebar-header">
-          <div class="sidebar-logo" @click="goToHome(); isSidebarOpen = false">HTXSL</div>
+          <div class="sidebar-logo" @click="goToHome(); isSidebarOpen = false" title="HỢP TÁC XÃ VUI VẺ">
+            <img src="/favicon.png" alt="Hợp Tác Xã Vui Vẻ" class="sidebar-logo-image" />MENU
+          </div>
           <button class="btn-close-sidebar" @click="isSidebarOpen = false" aria-label="Đóng menu">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
