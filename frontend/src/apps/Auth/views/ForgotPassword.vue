@@ -34,6 +34,7 @@
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
           </div>
+          <PasswordStrengthMeter :password="newPassword" />
         </div>
         <div class="form-group">
           <label>Nhập lại mật khẩu mới</label>
@@ -63,10 +64,14 @@ import AuthService from '@/apps/Auth/services/auth.service'
 import { FORGOT_PASSWORD_STEPS } from '@/shared/utils/constants'
 import Swal from 'sweetalert2'
 import Loading from '@/shared/components/Loading.vue'
+import PasswordStrengthMeter from '@/shared/components/PasswordStrengthMeter.vue'
 
 export default {
   name: 'ForgotPassword',
-  components: { Loading },
+  components: {
+    Loading,
+    PasswordStrengthMeter
+  },
   data() {
     return {
       STEPS: FORGOT_PASSWORD_STEPS,
