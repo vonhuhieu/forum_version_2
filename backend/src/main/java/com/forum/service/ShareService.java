@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -27,6 +26,17 @@ public class ShareService {
     private static final String SITE_NAME = "HỢP TÁC XÃ VUI VẺ";
 
     /**
+     * Thoát ký tự đặc biệt cho thuộc tính HTML mà vẫn giữ nguyên tiếng Việt Unicode
+     */
+    private String escapeMeta(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("\"", "&quot;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;");
+    }
+
+    /**
      * Sinh trang HTML tĩnh chứa Open Graph meta tags phục vụ social bots (Facebook Crawler, Zalo...)
      * và tự động chuyển hướng người dùng thật về giao diện Vue SPA tương ứng.
      */
@@ -43,8 +53,12 @@ public class ShareService {
             baseFront = baseFront.substring(0, baseFront.length() - 1);
         }
 
-        // URL của chính endpoint share hiện tại (được Facebook Bot cào)
+        // Đảm bảo URL chuẩn HTTPS khi chạy sau Nginx reverse proxy
         String currentShareUrl = request.getRequestURL().toString();
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        if ("https".equalsIgnoreCase(forwardedProto) && currentShareUrl.startsWith("http://")) {
+            currentShareUrl = "https://" + currentShareUrl.substring(7);
+        }
         if (request.getQueryString() != null && !request.getQueryString().isEmpty()) {
             currentShareUrl += "?" + request.getQueryString();
         }
@@ -54,8 +68,8 @@ public class ShareService {
             String fallbackUrl = baseFront != null ? baseFront + "/" : "/";
             log.warn("Social share threadId={} not found, fallback to home: {}", threadId, fallbackUrl);
             return "<!DOCTYPE html><html><head>"
-                    + "<script>window.location.replace('" + HtmlUtils.htmlEscape(fallbackUrl) + "');</script>"
-                    + "<noscript><meta http-equiv=\"refresh\" content=\"0;url=" + HtmlUtils.htmlEscape(fallbackUrl) + "\"></noscript>"
+                    + "<script>window.location.replace('" + escapeMeta(fallbackUrl) + "');</script>"
+                    + "<noscript><meta http-equiv=\"refresh\" content=\"0;url=" + escapeMeta(fallbackUrl) + "\"></noscript>"
                     + "</head><body>Đang chuyển hướng...</body></html>";
         }
 
@@ -73,11 +87,13 @@ public class ShareService {
             plainText = "Xem chi tiết bài thảo luận tại " + SITE_NAME;
         }
 
-        // Tìm ảnh đầu tiên trong nội dung (nếu có thẻ img src="...")
+        // Tìm ảnh đầu tiên trong nội dung, nếu không có dùng ảnh logo mặc định của diễn đàn
         String imageUrl = "";
         Matcher matcher = IMG_PATTERN.matcher(rawContent);
         if (matcher.find()) {
             imageUrl = matcher.group(1);
+        } else if (baseFront != null && !baseFront.isEmpty()) {
+            imageUrl = baseFront + "/favicon-512x512.png";
         }
 
         // Xác định link đích trên Vue SPA để chuyển hướng người dùng thật
@@ -91,37 +107,37 @@ public class ShareService {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n<html lang=\"vi\" prefix=\"og: http://ogp.me/ns#\">\n<head>\n");
         html.append("  <meta charset=\"UTF-8\">\n");
-        html.append("  <title>").append(HtmlUtils.htmlEscape(displayTitle)).append("</title>\n");
-        html.append("  <meta name=\"description\" content=\"").append(HtmlUtils.htmlEscape(plainText)).append("\">\n");
+        html.append("  <title>").append(escapeMeta(displayTitle)).append("</title>\n");
+        html.append("  <meta name=\"description\" content=\"").append(escapeMeta(plainText)).append("\">\n");
 
         // Open Graph Meta Tags cho Facebook, Zalo, Twitter, LinkedIn...
         html.append("  <meta property=\"og:type\" content=\"article\">\n");
-        html.append("  <meta property=\"og:site_name\" content=\"").append(HtmlUtils.htmlEscape(SITE_NAME)).append("\">\n");
-        html.append("  <meta property=\"og:title\" content=\"").append(HtmlUtils.htmlEscape(rawTitle)).append("\">\n");
-        html.append("  <meta property=\"og:description\" content=\"").append(HtmlUtils.htmlEscape(plainText)).append("\">\n");
-        // og:url PHẢI trỏ về chính URL mà crawler đang truy cập để Facebook không cào sang trang Vue SPA
-        html.append("  <meta property=\"og:url\" content=\"").append(HtmlUtils.htmlEscape(currentShareUrl)).append("\">\n");
+        html.append("  <meta property=\"og:site_name\" content=\"").append(escapeMeta(SITE_NAME)).append("\">\n");
+        html.append("  <meta property=\"og:title\" content=\"").append(escapeMeta(rawTitle)).append("\">\n");
+        html.append("  <meta property=\"og:description\" content=\"").append(escapeMeta(plainText)).append("\">\n");
+        // og:url trỏ về chính proxy endpoint hiện tại để Facebook không bị redirect sang cào Vercel
+        html.append("  <meta property=\"og:url\" content=\"").append(escapeMeta(currentShareUrl)).append("\">\n");
 
         if (!imageUrl.isEmpty()) {
-            html.append("  <meta property=\"og:image\" content=\"").append(HtmlUtils.htmlEscape(imageUrl)).append("\">\n");
-            html.append("  <meta name=\"twitter:image\" content=\"").append(HtmlUtils.htmlEscape(imageUrl)).append("\">\n");
+            html.append("  <meta property=\"og:image\" content=\"").append(escapeMeta(imageUrl)).append("\">\n");
+            html.append("  <meta name=\"twitter:image\" content=\"").append(escapeMeta(imageUrl)).append("\">\n");
         }
 
         html.append("  <meta name=\"twitter:card\" content=\"summary_large_image\">\n");
-        html.append("  <meta name=\"twitter:title\" content=\"").append(HtmlUtils.htmlEscape(rawTitle)).append("\">\n");
-        html.append("  <meta name=\"twitter:description\" content=\"").append(HtmlUtils.htmlEscape(plainText)).append("\">\n");
+        html.append("  <meta name=\"twitter:title\" content=\"").append(escapeMeta(rawTitle)).append("\">\n");
+        html.append("  <meta name=\"twitter:description\" content=\"").append(escapeMeta(plainText)).append("\">\n");
 
         // Chuyển hướng người dùng thật bằng JavaScript.
         // Bot (Facebook, Zalo, Twitter) không chạy JavaScript nên sẽ ở lại đọc trọn vẹn thẻ Open Graph.
         html.append("  <script type=\"text/javascript\">\n");
-        html.append("    window.location.replace(\"").append(HtmlUtils.htmlEscape(targetUrl)).append("\");\n");
+        html.append("    window.location.replace(\"").append(escapeMeta(targetUrl)).append("\");\n");
         html.append("  </script>\n");
         html.append("  <noscript>\n");
-        html.append("    <meta http-equiv=\"refresh\" content=\"0;url=").append(HtmlUtils.htmlEscape(targetUrl)).append("\">\n");
+        html.append("    <meta http-equiv=\"refresh\" content=\"0;url=").append(escapeMeta(targetUrl)).append("\">\n");
         html.append("  </noscript>\n");
         html.append("</head>\n<body>\n");
-        html.append("  <p>Đang chuyển hướng đến bài viết: <a href=\"").append(HtmlUtils.htmlEscape(targetUrl)).append("\">")
-                .append(HtmlUtils.htmlEscape(rawTitle)).append("</a>...</p>\n");
+        html.append("  <p>Đang chuyển hướng đến bài viết: <a href=\"").append(escapeMeta(targetUrl)).append("\">")
+                .append(escapeMeta(rawTitle)).append("</a>...</p>\n");
         html.append("</body>\n</html>");
 
         return html.toString();
