@@ -71,17 +71,17 @@ public class EmailService {
             base = base.substring(0, base.length() - 1);
         }
         String confirmUrl = base + "/confirm-email?token=" + token;
-        String subject = "HTXSL Forum - Yêu cầu xác nhận email tài khoản";
+        String subject = "HTXVV Forum - Yêu cầu xác nhận email tài khoản";
         
         String textContent = "Xin chào " + username + ",\n\n"
-            + "Để hoàn tất đăng ký tài khoản tại HTXSL Forum, vui lòng xác nhận địa chỉ email của bạn bằng cách truy cập liên kết sau:\n"
+            + "Để hoàn tất đăng ký tài khoản tại HTXVV Forum, vui lòng xác nhận địa chỉ email của bạn bằng cách truy cập liên kết sau:\n"
             + confirmUrl + "\n\n"
             + "Liên kết này có hiệu lực trong 24 giờ.";
 
         String htmlContent = "<div style=\"font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px; color: #333;\">"
             + "<div style=\"max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);\">"
             + "<div style=\"background-color: #1a507a; padding: 20px; text-align: center; color: #ffffff;\">"
-            + "<h2 style=\"margin: 0; font-size: 22px;\">HTXSL FORUM</h2>"
+            + "<h2 style=\"margin: 0; font-size: 22px;\">HTXVV FORUM</h2>"
             + "</div>"
             + "<div style=\"padding: 30px; line-height: 1.6;\">"
             + "<p>Xin chào <strong>" + username + "</strong>,</p>"
@@ -94,7 +94,7 @@ public class EmailService {
             + "<p style=\"font-size: 0.85em; color: #888; margin-top: 25px;\"><i>Lưu ý: Liên kết xác nhận này có hiệu lực trong 24 giờ.</i></p>"
             + "</div>"
             + "<div style=\"background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 0.8em; color: #777; border-top: 1px solid #eee;\">"
-            + "© HTXSL Forum - Hệ thống tự động gửi email"
+            + "© HTXVV Forum - Hệ thống tự động gửi email"
             + "</div>"
             + "</div>"
             + "</div>";
@@ -135,17 +135,17 @@ public class EmailService {
             base = base.substring(0, base.length() - 1);
         }
         String confirmUrl = base + "/confirm-email?token=" + token;
-        String subject = "HTXSL Forum - Yêu cầu xác nhận email tài khoản";
+        String subject = "HTXVV Forum - Yêu cầu xác nhận email tài khoản";
         
         String textContent = "Xin chào " + username + ",\n\n"
-            + "Để hoàn tất đăng ký tài khoản tại HTXSL Forum, vui lòng xác nhận địa chỉ email của bạn bằng cách truy cập liên kết sau:\n"
+            + "Để hoàn tất đăng ký tài khoản tại HTXVV Forum, vui lòng xác nhận địa chỉ email của bạn bằng cách truy cập liên kết sau:\n"
             + confirmUrl + "\n\n"
             + "Liên kết này có hiệu lực trong 24 giờ.";
 
         String htmlContent = "<div style=\"font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px; color: #333;\">"
             + "<div style=\"max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);\">"
             + "<div style=\"background-color: #1a507a; padding: 20px; text-align: center; color: #ffffff;\">"
-            + "<h2 style=\"margin: 0; font-size: 22px;\">HTXSL FORUM</h2>"
+            + "<h2 style=\"margin: 0; font-size: 22px;\">HTXVV FORUM</h2>"
             + "</div>"
             + "<div style=\"padding: 30px; line-height: 1.6;\">"
             + "<p>Xin chào <strong>" + username + "</strong>,</p>"
@@ -158,7 +158,7 @@ public class EmailService {
             + "<p style=\"font-size: 0.85em; color: #888; margin-top: 25px;\"><i>Lưu ý: Liên kết xác nhận này có hiệu lực trong 24 giờ.</i></p>"
             + "</div>"
             + "<div style=\"background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 0.8em; color: #777; border-top: 1px solid #eee;\">"
-            + "© HTXSL Forum - Hệ thống tự động gửi email"
+            + "© HTXVV Forum - Hệ thống tự động gửi email"
             + "</div>"
             + "</div>"
             + "</div>";
