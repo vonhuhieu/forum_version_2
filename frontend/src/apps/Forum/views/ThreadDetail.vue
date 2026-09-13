@@ -91,8 +91,13 @@
               <div class="post-meta-top">
                 <span class="post-time-top">{{ formatDate(thread.createdAt) }}</span>
                 <div class="post-actions-top">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  <PostSharePopup 
+                    :thread-id="thread.id" 
+                    :post-id="item.id" 
+                    :is-main="true" 
+                    :post-number="item.seqNumber" 
+                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon-top"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   <span class="post-number">#1</span>
                 </div>
               </div>
@@ -184,8 +189,13 @@
               <div class="post-meta-top">
                 <span class="post-time-top">{{ formatDate(item.createdAt) }}</span>
                 <div class="post-actions-top">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  <PostSharePopup 
+                    :thread-id="thread.id" 
+                    :post-id="item.id" 
+                    :is-main="false" 
+                    :post-number="item.seqNumber" 
+                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon-top"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   <span class="post-number">#{{ item.seqNumber }}</span>
                 </div>
               </div>
@@ -350,6 +360,7 @@ import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import ReportModal from '@/shared/components/ReportModal.vue'
+import PostSharePopup from '@/shared/components/PostSharePopup.vue'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import { formatForumDate } from '@/shared/utils/date'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
@@ -377,7 +388,8 @@ export default {
     VerifiedBadge,
     Loading,
     UserProfilePopup,
-    ReportModal
+    ReportModal,
+    PostSharePopup
   },
   data() {
     const userStr = localStorage.getItem('user')
@@ -569,6 +581,7 @@ export default {
 
     window.addEventListener('notification-clicked', this.onNotificationClicked);
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated);
+    window.addEventListener('hashchange', this.handleHashChange);
   },
   updated() {
     this.initQuoteCollapsing()
@@ -576,6 +589,7 @@ export default {
   beforeUnmount() {
     window.removeEventListener('notification-clicked', this.onNotificationClicked);
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated);
+    window.removeEventListener('hashchange', this.handleHashChange);
   },
   watch: {
     // Lắng nghe khi tham số query thay đổi (trong trường hợp click thông báo khi đang ở sẵn trong trang này)
@@ -834,6 +848,7 @@ export default {
         content = this.processMediaTags(content)
 
         this.thread = { ...response.data, content }
+        this.updateMetaTags(this.thread)
 
         // Fetch Group Name
         if (this.thread.category && this.thread.category.categoryGroupId) {
@@ -903,12 +918,41 @@ export default {
          setTimeout(() => {
            const element = document.getElementById(`post-${pId}`);
            if (element) {
-             element.scrollIntoView({ behavior: 'auto', block: 'center' });
+             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
              setTimeout(() => {
                 this.highlightedPostId = null;
              }, 4000);
            }
          }, 400);
+      }
+    },
+    handleHashChange() {
+      if (window.location.hash && window.location.hash.startsWith('#post-')) {
+        this.jumpToTargetPost();
+      }
+    },
+    updateMetaTags(thread) {
+      if (!thread) return;
+      document.title = `${thread.title} | HỢP TÁC XÃ VUI VẺ`;
+      
+      const setMetaTag = (property, content) => {
+        let element = document.querySelector(`meta[property="${property}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute('property', property);
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      setMetaTag('og:title', thread.title);
+      setMetaTag('og:url', window.location.href);
+      setMetaTag('og:type', 'article');
+      if (thread.content) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = thread.content;
+        const plainText = (tmp.textContent || tmp.innerText || '').trim().substring(0, 200);
+        setMetaTag('og:description', plainText);
       }
     },
     processMediaTags(content) {
@@ -1675,8 +1719,19 @@ export default {
   gap: 10px;
 }
 
+.action-icon-top {
+  cursor: pointer;
+  color: #718096;
+  transition: color 0.15s ease;
+}
+
+.action-icon-top:hover {
+  color: #1a507a;
+}
+
 .post-number {
   font-weight: bold;
+  color: #718096;
 }
 
 .content-body {
