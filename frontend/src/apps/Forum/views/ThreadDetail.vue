@@ -97,7 +97,7 @@
                     :is-main="true" 
                     :post-number="item.seqNumber" 
                   />
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon-top"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  <svg v-if="isLoggedIn && !isNonOfficial" @click.stop="handleBookmarkClick(item, $event)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" :fill="isBookmarked(item) ? '#d4a017' : 'none'" :stroke="isBookmarked(item) ? '#d4a017' : 'currentColor'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="['action-icon-top', 'bookmark-icon', { 'bookmarked': isBookmarked(item) }]" title="Bookmark"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   <span class="post-number">#1</span>
                 </div>
               </div>
@@ -195,7 +195,7 @@
                     :is-main="false" 
                     :post-number="item.seqNumber" 
                   />
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon-top"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  <svg v-if="isLoggedIn && !isNonOfficial" @click.stop="handleBookmarkClick(item, $event)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" :fill="isBookmarked(item) ? '#d4a017' : 'none'" :stroke="isBookmarked(item) ? '#d4a017' : 'currentColor'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="['action-icon-top', 'bookmark-icon', { 'bookmarked': isBookmarked(item) }]" title="Bookmark"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   <span class="post-number">#{{ item.seqNumber }}</span>
                 </div>
               </div>
@@ -330,6 +330,20 @@
         :submitting="submittingReport"
         @submit="handleReportSubmit"
       />
+
+      <BookmarkPopup
+        :show="showBookmarkPopup"
+        :mode="bookmarkPopupMode"
+        :bookmark-id="bookmarkPopupData.bookmarkId"
+        :thread-id="bookmarkPopupData.threadId"
+        :post-id="bookmarkPopupData.postId"
+        :initial-note="bookmarkPopupData.note"
+        :initial-labels="bookmarkPopupData.labels"
+        :anchor-el="bookmarkAnchorEl"
+        @close="showBookmarkPopup = false"
+        @saved="onBookmarkSaved"
+        @deleted="onBookmarkDeleted"
+      />
     </main>
   </div>
   <Loading :visible="loading || isUploadLoading" />
@@ -373,6 +387,8 @@ import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml, formatUploadUr
 import { getBackendBaseUrl } from '@/shared/services/api.service'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
+import bookmarkService from '@/apps/Forum/services/bookmark.service'
+import BookmarkPopup from '@/shared/components/BookmarkPopup.vue'
 
 export default {
   name: 'ThreadDetail',
@@ -389,7 +405,8 @@ export default {
     Loading,
     UserProfilePopup,
     ReportModal,
-    PostSharePopup
+    PostSharePopup,
+    BookmarkPopup
   },
   data() {
     const userStr = localStorage.getItem('user')
@@ -444,6 +461,18 @@ export default {
       reportTarget: {
         type: null,
         id: null
+      },
+      // Bookmark
+      bookmarkedItems: {},
+      showBookmarkPopup: false,
+      bookmarkAnchorEl: null,
+      bookmarkPopupMode: 'create',
+      bookmarkPopupData: {
+        bookmarkId: null,
+        threadId: null,
+        postId: null,
+        note: '',
+        labels: []
       }
     }
   },
@@ -568,6 +597,10 @@ export default {
         this.fetchFollowStatus(),
         this.fetchSettings()
       ]);
+      // Fetch bookmark status sau khi data đã load
+      if (this.isLoggedIn && !this.isNonOfficial) {
+        this.fetchBookmarkStatus();
+      }
     } catch (e) {
       console.error('Lỗi khi tải dữ liệu trang:', e);
     } finally {
@@ -613,6 +646,10 @@ export default {
           this.loading = true;
           try {
             await this.fetchPosts();
+            // Reload bookmark status khi đổi trang
+            if (this.isLoggedIn && !this.isNonOfficial) {
+              this.fetchBookmarkStatus();
+            }
           } catch (e) {
             console.error('Error fetching page posts:', e);
           } finally {
@@ -1564,6 +1601,114 @@ export default {
         return processed;
       }
       return this.highlightHtmlContent(processed, keyword);
+    },
+    getItemBookmarkKey(item) {
+      if (!item) return null;
+      if (item.isMain || item.seqNumber === 1) {
+        return 'thread_' + this.thread.id;
+      }
+      return 'post_' + item.id;
+    },
+    isBookmarked(item) {
+      const key = this.getItemBookmarkKey(item);
+      return !!(key && this.bookmarkedItems[key]);
+    },
+    async handleBookmarkClick(item, event) {
+      if (!this.isLoggedIn || this.isNonOfficial) return;
+      const key = this.getItemBookmarkKey(item);
+      if (!key) return;
+
+      if (event) {
+        this.bookmarkAnchorEl = event.currentTarget || event.target;
+      }
+
+      const isMain = item.isMain || item.seqNumber === 1;
+      const threadId = this.thread ? this.thread.id : (isMain ? item.id : null);
+      const postId = isMain ? null : item.id;
+
+      if (this.bookmarkedItems[key]) {
+        // Đã bookmark -> Mở popup sửa/xóa
+        const bookmarkId = this.bookmarkedItems[key];
+        try {
+          const res = await bookmarkService.getById(bookmarkId);
+          const data = res.data.data || res.data;
+          this.bookmarkPopupData = {
+            bookmarkId: data.id,
+            threadId: data.threadId,
+            postId: data.postId,
+            note: data.note || '',
+            labels: data.labels || []
+          };
+          this.bookmarkPopupMode = 'edit';
+          this.showBookmarkPopup = true;
+        } catch (e) {
+          console.error('Error fetching bookmark detail:', e);
+          this.bookmarkPopupData = {
+            bookmarkId: bookmarkId,
+            threadId: threadId,
+            postId: postId,
+            note: '',
+            labels: []
+          };
+          this.bookmarkPopupMode = 'edit';
+          this.showBookmarkPopup = true;
+        }
+      } else {
+        // Chưa bookmark -> Tự động lưu vào DB
+        try {
+          const res = await bookmarkService.create({
+            threadId: threadId,
+            postId: postId,
+            note: '',
+            labels: []
+          });
+          const savedBookmark = res.data.data || res.data;
+          this.bookmarkedItems = {
+            ...this.bookmarkedItems,
+            [key]: savedBookmark.id
+          };
+          toastSuccess('Bookmark đã được lưu thành công');
+
+          // Mở popup ngay sau khi lưu để người dùng có thể nhập note/labels hoặc xóa
+          this.bookmarkPopupData = {
+            bookmarkId: savedBookmark.id,
+            threadId: threadId,
+            postId: postId,
+            note: '',
+            labels: []
+          };
+          this.bookmarkPopupMode = 'create';
+          this.showBookmarkPopup = true;
+        } catch (e) {
+          console.error('Error creating bookmark:', e);
+          toastError('Không thể lưu bookmark');
+        }
+      }
+    },
+    async fetchBookmarkStatus() {
+      if (!this.isLoggedIn || this.isNonOfficial || !this.thread) return;
+      try {
+        const threadIds = [this.thread.id];
+        const postIds = (this.posts || []).map(p => p.id);
+        const res = await bookmarkService.checkStatus(threadIds, postIds);
+        const statusMap = res.data.data || res.data || {};
+        this.bookmarkedItems = { ...statusMap };
+      } catch (e) {
+        console.error('Error checking bookmark status:', e);
+      }
+    },
+    onBookmarkSaved() {
+      this.fetchBookmarkStatus();
+    },
+    onBookmarkDeleted() {
+      const activeKey = this.bookmarkPopupData.postId 
+        ? ('post_' + this.bookmarkPopupData.postId)
+        : ('thread_' + this.bookmarkPopupData.threadId);
+      if (activeKey && this.bookmarkedItems[activeKey]) {
+        const updated = { ...this.bookmarkedItems };
+        delete updated[activeKey];
+        this.bookmarkedItems = updated;
+      }
     }
   }
 }
@@ -1727,6 +1872,21 @@ export default {
 
 .action-icon-top:hover {
   color: #1a507a;
+}
+
+.bookmark-icon {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bookmark-icon:hover {
+  color: #d4a017 !important;
+  stroke: #d4a017 !important;
+  fill: rgba(212, 160, 23, 0.15);
+}
+
+.bookmark-icon.bookmarked {
+  color: #d4a017 !important;
 }
 
 .post-number {
