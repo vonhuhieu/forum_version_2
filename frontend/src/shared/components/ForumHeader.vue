@@ -81,7 +81,7 @@
                   <button 
                     class="xamvn-tab-btn" 
                     :class="{ 'active': activeUserTab === 'bookmarks' }" 
-                    @click="activeUserTab = 'bookmarks'"
+                    @click="switchUserTab('bookmarks')"
                   >
                     Dấu trang
                   </button>
@@ -138,8 +138,126 @@
 
                 <!-- Tab: Dấu trang -->
                 <div v-show="activeUserTab === 'bookmarks'" class="xamvn-tab-content xamvn-bookmarks-tab">
-                  <div class="xamvn-empty-message">
-                    Không có dấu trang nào được lưu.
+                  <!-- Bộ lọc theo nhãn -->
+                  <div class="header-bookmark-filter-wrapper" ref="headerBookmarkFilterWrapper">
+                    <input 
+                      type="text" 
+                      class="header-bookmark-filter-input" 
+                      v-model="bookmarkLabelSearchKeyword" 
+                      placeholder="Lọc theo nhãn..." 
+                      @focus="bookmarkLabelDropdownOpen = true"
+                      @input="bookmarkLabelDropdownOpen = true"
+                      @keydown.down.prevent="navigateHeaderLabelDropdown('down')"
+                      @keydown.up.prevent="navigateHeaderLabelDropdown('up')"
+                      @keydown.enter.prevent="confirmHeaderLabelSelection"
+                      @keydown.esc="bookmarkLabelDropdownOpen = false"
+                    />
+                    <div class="header-bookmark-label-dropdown" v-if="bookmarkLabelDropdownOpen && filteredHeaderBookmarkLabels.length > 0">
+                      <div 
+                        v-for="(label, idx) in filteredHeaderBookmarkLabels" 
+                        :key="idx" 
+                        :class="['header-bookmark-label-option', { 'active': idx === bookmarkSelectedLabelIndex, 'selected': bookmarkFilterLabel === label }]"
+                        @click="selectHeaderFilterLabel(label)"
+                        @mouseenter="bookmarkSelectedLabelIndex = idx"
+                      >
+                        {{ label }}
+                      </div>
+                    </div>
+                    <div v-if="bookmarkFilterLabel" class="header-active-label-badge">
+                      <span>Nhãn: <strong>{{ bookmarkFilterLabel }}</strong></span>
+                      <span class="header-remove-label-btn" @click="clearHeaderFilterLabel">&times;</span>
+                    </div>
+                  </div>
+
+                  <!-- Danh sách Bookmark items với infinite scroll -->
+                  <div class="xamvn-bookmarks-list" @scroll="handleBookmarkScroll" ref="headerBookmarkListRef">
+                    <div v-if="bookmarks.length > 0">
+                      <div 
+                        v-for="b in bookmarks" 
+                        :key="b.id" 
+                        class="header-bookmark-item"
+                      >
+                        <!-- Cột trái: Avatar tác giả -->
+                        <div class="header-bm-avatar-col">
+                          <user-profile-popup :user="getBookmarkAuthor(b)" v-if="getBookmarkAuthor(b)">
+                            <div class="header-bm-avatar" :style="!isAvatarUrl(b.authorAvatar) ? { backgroundColor: b.authorAvatar || '#3498db' } : {}">
+                              <img v-if="isAvatarUrl(b.authorAvatar)" :src="formatAvatarUrl(b.authorAvatar)" alt="avatar" />
+                              <template v-else>
+                                {{ (b.authorDisplayName || b.authorUsername || '?').charAt(0).toUpperCase() }}
+                              </template>
+                            </div>
+                          </user-profile-popup>
+                          <div v-else class="header-bm-avatar" style="background-color: #ccc; color: #fff;">?</div>
+                        </div>
+
+                        <!-- Cột giữa: Thông tin 3 dòng -->
+                        <div class="header-bm-info-col">
+                          <!-- Dòng 1: Tiêu đề link -->
+                          <a :href="getBookmarkUrl(b)" @click.prevent="goToBookmark(b)" class="header-bm-title-link">
+                            {{ b.threadTitle }}
+                          </a>
+
+                          <!-- Dòng 2: Nội dung cắt ngắn -->
+                          <div class="header-bm-snippet" v-if="b.contentPreview">
+                            {{ b.contentPreview }}
+                          </div>
+
+                          <!-- Dòng 3: Meta line -->
+                          <div class="header-bm-meta-line">
+                            <span class="header-bm-author">
+                              <user-profile-popup :user="getBookmarkAuthor(b)" v-if="getBookmarkAuthor(b)">
+                                <span class="cursor-pointer">{{ b.authorDisplayName || b.authorUsername }} <VerifiedBadge :user="getBookmarkAuthor(b)" size="12px" /></span>
+                              </user-profile-popup>
+                              <span v-else>{{ b.authorDisplayName || b.authorUsername }}</span>
+                            </span>
+                            <span class="header-bm-dot">·</span>
+                            <span class="header-bm-time">{{ formatTime(b.createdAt) }}</span>
+                            <template v-if="b.labels && b.labels.length > 0">
+                              <span class="header-bm-dot">·</span>
+                              <span class="header-bm-labels-wrap">
+                                <span v-for="(lbl, lidx) in b.labels" :key="lidx" class="header-bm-pill">{{ lbl }}</span>
+                              </span>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Cột phải: Tools button + dropdown -->
+                        <div class="header-bm-tools-col">
+                          <button class="btn-header-bm-tools" @click.stop="toggleBookmarkTools(b.id)" title="Bookmark tools">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </button>
+
+                          <!-- Dropdown menu -->
+                          <div class="header-bm-tools-menu" v-if="activeBookmarkToolsId === b.id" @click.stop>
+                            <button class="header-bm-tools-menu-item" @click="handleCopyBookmarkLink(b)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                              Sao chép liên kết
+                            </button>
+                            <button class="header-bm-tools-menu-item" @click="openEditBookmarkPopup(b)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                              Sửa
+                            </button>
+                            <button class="header-bm-tools-menu-item text-danger" @click="handleDeleteBookmark(b)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              Xóa
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div class="xamvn-empty-message" v-else style="padding: 24px 15px;">
+                      {{ bookmarkFilterLabel ? 'Không tìm thấy dấu trang nào với nhãn này.' : 'Không có dấu trang nào được lưu.' }}
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="notif-footer" style="border-top: 1px solid #e9ecef;">
+                    <a href="#" class="btn-load-more" :class="{ 'disabled': bookmarkPage >= bookmarkTotalPages - 1 || loadingMoreBookmarks }" @click.prevent="loadMoreBookmarks">Xem thêm</a>
+                    <span style="color: #ccc;">·</span>
+                    <router-link :to="{ name: 'BookmarkList' }" @click="showUserDropdown = false">Xem tất cả</router-link>
                   </div>
                 </div>
 
@@ -483,6 +601,18 @@
   <PendingApprovalBanner v-if="isNonOfficial" />
   <SearchModal v-model:show="showSearchModal" :initial-query="searchQuery" />
   <AvatarUploadModal :show="showAvatarModal" :current-user="currentUser" @close="showAvatarModal = false" @avatar-updated="onAvatarUpdated" />
+  <BookmarkPopup
+    :show="showBookmarkEditPopup"
+    mode="edit"
+    :bookmark-id="bookmarkEditData ? bookmarkEditData.id : null"
+    :thread-id="bookmarkEditData ? bookmarkEditData.threadId : null"
+    :post-id="bookmarkEditData ? bookmarkEditData.postId : null"
+    :initial-note="bookmarkEditData ? bookmarkEditData.note : ''"
+    :initial-labels="bookmarkEditData ? bookmarkEditData.labels : []"
+    @close="showBookmarkEditPopup = false"
+    @saved="onHeaderBookmarkSaved"
+    @deleted="onHeaderBookmarkDeleted"
+  />
 </template>
 
 <script>
@@ -491,8 +621,9 @@ import webSocketService from '@/shared/services/websocket.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import menuService from '@/apps/Forum/services/menu.service'
 import notificationService from '@/apps/Forum/services/notification.service'
+import bookmarkService from '@/apps/Forum/services/bookmark.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { alertSuccess, alertWarning } from '@/shared/utils/swal'
+import { alertSuccess, alertWarning, toastSuccess, toastError, alertConfirm } from '@/shared/utils/swal'
 import { isNonOfficialUser, truncateString, formatAvatarUrl, isAvatarUrl } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
@@ -500,6 +631,7 @@ import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import BookmarkPopup from '@/shared/components/BookmarkPopup.vue'
 import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
@@ -511,7 +643,8 @@ export default {
     ReactionIcon,
     AvatarUploadModal,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    BookmarkPopup
   },
   data() {
     return {
@@ -540,10 +673,30 @@ export default {
       showSearchDropdown: false,
       showSearchModal: false,
       activeUserTab: 'account',
-      showAvatarModal: false
+      showAvatarModal: false,
+      // Bookmark data for header
+      bookmarks: [],
+      bookmarkPage: 0,
+      bookmarkTotalPages: 0,
+      bookmarkTotalElements: 0,
+      loadingBookmarks: false,
+      loadingMoreBookmarks: false,
+      bookmarkLabels: [],
+      bookmarkFilterLabel: '',
+      bookmarkLabelSearchKeyword: '',
+      bookmarkLabelDropdownOpen: false,
+      bookmarkSelectedLabelIndex: -1,
+      activeBookmarkToolsId: null,
+      showBookmarkEditPopup: false,
+      bookmarkEditData: null
     }
   },
   computed: {
+    filteredHeaderBookmarkLabels() {
+      const q = this.bookmarkLabelSearchKeyword.trim().toLowerCase()
+      if (!q) return this.bookmarkLabels
+      return this.bookmarkLabels.filter(l => l.toLowerCase().includes(q))
+    },
     isMobile() {
       return this.windowWidth < 768
     },
@@ -871,7 +1024,167 @@ export default {
       if (this.showUserDropdown) {
         this.activeUserTab = 'account'
         this.syncUserProfile()
+      } else {
+        this.activeBookmarkToolsId = null
+        this.bookmarkLabelDropdownOpen = false
       }
+    },
+    switchUserTab(tab) {
+      this.activeUserTab = tab
+      if (tab === 'bookmarks') {
+        this.fetchHeaderBookmarks(true)
+        this.fetchHeaderBookmarkLabels()
+      }
+    },
+    async fetchHeaderBookmarkLabels() {
+      try {
+        const res = await bookmarkService.getLabels()
+        this.bookmarkLabels = res.data.data || res.data || []
+      } catch (e) {
+        console.error('Error fetching bookmark labels in header:', e)
+      }
+    },
+    async fetchHeaderBookmarks(reset = false) {
+      if (reset) {
+        this.bookmarkPage = 0
+        this.bookmarks = []
+      }
+      this.loadingBookmarks = true
+      try {
+        const params = {
+          page: this.bookmarkPage,
+          size: 10
+        }
+        if (this.bookmarkFilterLabel) {
+          params.label = this.bookmarkFilterLabel
+        }
+        const res = await bookmarkService.getPage(params)
+        const data = res.data.data || res.data || {}
+        const items = data.content || []
+        if (reset) {
+          this.bookmarks = items
+        } else {
+          this.bookmarks = [...this.bookmarks, ...items]
+        }
+        this.bookmarkTotalPages = data.totalPages || 1
+        this.bookmarkTotalElements = data.totalElements || 0
+      } catch (e) {
+        console.error('Error fetching bookmarks in header:', e)
+      } finally {
+        this.loadingBookmarks = false
+        this.loadingMoreBookmarks = false
+      }
+    },
+    async loadMoreBookmarks() {
+      if (this.loadingMoreBookmarks || this.bookmarkPage >= this.bookmarkTotalPages - 1) return
+      this.loadingMoreBookmarks = true
+      this.bookmarkPage++
+      await this.fetchHeaderBookmarks(false)
+    },
+    handleBookmarkScroll(e) {
+      const el = e.target
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+        if (!this.loadingMoreBookmarks && this.bookmarkPage < this.bookmarkTotalPages - 1) {
+          this.loadMoreBookmarks()
+        }
+      }
+    },
+    selectHeaderFilterLabel(label) {
+      this.bookmarkFilterLabel = label
+      this.bookmarkLabelDropdownOpen = false
+      this.bookmarkLabelSearchKeyword = ''
+      this.fetchHeaderBookmarks(true)
+    },
+    clearHeaderFilterLabel() {
+      this.bookmarkFilterLabel = ''
+      this.bookmarkLabelDropdownOpen = false
+      this.bookmarkLabelSearchKeyword = ''
+      this.fetchHeaderBookmarks(true)
+    },
+    navigateHeaderLabelDropdown(direction) {
+      const list = this.filteredHeaderBookmarkLabels
+      if (list.length === 0) return
+      if (direction === 'down') {
+        this.bookmarkSelectedLabelIndex = (this.bookmarkSelectedLabelIndex + 1) % list.length
+      } else {
+        this.bookmarkSelectedLabelIndex = this.bookmarkSelectedLabelIndex <= 0 ? list.length - 1 : this.bookmarkSelectedLabelIndex - 1
+      }
+    },
+    confirmHeaderLabelSelection() {
+      const list = this.filteredHeaderBookmarkLabels
+      if (this.bookmarkSelectedLabelIndex >= 0 && this.bookmarkSelectedLabelIndex < list.length) {
+        this.selectHeaderFilterLabel(list[this.bookmarkSelectedLabelIndex])
+      } else if (this.bookmarkLabelSearchKeyword.trim()) {
+        this.selectHeaderFilterLabel(this.bookmarkLabelSearchKeyword.trim())
+      }
+    },
+    getBookmarkAuthor(b) {
+      if (!b || !b.authorId) return null
+      return {
+        id: b.authorId,
+        username: b.authorUsername,
+        displayName: b.authorDisplayName,
+        avatar: b.authorAvatar,
+        verifiedBadge: b.authorIsVerifiedBadge
+      }
+    },
+    getBookmarkUrl(b) {
+      if (!b) return '#'
+      if (b.postId) {
+        return `/threads/${b.threadId}?postId=${b.postId}`
+      }
+      return `/threads/${b.threadId}`
+    },
+    goToBookmark(b) {
+      if (!b) return
+      this.showUserDropdown = false
+      if (b.postId) {
+        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId }, query: { postId: b.postId } })
+      } else {
+        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId } })
+      }
+    },
+    toggleBookmarkTools(id) {
+      this.activeBookmarkToolsId = this.activeBookmarkToolsId === id ? null : id
+    },
+    async handleCopyBookmarkLink(b) {
+      this.activeBookmarkToolsId = null
+      const fullUrl = window.location.origin + this.getBookmarkUrl(b)
+      try {
+        await navigator.clipboard.writeText(fullUrl)
+        toastSuccess('Đã sao chép liên kết vào bộ nhớ tạm')
+      } catch (e) {
+        console.error('Error copying bookmark link:', e)
+        toastError('Không thể sao chép liên kết')
+      }
+    },
+    openEditBookmarkPopup(b) {
+      this.activeBookmarkToolsId = null
+      this.bookmarkEditData = b
+      this.showBookmarkEditPopup = true
+    },
+    async handleDeleteBookmark(b) {
+      this.activeBookmarkToolsId = null
+      const confirm = await alertConfirm('Xóa bookmark', 'Bạn có chắc chắn muốn xóa bookmark này?')
+      if (!confirm.isConfirmed) return
+
+      try {
+        await bookmarkService.delete(b.id)
+        toastSuccess('Xóa bookmark thành công')
+        await this.fetchHeaderBookmarks(true)
+        await this.fetchHeaderBookmarkLabels()
+      } catch (e) {
+        console.error('Error deleting bookmark in header:', e)
+        toastError('Không thể xóa bookmark')
+      }
+    },
+    onHeaderBookmarkSaved() {
+      this.fetchHeaderBookmarks(true)
+      this.fetchHeaderBookmarkLabels()
+    },
+    onHeaderBookmarkDeleted() {
+      this.fetchHeaderBookmarks(true)
+      this.fetchHeaderBookmarkLabels()
     },
     viewYourContent() {
       this.showUserDropdown = false
@@ -1014,6 +1327,13 @@ export default {
       const userContainer = this.$refs.userContainer
       if (userContainer && !userContainer.contains(e.target)) {
         this.showUserDropdown = false
+        this.activeBookmarkToolsId = null
+        this.bookmarkLabelDropdownOpen = false
+      } else {
+        this.activeBookmarkToolsId = null
+        if (this.$refs.headerBookmarkFilterWrapper && !this.$refs.headerBookmarkFilterWrapper.contains(e.target)) {
+          this.bookmarkLabelDropdownOpen = false
+        }
       }
       const mailContainer = this.$refs.mailContainer
       if (mailContainer && !mailContainer.contains(e.target)) {
@@ -1758,9 +2078,265 @@ export default {
 }
 
 .xamvn-bookmarks-tab {
-  padding: 30px 15px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-bookmark-filter-wrapper {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  position: relative;
+  background: #fbfbfb;
+}
+
+.header-bookmark-filter-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.header-bookmark-filter-input:focus {
+  border-color: #1a507a;
+}
+
+.header-bookmark-label-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  right: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.header-bookmark-label-option {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #2c3e50;
+}
+
+.header-bookmark-label-option:hover,
+.header-bookmark-label-option.active {
+  background: #eef4f9;
+  color: #1a507a;
+}
+
+.header-bookmark-label-option.selected {
+  font-weight: 600;
+  color: #1a507a;
+  background: #e3effd;
+}
+
+.header-active-label-badge {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #eef4f9;
+  color: #1a507a;
+  border: 1px solid #c5d5e2;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+}
+
+.header-remove-label-btn {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  line-height: 1;
+}
+
+.header-remove-label-btn:hover {
+  color: #e74c3c;
+}
+
+.xamvn-bookmarks-list {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-bookmark-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.header-bookmark-item:hover {
+  background: #fbfbfb;
+}
+
+.header-bm-avatar-col {
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.header-bm-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.header-bm-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-bm-info-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-bm-title-link {
+  display: inline-block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a507a;
+  text-decoration: none;
+  margin-bottom: 3px;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.header-bm-title-link:hover {
+  color: #d35400;
+  text-decoration: underline;
+}
+
+.header-bm-snippet {
+  font-size: 0.78rem;
+  color: #555;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.header-bm-meta-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.74rem;
+  color: #7f8c8d;
+}
+
+.header-bm-author {
+  color: #2c3e50;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-bm-dot {
+  color: #ccc;
+}
+
+.header-bm-time {
+  color: #7f8c8d;
+}
+
+.header-bm-labels-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.header-bm-pill {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+}
+
+.header-bm-tools-col {
+  flex-shrink: 0;
+  margin-left: 8px;
+  position: relative;
+}
+
+.btn-header-bm-tools {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 5px;
+  background: #f8f9fa;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-header-bm-tools:hover {
+  background: #eef4f9;
+  border-color: #1a507a;
+  color: #1a507a;
+}
+
+.header-bm-tools-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 3px;
+  width: 145px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+  z-index: 150;
+  padding: 4px 0;
+}
+
+.header-bm-tools-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  font-size: 0.78rem;
+  color: #333;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.header-bm-tools-menu-item:hover {
+  background: #f1f4f8;
+}
+
+.header-bm-tools-menu-item.text-danger {
+  color: #e74c3c;
+}
+
+.header-bm-tools-menu-item.text-danger:hover {
+  background: #fdf2f2;
 }
 
 .xamvn-empty-message {
