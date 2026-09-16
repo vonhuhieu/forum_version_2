@@ -52,13 +52,14 @@
             >
               Điểm tương tác nhận được
             </router-link>
-            <a 
-              href="#" 
+            <router-link 
+              :to="{ name: 'BookmarkList' }" 
               class="menu-item" 
-              @click.prevent="isOpen = false"
+              :class="{ 'is-active': activeMenu === 'bookmarks' }"
+              @click="isOpen = false"
             >
               Dấu trang
-            </a>
+            </router-link>
             <div class="menu-divider"></div>
             <div class="menu-section-header">Thiết lập</div>
             <a 
