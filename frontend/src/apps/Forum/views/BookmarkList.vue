@@ -87,10 +87,11 @@
               <div
                 v-for="b in bookmarks"
                 :key="b.id"
-                class="bookmark-list-item"
+                class="bookmark-list-item cursor-pointer"
+                @click="goToBookmark(b)"
               >
                 <!-- Avatar -->
-                <div class="bookmark-avatar-col">
+                <div class="bookmark-avatar-col" @click.stop>
                   <UserProfilePopup :user="getAuthorObj(b)" v-if="getAuthorObj(b)">
                     <div class="bookmark-avatar" :style="!isAvatarUrl(b.authorAvatar) ? { backgroundColor: b.authorAvatar || '#3498db' } : {}">
                       <img v-if="isAvatarUrl(b.authorAvatar)" :src="formatAvatarUrl(b.authorAvatar)" alt="avatar" />
@@ -117,7 +118,7 @@
                   <!-- Line 3: Meta line -->
                   <div class="bookmark-meta">
                     <UserProfilePopup :user="getAuthorObj(b)" v-if="getAuthorObj(b)">
-                      <span class="bookmark-author cursor-pointer">
+                      <span class="bookmark-author cursor-pointer" @click.stop>
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         {{ b.authorDisplayName || b.authorUsername }}
                         <VerifiedBadge :user="getAuthorObj(b)" size="12px" />
@@ -137,12 +138,12 @@
 
                     <template v-if="b.labels && b.labels.length > 0">
                       <span class="meta-separator">·</span>
-                      <span class="bookmark-labels-tags">
+                      <span class="bookmark-labels-tags" @click.stop>
                         <span
                           v-for="(lbl, lidx) in b.labels"
                           :key="lidx"
                           class="bookmark-tag-pill"
-                          @click="selectLabel(lbl)"
+                          @click.stop="selectLabel(lbl)"
                         >
                           {{ lbl }}
                         </span>
@@ -152,7 +153,7 @@
                 </div>
 
                 <!-- Tools Dropdown -->
-                <div class="bookmark-tools-col">
+                <div class="bookmark-tools-col" @click.stop>
                   <div class="tools-btn-wrapper" ref="toolsWrapper">
                     <button class="btn-tools" @click.stop="toggleTools(b.id)" title="Bookmark tools">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -310,18 +311,13 @@ export default {
     },
     getBookmarkUrl(b) {
       if (!b) return '#'
-      if (b.postId) {
-        return `/threads/${b.threadId}?postId=${b.postId}`
-      }
-      return `/threads/${b.threadId}`
+      const targetPost = b.postId || 'main_thread_entry'
+      return `/thread/${b.threadId}?postId=${targetPost}`
     },
     goToBookmark(b) {
       if (!b) return
-      if (b.postId) {
-        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId }, query: { postId: b.postId } })
-      } else {
-        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId } })
-      }
+      const targetPost = b.postId || 'main_thread_entry'
+      this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId }, query: { postId: targetPost } })
     },
     async fetchLabels() {
       try {
@@ -342,12 +338,15 @@ export default {
           params.label = this.appliedLabel
         }
         const res = await bookmarkService.getPage(params)
-        const pageData = res.data.data || res.data || {}
+        const pageData = (res.data && res.data.content !== undefined) ? res.data : (res.data?.data || res.data || {})
         this.bookmarks = pageData.content || []
         this.totalPages = pageData.totalPages || 1
         this.totalElements = pageData.totalElements || 0
       } catch (e) {
         console.error('Error fetching bookmarks:', e)
+        this.bookmarks = []
+        this.totalPages = 1
+        this.totalElements = 0
       } finally {
         this.loading = false
       }
@@ -838,5 +837,35 @@ export default {
   border-top: 1px solid #e9ecef;
   display: flex;
   justify-content: flex-start;
+}
+
+/* Layout đồng bộ với toàn bộ hệ thống Account */
+.account-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.account-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.bookmark-list-item {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.bookmark-list-item:hover {
+  background-color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .account-layout {
+    flex-direction: column;
+  }
 }
 </style>

@@ -12,8 +12,14 @@ const Toast = Swal.mixin({
   }
 })
 
+const defaultAlertConfig = {
+  heightAuto: false,
+  returnFocus: false
+}
+
 export const alertSuccess = (message) => {
   return Swal.fire({
+    ...defaultAlertConfig,
     icon: 'success',
     title: 'Thành công',
     text: message,
@@ -23,6 +29,7 @@ export const alertSuccess = (message) => {
 
 export const alertWarning = (message) => {
   return Swal.fire({
+    ...defaultAlertConfig,
     icon: 'warning',
     title: 'Thông báo',
     text: message,
@@ -32,6 +39,7 @@ export const alertWarning = (message) => {
 
 export const alertError = (message) => {
   return Swal.fire({
+    ...defaultAlertConfig,
     icon: 'error',
     title: 'Lỗi',
     text: message,
@@ -41,6 +49,7 @@ export const alertError = (message) => {
 
 export const alertConfirm = (title, text) => {
   return Swal.fire({
+    ...defaultAlertConfig,
     title: title,
     text: text,
     icon: 'warning',

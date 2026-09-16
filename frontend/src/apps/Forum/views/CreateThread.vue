@@ -366,7 +366,7 @@ export default {
         const res = await threadService.create(payload)
         const newThread = res.data
         
-        alertSuccess('Đăng bài viết thành công')
+        await alertSuccess('Đăng bài viết thành công')
         this.$router.push({ name: 'ThreadDetail', params: { id: newThread.id } })
       } catch (error) {
         alertError('Lỗi khi đăng bài')

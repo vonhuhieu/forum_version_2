@@ -95,7 +95,7 @@ import {
   TextTransformation
 } from 'ckeditor5'
 import 'ckeditor5/ckeditor5.css'
-import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin } from '@/shared/utils/ckeditorPlugins'
+import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
@@ -212,7 +212,7 @@ export default {
           Essentials, Paragraph, Heading, Bold, Italic, Underline, Strikethrough,
           Font, Alignment, Link, List, Indent, IndentBlock, Image, ImageUpload, ImageInsert, ImageResize, ImageStyle, ImageToolbar, ImageCaption, ImageTextAlternative, Table,
           MediaEmbed, BlockQuote, FileRepository, TableToolbar, TableColumnResize, Undo, TextTransformation,
-          MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, QuoteSourcePlugin
+          MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, QuoteSourcePlugin
         ],
         toolbar: {
           items: [
@@ -228,7 +228,7 @@ export default {
             '|',
             'outdent', 'indent',
             '|',
-            'link', 'insertImage', 'customUpload', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
+            'link', 'insertImage', 'customUpload', 'mobileToolbarToggle', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
             '|',
             'undo', 'redo'
           ]
@@ -1468,6 +1468,84 @@ export default {
   vertical-align: middle;
   margin-left: 4px;
   pointer-events: none;
+}
+
+/* ========================================================
+   CẤU HÌNH RESPONSIVE CHO THANH CÔNG CỤ TRÊN MOBILE
+   ======================================================== */
+
+/* Trên PC / Tablet (màn hình > 768px): Ẩn hoàn toàn nút chuyển đổi Mobile Toggle */
+@media (min-width: 769px) {
+  :deep(.ck-btn-mobile-toggle) {
+    display: none !important;
+  }
+}
+
+/* Trên Mobile (màn hình <= 768px) */
+@media (max-width: 768px) {
+  /* Nút Mở rộng / Thu hẹp trên mobile */
+  :deep(.ck-btn-mobile-toggle) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    color: #1a507a !important;
+    background-color: #ebf5fb !important;
+    border: 1px solid #bce1f7 !important;
+    border-radius: 4px !important;
+    padding: 4px 12px !important;
+    margin-left: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+  }
+
+  :deep(.ck-btn-mobile-toggle .ck-button__label) {
+    font-weight: 600 !important;
+    color: #1a507a !important;
+    font-size: 0.85rem !important;
+  }
+
+  :deep(.ck-btn-mobile-toggle:hover),
+  :deep(.ck-btn-mobile-toggle:active) {
+    background-color: #d4ecf9 !important;
+    border-color: #1a507a !important;
+  }
+
+  /* Nút tải lên tệp đính kèm trên mobile */
+  :deep(.ck-btn-custom-upload) {
+    display: inline-flex !important;
+    background-color: #f8f9fa !important;
+    border-radius: 4px !important;
+  }
+
+  /* Khi ở trạng thái THU HẸP (Mặc định trên Mobile):
+     Ẩn toàn bộ nút công cụ và separators, CHỈ HIỂN THỊ nút customUpload và nút Mở rộng */
+  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items > *:not(.ck-btn-custom-upload):not(.ck-btn-mobile-toggle)) {
+    display: none !important;
+  }
+
+  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* Khi ở trạng thái MỞ RỘNG trên Mobile: Hiển thị đầy đủ tất cả các nút */
+  :deep(.ck-editor.mobile-toolbar-expanded .ck-toolbar__items > *) {
+    display: inline-flex !important;
+  }
+
+  :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle) {
+    background-color: #fdeed9 !important;
+    border-color: #f39c12 !important;
+  }
+
+  :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle .ck-button__label) {
+    color: #d35400 !important;
+  }
 }
 
 </style>

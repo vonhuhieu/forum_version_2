@@ -64,7 +64,8 @@ const routes = [
       {
         path: 'thread/:id',
         name: 'ThreadDetail',
-        component: ThreadDetail
+        component: ThreadDetail,
+        alias: ['threads/:id']
       },
       {
         path: 'create-thread',
