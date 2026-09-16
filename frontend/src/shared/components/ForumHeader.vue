@@ -171,14 +171,21 @@
 
                   <!-- Danh sách Bookmark items với infinite scroll -->
                   <div class="xamvn-bookmarks-list" @scroll="handleBookmarkScroll" ref="headerBookmarkListRef">
-                    <div v-if="bookmarks.length > 0">
+                    <!-- Loading state -->
+                    <div v-if="loadingBookmarks && bookmarks.length === 0" class="xamvn-loading-state" style="padding: 30px 15px; text-align: center; color: #1a507a;">
+                      <div class="spinner" style="margin: 0 auto 10px; width: 26px; height: 26px; border: 3px solid #e0e0e0; border-top-color: #1a507a; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                      <span style="font-size: 0.9rem;">Đang tải danh sách dấu trang...</span>
+                    </div>
+
+                    <div v-else-if="bookmarks.length > 0">
                       <div 
                         v-for="b in bookmarks" 
                         :key="b.id" 
-                        class="header-bookmark-item"
+                        class="header-bookmark-item cursor-pointer"
+                        @click="goToBookmark(b)"
                       >
                         <!-- Cột trái: Avatar tác giả -->
-                        <div class="header-bm-avatar-col">
+                        <div class="header-bm-avatar-col" @click.stop>
                           <user-profile-popup :user="getBookmarkAuthor(b)" v-if="getBookmarkAuthor(b)">
                             <div class="header-bm-avatar" :style="!isAvatarUrl(b.authorAvatar) ? { backgroundColor: b.authorAvatar || '#3498db' } : {}">
                               <img v-if="isAvatarUrl(b.authorAvatar)" :src="formatAvatarUrl(b.authorAvatar)" alt="avatar" />
@@ -204,7 +211,7 @@
 
                           <!-- Dòng 3: Meta line -->
                           <div class="header-bm-meta-line">
-                            <span class="header-bm-author">
+                            <span class="header-bm-author" @click.stop>
                               <user-profile-popup :user="getBookmarkAuthor(b)" v-if="getBookmarkAuthor(b)">
                                 <span class="cursor-pointer">{{ b.authorDisplayName || b.authorUsername }} <VerifiedBadge :user="getBookmarkAuthor(b)" size="12px" /></span>
                               </user-profile-popup>
@@ -214,15 +221,15 @@
                             <span class="header-bm-time">{{ formatTime(b.createdAt) }}</span>
                             <template v-if="b.labels && b.labels.length > 0">
                               <span class="header-bm-dot">·</span>
-                              <span class="header-bm-labels-wrap">
-                                <span v-for="(lbl, lidx) in b.labels" :key="lidx" class="header-bm-pill">{{ lbl }}</span>
+                              <span class="header-bm-labels-wrap" @click.stop>
+                                <span v-for="(lbl, lidx) in b.labels" :key="lidx" class="header-bm-pill" @click.stop="selectHeaderFilterLabel(lbl)">{{ lbl }}</span>
                               </span>
                             </template>
                           </div>
                         </div>
 
                         <!-- Cột phải: Tools button + dropdown -->
-                        <div class="header-bm-tools-col">
+                        <div class="header-bm-tools-col" @click.stop>
                           <button class="btn-header-bm-tools" @click.stop="toggleBookmarkTools(b.id)" title="Bookmark tools">
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                             <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -247,8 +254,8 @@
                       </div>
                     </div>
 
-                    <!-- Empty state -->
-                    <div class="xamvn-empty-message" v-else style="padding: 24px 15px;">
+                    <!-- Empty state: chỉ hiển thị khi KHÔNG loading và thực sự không có bookmark nào -->
+                    <div class="xamvn-empty-message" v-else-if="!loadingBookmarks && bookmarks.length === 0" style="padding: 24px 15px;">
                       {{ bookmarkFilterLabel ? 'Không tìm thấy dấu trang nào với nhãn này.' : 'Không có dấu trang nào được lưu.' }}
                     </div>
                   </div>
@@ -613,6 +620,7 @@
     @saved="onHeaderBookmarkSaved"
     @deleted="onHeaderBookmarkDeleted"
   />
+  <Loading :visible="loadingBookmarks && bookmarks.length === 0" text="Đang tải danh sách dấu trang..." />
 </template>
 
 <script>
@@ -632,6 +640,7 @@ import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import BookmarkPopup from '@/shared/components/BookmarkPopup.vue'
+import Loading from '@/shared/components/Loading.vue'
 import searchHistoryMixin from '@/shared/mixins/searchHistory.mixin.js'
 
 export default {
@@ -644,7 +653,8 @@ export default {
     AvatarUploadModal,
     UserProfilePopup,
     VerifiedBadge,
-    BookmarkPopup
+    BookmarkPopup,
+    Loading
   },
   data() {
     return {
@@ -1032,7 +1042,8 @@ export default {
     switchUserTab(tab) {
       this.activeUserTab = tab
       if (tab === 'bookmarks') {
-        this.fetchHeaderBookmarks(true)
+        const needReset = this.bookmarks.length === 0
+        this.fetchHeaderBookmarks(needReset)
         this.fetchHeaderBookmarkLabels()
       }
     },
@@ -1047,7 +1058,9 @@ export default {
     async fetchHeaderBookmarks(reset = false) {
       if (reset) {
         this.bookmarkPage = 0
-        this.bookmarks = []
+        if (this.bookmarks.length === 0) {
+          this.bookmarks = []
+        }
       }
       this.loadingBookmarks = true
       try {
@@ -1130,19 +1143,14 @@ export default {
     },
     getBookmarkUrl(b) {
       if (!b) return '#'
-      if (b.postId) {
-        return `/threads/${b.threadId}?postId=${b.postId}`
-      }
-      return `/threads/${b.threadId}`
+      const targetPost = b.postId || 'main_thread_entry'
+      return `/thread/${b.threadId}?postId=${targetPost}`
     },
     goToBookmark(b) {
       if (!b) return
       this.showUserDropdown = false
-      if (b.postId) {
-        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId }, query: { postId: b.postId } })
-      } else {
-        this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId } })
-      }
+      const targetPost = b.postId || 'main_thread_entry'
+      this.$router.push({ name: 'ThreadDetail', params: { id: b.threadId }, query: { postId: targetPost } })
     },
     toggleBookmarkTools(id) {
       this.activeBookmarkToolsId = this.activeBookmarkToolsId === id ? null : id
@@ -2720,6 +2728,15 @@ export default {
   .delete-history-btn {
     opacity: 1 !important;
   }
+}
+
+.header-bookmark-item {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.header-bookmark-item:hover {
+  background-color: #f6f8fa !important;
 }
 
 </style>

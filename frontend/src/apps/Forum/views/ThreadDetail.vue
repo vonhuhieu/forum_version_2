@@ -1144,6 +1144,8 @@ export default {
         }
 
         const response = await postService.create(payload)
+        const createdPost = response.data
+        const newPostId = createdPost ? createdPost.id : null
         
         this.loading = false
         await alertSuccess('Gửi trả lời thành công')
@@ -1158,11 +1160,35 @@ export default {
         this.replyForm.content = ''
         this.replyAttachedImages = []
         
-        this.currentPage = this.totalPages
-        this.fetchPosts().then(() => {
+        // Tăng tổng số bài và nạp lại dữ liệu trang cuối để bài mới xuất hiện
+        this.totalPosts += 1
+        const targetPage = this.totalPages
+        if (this.currentPage !== targetPage) {
+          this.currentPage = targetPage
+          this.$router.replace({ query: { ...this.$route.query, page: targetPage } })
+        }
+
+        await this.fetchPosts()
+
+        this.$nextTick(() => {
           setTimeout(() => {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          }, 400);
+            if (newPostId) {
+              const element = document.getElementById(`post-${newPostId}`)
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                this.highlightedPostId = newPostId
+                setTimeout(() => {
+                  this.highlightedPostId = null
+                }, 3000)
+                return
+              }
+            }
+            // Fallback nếu không tìm thấy id thì cuộn tới bài cuối cùng trong danh sách
+            const allReplyCards = document.querySelectorAll('.reply-card')
+            if (allReplyCards.length > 0) {
+              allReplyCards[allReplyCards.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+          }, 200)
         })
       } catch (error) {
         this.loading = false

@@ -55,7 +55,14 @@ export function CustomUploadPlugin(editor) {
     view.set({
       label: 'Tải lên tệp đính kèm (Video, Ảnh, Tài liệu)',
       icon: uploadIcon,
-      tooltip: true
+      tooltip: true,
+      class: 'ck-btn-custom-upload'
+    });
+
+    view.extendTemplate({
+      attributes: {
+        class: ['ck-btn-custom-upload']
+      }
     });
 
     view.on('execute', () => {
@@ -218,6 +225,38 @@ export function EmojiPickerPlugin(editor) {
       const domTarget = view.element || null;
       // Bắn sự kiện custom để Vue cha bắt và hiển thị Picker
       editor.fire('openEmojiPicker', { domTarget });
+    });
+
+    return view;
+  });
+}
+
+// Plugin Nút Chuyển Đổi Mở Rộng / Thu Hẹp Thanh Công Cụ Trên Mobile
+export function MobileToolbarTogglePlugin(editor) {
+  editor.ui.componentFactory.add('mobileToolbarToggle', locale => {
+    const view = new ButtonView(locale);
+
+    view.set({
+      label: 'Mở rộng',
+      withText: true,
+      tooltip: false,
+      class: 'ck-btn-mobile-toggle'
+    });
+
+    view.extendTemplate({
+      attributes: {
+        class: ['ck-btn-mobile-toggle']
+      }
+    });
+
+    view.on('execute', () => {
+      const editorElement = editor.ui.view.element;
+      if (editorElement) {
+        const isExpanded = editorElement.classList.toggle('mobile-toolbar-expanded');
+        view.set({
+          label: isExpanded ? 'Thu hẹp' : 'Mở rộng'
+        });
+      }
     });
 
     return view;
