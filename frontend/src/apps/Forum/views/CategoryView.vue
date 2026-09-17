@@ -24,7 +24,7 @@
              <div class="sub-categories-list">
               <div v-for="sub in category.subCategories" :key="sub.id" class="category-row home-category-row min-height-100-on-pc" @click="handleCategoryRowClick($event, sub)">
                 <div class="category-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  <CategoryIcon :icon="sub.icon" />
                 </div>
                 <div class="category-info">
                   <div class="cat-name-row">
@@ -440,6 +440,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
+import CategoryIcon from '@/shared/components/CategoryIcon.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, getImeValue } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
@@ -452,7 +453,8 @@ export default {
     ForumPagination,
     UserProfilePopup,
     UserSearchInput,
-    VerifiedBadge
+    VerifiedBadge,
+    CategoryIcon
   },
   data() {
     return {

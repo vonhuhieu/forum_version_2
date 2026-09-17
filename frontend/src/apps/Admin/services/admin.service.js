@@ -34,6 +34,18 @@ class AdminService {
   deleteAllCategoryGroups() {
     return api.delete('/category-groups/delete-all')
   }
+  importCategoriesSql(formData) {
+    return api.post('/category-groups/import-sql', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  }
+  downloadCategoryTemplateSql() {
+    return api.get('/category-groups/download-template-sql', {
+      responseType: 'blob'
+    })
+  }
 
   // Menus
   getMenus() {
