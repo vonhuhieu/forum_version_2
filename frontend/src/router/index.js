@@ -43,18 +43,21 @@ const routes = [
         path: '',
         name: 'Home',
         component: HomeView,
-        alias: 'trang-chu'
+        alias: 'trang-chu',
+        meta: { title: 'Hợp Tác Xã Vui Vẻ - Cộng Đồng Thanh Niên Xa Mẹ' }
       },
       {
         path: 'thanh-vien',
         name: 'MembersView',
         component: MembersView,
-        alias: 'members'
+        alias: 'members',
+        meta: { title: 'Thành viên | HỢP TÁC XÃ VUI VẺ' }
       },
       {
         path: 'latest',
         name: 'LatestThreads',
-        component: LatestThreadsView
+        component: LatestThreadsView,
+        meta: { title: 'Chủ đề mới | HỢP TÁC XÃ VUI VẺ' }
       },
       {
         path: 'category/:id',
@@ -288,8 +291,43 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-router.afterEach(() => {
+router.afterEach((to) => {
   activeTracker.updateActive()
+
+  // 1. Cập nhật Dynamic Canonical URL chuẩn SEO cho từng trang
+  try {
+    let canonicalTag = document.querySelector('link[rel="canonical"]')
+    if (!canonicalTag) {
+      canonicalTag = document.createElement('link')
+      canonicalTag.setAttribute('rel', 'canonical')
+      document.head.appendChild(canonicalTag)
+    }
+
+    // Tự động nhận diện Base URL linh hoạt (Không hardcode tên miền):
+    // 1. Ưu tiên biến môi trường VUE_APP_FRONTEND_URL (nếu cấu hình tại Vercel/môi trường)
+    // 2. Tự động nhận diện động từ window.location.origin của trình duyệt (loại bỏ tiền tố www.)
+    let baseDomain = process.env.VUE_APP_FRONTEND_URL
+    if (!baseDomain || baseDomain.startsWith('${')) {
+      if (typeof window !== 'undefined' && window.location && window.location.origin) {
+        baseDomain = window.location.origin.replace(/^(https?:\/\/)www\./i, '$1')
+      } else {
+        baseDomain = 'https://hoptacxavuive.com'
+      }
+    }
+    if (baseDomain.endsWith('/')) {
+      baseDomain = baseDomain.slice(0, -1)
+    }
+
+    const cleanPath = (to.path.endsWith('/') && to.path !== '/') ? to.path.slice(0, -1) : to.path
+    canonicalTag.setAttribute('href', `${baseDomain}${cleanPath}`)
+  } catch (e) {
+    // Không làm ảnh hưởng luồng chính nếu có lỗi DOM
+  }
+
+  // 2. Cập nhật Document Title theo route meta nếu có
+  if (to.meta && to.meta.title) {
+    document.title = to.meta.title
+  }
 })
 
 export default router
