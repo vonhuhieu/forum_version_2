@@ -18,6 +18,10 @@
       "destination": "https://api.hoptacxavuive.com/uploads/:path*"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "https://api.hoptacxavuive.com/sitemap.xml"
+    },
+    {
       "source": "/thread/:id",
       "has": [
         {

@@ -43,18 +43,21 @@ const routes = [
         path: '',
         name: 'Home',
         component: HomeView,
-        alias: 'trang-chu'
+        alias: 'trang-chu',
+        meta: { title: 'Hợp Tác Xã Vui Vẻ - Cộng Đồng Thanh Niên Xa Mẹ' }
       },
       {
         path: 'thanh-vien',
         name: 'MembersView',
         component: MembersView,
-        alias: 'members'
+        alias: 'members',
+        meta: { title: 'Thành viên | HỢP TÁC XÃ VUI VẺ' }
       },
       {
         path: 'latest',
         name: 'LatestThreads',
-        component: LatestThreadsView
+        component: LatestThreadsView,
+        meta: { title: 'Chủ đề mới | HỢP TÁC XÃ VUI VẺ' }
       },
       {
         path: 'category/:id',
@@ -288,8 +291,27 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-router.afterEach(() => {
+router.afterEach((to) => {
   activeTracker.updateActive()
+
+  // 1. Cập nhật Dynamic Canonical URL chuẩn SEO cho từng trang
+  try {
+    let canonicalTag = document.querySelector('link[rel="canonical"]')
+    if (!canonicalTag) {
+      canonicalTag = document.createElement('link')
+      canonicalTag.setAttribute('rel', 'canonical')
+      document.head.appendChild(canonicalTag)
+    }
+    const cleanPath = (to.path.endsWith('/') && to.path !== '/') ? to.path.slice(0, -1) : to.path
+    canonicalTag.setAttribute('href', `https://hoptacxavuive.com${cleanPath}`)
+  } catch (e) {
+    // Không làm ảnh hưởng luồng chính nếu có lỗi DOM
+  }
+
+  // 2. Cập nhật Document Title theo route meta nếu có
+  if (to.meta && to.meta.title) {
+    document.title = to.meta.title
+  }
 })
 
 export default router

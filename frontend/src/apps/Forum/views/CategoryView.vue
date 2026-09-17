@@ -742,6 +742,10 @@ export default {
         this.category = categories.find(c => c.id == categoryId)
         this.allLabels = labelRes.data || []
 
+        if (this.category) {
+          document.title = `${this.category.name} | HỢP TÁC XÃ VUI VẺ`
+        }
+
         if (this.category && this.category.categoryGroupId) {
           this.categoryGroup = groupRes.data.find(g => g.id === this.category.categoryGroupId)
         }
