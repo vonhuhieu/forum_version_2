@@ -4,8 +4,11 @@ import com.forum.dto.CategoryGroupDTO;
 import com.forum.dto.ResponseDTO;
 import com.forum.service.CategoryGroupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -52,5 +55,21 @@ public class CategoryGroupController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
+    }
+
+    @PostMapping("/import-sql")
+    public ResponseEntity<ResponseDTO<Void>> importSql(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "useDefault", defaultValue = "false") boolean useDefault) {
+        return ResponseEntity.ok(categoryGroupService.importSqlScript(file, useDefault));
+    }
+
+    @GetMapping("/download-template-sql")
+    public ResponseEntity<byte[]> downloadTemplateSql() {
+        byte[] data = categoryGroupService.getDefaultSqlTemplate();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"seed_default_categories.sql\"")
+                .contentType(MediaType.parseMediaType("application/sql; charset=UTF-8"))
+                .body(data);
     }
 }

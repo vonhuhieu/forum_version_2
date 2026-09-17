@@ -21,6 +21,9 @@ public class Category {
 
     private String description;
 
+    @Column(name = "icon", columnDefinition = "TEXT")
+    private String icon;
+
     @Column(name = "position_order")
     private Integer positionOrder;
 

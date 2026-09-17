@@ -99,4 +99,54 @@ public class CategoryGroupService {
         com.forum.service.ThreadService.clearAllCaches();
         return ResponseDTO.success(null);
     }
+
+    public ResponseDTO<Void> importSqlScript(org.springframework.web.multipart.MultipartFile file, boolean useDefault) {
+        try {
+            final org.springframework.core.io.Resource finalResource;
+            if (file != null && !file.isEmpty()) {
+                finalResource = new org.springframework.core.io.ByteArrayResource(file.getBytes());
+            } else if (useDefault) {
+                org.springframework.core.io.Resource r = new org.springframework.core.io.ClassPathResource("data/seed_default_categories.sql");
+                if (!r.exists()) {
+                    java.io.File fallbackFile = new java.io.File("scripts/seed_default_categories.sql");
+                    if (fallbackFile.exists()) {
+                        r = new org.springframework.core.io.FileSystemResource(fallbackFile);
+                    } else {
+                        return ResponseDTO.fail(null, "Không tìm thấy file seed_default_categories.sql");
+                    }
+                }
+                finalResource = r;
+            } else {
+                return ResponseDTO.fail(null, "Vui lòng chọn file .sql hoặc chọn nạp mặc định");
+            }
+
+            org.hibernate.Session session = entityManager.unwrap(org.hibernate.Session.class);
+            session.doWork(connection -> {
+                org.springframework.jdbc.datasource.init.ScriptUtils.executeSqlScript(connection, finalResource);
+            });
+
+            entityManager.clear();
+            com.forum.service.ThreadService.clearAllCaches();
+            return ResponseDTO.success(null);
+        } catch (Exception e) {
+            return ResponseDTO.fail(null, "Lỗi thực thi SQL: " + e.getMessage());
+        }
+    }
+
+    public byte[] getDefaultSqlTemplate() {
+        try {
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource("data/seed_default_categories.sql");
+            if (resource.exists()) {
+                try (java.io.InputStream is = resource.getInputStream()) {
+                    return is.readAllBytes();
+                }
+            }
+            java.io.File fallbackFile = new java.io.File("scripts/seed_default_categories.sql");
+            if (fallbackFile.exists()) {
+                return java.nio.file.Files.readAllBytes(fallbackFile.toPath());
+            }
+        } catch (Exception ignored) {
+        }
+        return "-- seed_default_categories.sql".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
 }

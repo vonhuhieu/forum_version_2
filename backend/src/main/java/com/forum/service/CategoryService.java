@@ -96,6 +96,7 @@ public class CategoryService {
         return categoryRepository.findById(id).map(category -> {
             category.setName(categoryDTO.getName());
             category.setDescription(categoryDTO.getDescription());
+            category.setIcon(categoryDTO.getIcon());
             category.setPositionOrder(categoryDTO.getPositionOrder());
             category.setActive(categoryDTO.isActive());
             

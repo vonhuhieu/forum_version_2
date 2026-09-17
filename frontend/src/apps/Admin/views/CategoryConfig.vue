@@ -46,6 +46,10 @@
         <button class="action-btn sub-cat-btn" @click="openSubModal(item)" title="Quản lý chuyên mục con">📁</button>
       </template>
 
+      <template #item-icon="{ item }">
+        <CategoryIcon :icon="item.icon" />
+      </template>
+
       <template #item-name="{ item }">
         <strong>{{ item.name }}</strong>
       </template>
@@ -70,6 +74,29 @@
         <div class="form-group">
           <label>Mô tả:</label>
           <textarea v-model="form.description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Icon chuyên mục (SVG code / Icon name / Emoji):</label>
+          <div class="icon-input-wrapper">
+            <CategoryIcon :icon="form.icon" class="preview-icon" />
+            <input v-model="form.icon" placeholder="Dán mã <svg>...</svg>, nhập emoji 📢 hoặc đường dẫn ảnh">
+          </div>
+          <div class="quick-icon-tags">
+            <button type="button" class="quick-icon-btn" @click="form.icon = '📢'">📢 Thông báo</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '💡'">💡 Góp ý</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '☕'">☕ Trà đá</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '💌'">💌 Tâm sự</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '🛡️'">🛡️ Cảnh báo</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '📈'">📈 Đầu tư</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '🌐'">🌐 MMO</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '💼'">💼 Công sở</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '💻'">💻 Thiết bị</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '🤖'">🤖 AI</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '🛠️'">🛠️ Thủ thuật</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '✈️'">✈️ Ăn chơi</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '📱'">📱 Linh kiện</button>
+            <button type="button" class="quick-icon-btn" @click="form.icon = '🛒'">🛒 Chợ</button>
+          </div>
         </div>
         <div class="form-group">
           <label>Thứ tự hiển thị:</label>
@@ -157,11 +184,12 @@ import AdminService from '@/apps/Admin/services/admin.service'
 import DataTable from '@/shared/components/DataTable.vue'
 import BaseModal from '@/shared/components/BaseModal.vue'
 import TableModal from '@/shared/components/TableModal.vue'
+import CategoryIcon from '@/shared/components/CategoryIcon.vue'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 
 export default {
   name: 'CategoryConfig',
-  components: { DataTable, BaseModal, TableModal },
+  components: { DataTable, BaseModal, TableModal, CategoryIcon },
   data() {
     return {
       categories: [],
@@ -174,12 +202,13 @@ export default {
       showModal: false,
       isEditing: false,
       headers: [
+        { text: 'Icon', value: 'icon', width: '70px', sortable: false },
         { text: 'Tên chuyên mục', value: 'name', sortable: true },
         { text: 'Mô tả', value: 'description', sortable: true },
         { text: 'Thứ tự', value: 'positionOrder', sortable: true, width: '100px' },
         { text: 'Trạng thái', value: 'active', sortable: true, width: '120px' }
       ],
-      form: { id: null, name: '', description: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null },
+      form: { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null },
       categoryGroups: [],
       sortField: 'positionOrder',
       sortOrder: 'asc',
@@ -421,7 +450,7 @@ export default {
       }
     },
     resetForm() {
-      this.form = { id: null, name: '', description: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null }
+      this.form = { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null }
       this.isEditing = false
     },
 
@@ -550,5 +579,41 @@ export default {
   background-color: #e57373;
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.icon-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-icon {
+  background-color: #f1f3f5;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.quick-icon-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quick-icon-btn {
+  background-color: #eef2f7;
+  border: 1px solid #d0d7de;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-icon-btn:hover {
+  background-color: #3498db;
+  color: #fff;
+  border-color: #2980b9;
 }
 </style>
