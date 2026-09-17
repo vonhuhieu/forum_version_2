@@ -5,17 +5,21 @@
       "has": [
         {
           "type": "host",
-          "value": "www.hoptacxavuive.com"
+          "value": "www\\.(?<domain>.+)"
         }
       ],
-      "destination": "https://hoptacxavuive.com/:path*",
+      "destination": "https://$domain/:path*",
       "permanent": true
     }
   ],
   "rewrites": [
     {
       "source": "/uploads/:path*",
-      "destination": "https://api.hoptacxavuive.com/uploads/:path*"
+      "destination": "/api/uploads?path=:path*"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     },
     {
       "source": "/thread/:id",
