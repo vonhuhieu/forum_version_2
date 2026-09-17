@@ -1154,7 +1154,7 @@ export default {
           this.isFollowing = true;
           const displayUser = this.currentUser ? this.currentUser.username : 'Ẩn danh';
           const displayAuthor = this.thread.author ? (this.thread.author.displayName || this.thread.author.username) : 'Tác giả';
-          await alertSuccess('Từ bây giờ trở đi tài khoản ' + displayUser + ' đã theo dõi bài đăng ' + window.location.href + ' này của tác giả ' + displayAuthor);
+          // await alertSuccess('Từ bây giờ trở đi tài khoản ' + displayUser + ' đã theo dõi bài đăng ' + window.location.href + ' này của tác giả ' + displayAuthor);
         }
 
         this.replyForm.content = ''
