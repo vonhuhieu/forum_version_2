@@ -302,8 +302,24 @@ router.afterEach((to) => {
       canonicalTag.setAttribute('rel', 'canonical')
       document.head.appendChild(canonicalTag)
     }
+
+    // Tự động nhận diện Base URL linh hoạt (Không hardcode tên miền):
+    // 1. Ưu tiên biến môi trường VUE_APP_FRONTEND_URL (nếu cấu hình tại Vercel/môi trường)
+    // 2. Tự động nhận diện động từ window.location.origin của trình duyệt (loại bỏ tiền tố www.)
+    let baseDomain = process.env.VUE_APP_FRONTEND_URL
+    if (!baseDomain || baseDomain.startsWith('${')) {
+      if (typeof window !== 'undefined' && window.location && window.location.origin) {
+        baseDomain = window.location.origin.replace(/^(https?:\/\/)www\./i, '$1')
+      } else {
+        baseDomain = 'https://hoptacxavuive.com'
+      }
+    }
+    if (baseDomain.endsWith('/')) {
+      baseDomain = baseDomain.slice(0, -1)
+    }
+
     const cleanPath = (to.path.endsWith('/') && to.path !== '/') ? to.path.slice(0, -1) : to.path
-    canonicalTag.setAttribute('href', `https://hoptacxavuive.com${cleanPath}`)
+    canonicalTag.setAttribute('href', `${baseDomain}${cleanPath}`)
   } catch (e) {
     // Không làm ảnh hưởng luồng chính nếu có lỗi DOM
   }
