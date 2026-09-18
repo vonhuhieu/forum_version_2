@@ -224,14 +224,14 @@ public class AuthService {
         return res;
     }
 
-    public void confirmEmailAndUpgradeRole(String token, String password, String newPassword) {
+    public Map<String, Object> confirmEmailAndUpgradeRole(String token) {
         if (!org.springframework.util.StringUtils.hasText(token)) {
             throw new IllegalArgumentException("Mã xác thực email không hợp lệ");
         }
 
         Optional<User> userOpt = userRepository.findByEmailConfirmationToken(token);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("Mã xác nhận email không tồn tại hoặc không hợp lệ.");
+            throw new IllegalArgumentException("Mã xác nhận email không tồn tại hoặc tài khoản đã được kích hoạt trước đó.");
         }
 
         User user = userOpt.get();
@@ -239,26 +239,24 @@ public class AuthService {
             throw new IllegalArgumentException("EXPIRED:Liên kết xác minh email đã hết hạn (chỉ có hiệu lực trong 24h). Vui lòng bấm 'Gửi lại email xác nhận' để nhận liên kết mới.");
         }
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("Mật khẩu không chính xác.");
-        }
-
-        // Nếu có truyền mật khẩu mới thì cập nhật, nếu không thì giữ nguyên mật khẩu ban đầu
-        if (org.springframework.util.StringUtils.hasText(newPassword)) {
-            if (newPassword.trim().length() < 3) {
-                throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 3 ký tự.");
-            }
-            if (passwordEncoder.matches(newPassword, user.getPassword())) {
-                throw new IllegalArgumentException("Mật khẩu mới phải khác với mật khẩu hiện tại.");
-            }
-            user.setPassword(passwordEncoder.encode(newPassword));
-        }
-
         // Nâng cấp quyền lên ROLE_USER chính thức (Dùng HashSet khả biến để tránh UnsupportedOperationException)
         user.setRoles(new java.util.HashSet<>(Set.of(Constants.ROLE_USER)));
         user.setEmailConfirmationToken(null);
         user.setEmailConfirmationExpiry(null);
         userRepository.save(user);
+
+        // Sinh JWT Token mới với quyền ROLE_USER
+        String jwtToken = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles());
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", user.getId());
+        response.put("token", jwtToken);
+        response.put("username", user.getUsername());
+        response.put("displayName", user.getDisplayName());
+        response.put("roles", user.getRoles());
+        response.put("avatar", user.getAvatar());
+        response.put("email", user.getEmail());
+        response.put("message", "Tài khoản của bạn đã được xác thực thành công!");
+        return response;
     }
 
     public void generatePasswordResetCode(String email) {

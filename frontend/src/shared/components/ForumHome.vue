@@ -1,7 +1,7 @@
 <template>
   <div class="forum-home">
     <!-- Section 1: Mới ra lò -->
-    <section id="moi-ra-lo" class="forum-section card">
+    <section id="moi-ra-lo" class="forum-section card display-none">
       <div class="card-header section-header">
         <a @click="$router.push({ name: 'LatestThreads' })" class="header-link">Mới ra lò</a>
       </div>

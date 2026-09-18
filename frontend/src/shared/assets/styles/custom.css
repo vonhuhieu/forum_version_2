@@ -53,6 +53,10 @@
     margin-top: 3px !important;
 }
 
+.display-none {
+    display: none !important;
+}
+
 @media (min-width: 1025px) {
     .min-height-100-on-pc {
         min-height: 100px !important;
