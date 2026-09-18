@@ -26,13 +26,8 @@ class AuthService {
   verifyConfirmationToken(token) {
     return api.get('/auth/verify-token', { params: { token } })
   }
-  confirmEmail(token, password, newPassword = null) {
-    return api.post('/auth/confirm-email', { 
-      token, 
-      password, 
-      currentPassword: password, 
-      newPassword 
-    })
+  confirmEmail(token) {
+    return api.post('/auth/confirm-email', { token })
   }
 }
 

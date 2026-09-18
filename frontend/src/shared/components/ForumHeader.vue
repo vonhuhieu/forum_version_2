@@ -714,7 +714,10 @@ export default {
       return this.menus.filter(menu => menu.active)
     },
     isNonOfficial() {
-      return isNonOfficialUser()
+      if (!this.isLoggedIn || !this.currentUser || !this.currentUser.roles) {
+        return isNonOfficialUser()
+      }
+      return this.currentUser.roles.includes('ROLE_NON_OFFICIAL_USER')
     },
     truncatedDisplayName() {
       if (!this.currentUser) return ''
@@ -751,6 +754,9 @@ export default {
     }
   },
   watch: {
+    $route() {
+      this.checkAuth()
+    },
     menus() {
       this.$nextTick(() => {
         setTimeout(this.updateScrollArrows, 300)
@@ -780,6 +786,8 @@ export default {
     window.addEventListener('resize', this.handleResize)
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
     window.addEventListener('notifications-updated', this.fetchNotifSummary)
+    window.addEventListener('auth-changed', this.checkAuth)
+    window.addEventListener('storage', this.checkAuth)
 
     try {
       const response = await menuService.getAll()
@@ -810,6 +818,8 @@ export default {
     window.removeEventListener('resize', this.handleResize)
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
     window.removeEventListener('notifications-updated', this.fetchNotifSummary)
+    window.removeEventListener('auth-changed', this.checkAuth)
+    window.removeEventListener('storage', this.checkAuth)
   },
   methods: {
     formatAvatarUrl(avatar) {
@@ -909,8 +919,16 @@ export default {
     checkAuth() {
       const user = localStorage.getItem('user')
       if (user) {
-        this.isLoggedIn = true
-        this.currentUser = JSON.parse(user)
+        try {
+          this.isLoggedIn = true
+          this.currentUser = JSON.parse(user)
+        } catch (e) {
+          this.isLoggedIn = false
+          this.currentUser = null
+        }
+      } else {
+        this.isLoggedIn = false
+        this.currentUser = null
       }
     },
     handleLogout() {
