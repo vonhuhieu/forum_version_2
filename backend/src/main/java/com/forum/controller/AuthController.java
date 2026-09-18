@@ -81,14 +81,9 @@ public class AuthController {
     @PostMapping("/confirm-email")
     public ResponseEntity<?> confirmEmail(@RequestBody Map<String, String> request) {
         String token = request.get("token");
-        String password = request.get("password");
-        if (password == null) {
-            password = request.get("currentPassword");
-        }
-        String newPassword = request.get("newPassword");
         try {
-            authService.confirmEmailAndUpgradeRole(token, password, newPassword);
-            return ResponseEntity.ok(Map.of("message", "Xác nhận email thành công! Tài khoản đã được nâng cấp thành viên chính thức."));
+            Map<String, Object> authData = authService.confirmEmailAndUpgradeRole(token);
+            return ResponseEntity.ok(authData);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
