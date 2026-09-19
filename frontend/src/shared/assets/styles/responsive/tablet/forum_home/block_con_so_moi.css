@@ -1,23 +1,72 @@
-/* Tablet view styling: 2 items per row */
+/* Tablet view styling: 2 block Chú ý và Bài viết mới nhất nằm song song, bằng chiều cao, có thanh cuộn riêng */
 @media (min-width: 768px) and (max-width: 1024px) {
-  .mobile-con-so-block .latest-threads-list {
+  .tablet-dual-blocks {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 1.25rem;
   }
 
-  .mobile-con-so-block .latest-thread-item {
+  /* Nếu chỉ có 1 block (ví dụ không có bài ghim) thì chiếm full chiều ngang */
+  .tablet-dual-blocks > .mobile-con-so-block:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block {
+    height: 380px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0 !important;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .card-header {
+    flex-shrink: 0;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .latest-threads-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Custom scrollbar thanh mảnh cho tablet */
+  .tablet-dual-blocks .mobile-con-so-block .latest-threads-list::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .latest-threads-list::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .latest-threads-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .latest-threads-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .tablet-dual-blocks .mobile-con-so-block .latest-thread-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 12px;
     border-bottom: 1px solid #f0f0f0;
+    border-right: none !important;
   }
 
-  /* Separate columns with a vertical divider line */
-  .mobile-con-so-block .latest-thread-item:nth-child(odd) {
-    border-right: 1px solid #f0f0f0;
-    padding-right: 20px;
-    padding-left: 12px;
-  }
-
-  .mobile-con-so-block .latest-thread-item:nth-child(even) {
-    padding-left: 20px;
-    padding-right: 12px;
+  .tablet-dual-blocks .mobile-con-so-block .latest-thread-item:last-child {
+    border-bottom: none;
   }
 }

@@ -112,4 +112,27 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/google/verify")
+    public ResponseEntity<?> verifyGoogleAuth(@RequestBody Map<String, String> request) {
+        String idToken = request.get("idToken");
+        try {
+            Map<String, Object> result = authService.processGoogleAuth(idToken);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/google/register")
+    public ResponseEntity<?> completeGoogleRegister(@RequestBody Map<String, String> request) {
+        String idToken = request.get("idToken");
+        String displayName = request.get("displayName");
+        try {
+            Map<String, Object> result = authService.completeGoogleRegistration(idToken, displayName);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

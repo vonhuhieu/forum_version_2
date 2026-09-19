@@ -29,6 +29,12 @@ class AuthService {
   confirmEmail(token) {
     return api.post('/auth/confirm-email', { token })
   }
+  verifyGoogle(idToken) {
+    return api.post('/auth/google/verify', { idToken })
+  }
+  completeGoogleRegister(payload) {
+    return api.post('/auth/google/register', payload)
+  }
 }
 
 export default new AuthService()
