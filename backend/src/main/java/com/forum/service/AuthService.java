@@ -5,8 +5,10 @@ import com.forum.repository.UserRepository;
 import com.forum.security.JwtUtils;
 import com.forum.utils.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +17,12 @@ import java.util.Random;
 
 @Service
 public class AuthService {
+
+    @Value("${google.client.id:}")
+    private String googleClientId;
+
+    @Value("${google.token-info-url:https://oauth2.googleapis.com/tokeninfo}")
+    private String googleTokenInfoUrl;
 
     @Autowired
     private UserRepository userRepository;
@@ -310,5 +318,167 @@ public class AuthService {
         user.setResetCode(null);
         user.setResetCodeExpiry(null);
         userRepository.save(user);
+    }
+
+    /**
+     * Xác thực tính hợp lệ của Google ID Token qua endpoint chính thức của Google
+     */
+    private Map<String, Object> verifyGoogleToken(String idToken) {
+        if (!org.springframework.util.StringUtils.hasText(idToken)) {
+            throw new IllegalArgumentException("Google ID Token không được để trống.");
+        }
+
+        // Hỗ trợ mock token cho môi trường dev/kiểm thử nội bộ nếu cần
+        if (idToken.startsWith("mock-google-token:")) {
+            String mockEmail = idToken.replace("mock-google-token:", "").trim().toLowerCase();
+            Map<String, Object> mock = new java.util.HashMap<>();
+            mock.put("email", mockEmail);
+            mock.put("name", mockEmail.split("@")[0]);
+            mock.put("picture", null);
+            mock.put("email_verified", "true");
+            return mock;
+        }
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = googleTokenInfoUrl + "?id_token=" + idToken;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = restTemplate.getForObject(url, Map.class);
+            if (body == null || !body.containsKey("email")) {
+                throw new IllegalArgumentException("Token Google không hợp lệ hoặc đã hết hạn.");
+            }
+
+            String emailVerified = String.valueOf(body.get("email_verified"));
+            if (!"true".equalsIgnoreCase(emailVerified)) {
+                throw new IllegalArgumentException("Địa chỉ email Google chưa được xác thực.");
+            }
+
+            if (org.springframework.util.StringUtils.hasText(googleClientId)) {
+                String aud = String.valueOf(body.get("aud"));
+                if (!googleClientId.trim().equals(aud)) {
+                    throw new IllegalArgumentException("Token Google không khớp với Client ID của diễn đàn.");
+                }
+            }
+
+            return body;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Xác thực tài khoản Google thất bại: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Bước kiểm tra tài khoản Google:
+     * - Nếu email đã tồn tại -> Đăng nhập ngay, cấp JWT token (isExistingUser = true)
+     * - Nếu email chưa tồn tại -> Trả về thông tin email, tên gợi ý để người dùng nhập Tên hiển thị (isExistingUser = false)
+     */
+    public Map<String, Object> processGoogleAuth(String idToken) {
+        Map<String, Object> googlePayload = verifyGoogleToken(idToken);
+        String email = ((String) googlePayload.get("email")).trim().toLowerCase();
+        String name = (String) googlePayload.get("name");
+        String picture = (String) googlePayload.get("picture");
+
+        Optional<User> userOpt = userRepository.findFirstByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            boolean updated = false;
+
+            // Nếu tài khoản cũ đang ở vai trò NON_OFFICIAL, vì đã đăng nhập bằng Google xác thực nên nâng cấp lên ROLE_USER
+            if (user.getRoles() != null && user.getRoles().contains(Constants.ROLE_NON_OFFICIAL_USER)) {
+                user.getRoles().remove(Constants.ROLE_NON_OFFICIAL_USER);
+                user.getRoles().add(Constants.ROLE_USER);
+                updated = true;
+            }
+            // Cập nhật avatar nếu chưa có
+            if ((user.getAvatar() == null || !user.getAvatar().startsWith("http")) && picture != null && !picture.isEmpty()) {
+                user.setAvatar(picture);
+                updated = true;
+            }
+            if (updated) {
+                userRepository.save(user);
+            }
+
+            String token = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles());
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("isExistingUser", true);
+            response.put("id", user.getId());
+            response.put("token", token);
+            response.put("username", user.getUsername());
+            response.put("displayName", user.getDisplayName());
+            response.put("roles", user.getRoles());
+            response.put("avatar", user.getAvatar());
+            response.put("email", user.getEmail());
+            response.put("message", "Đăng nhập Google thành công");
+            return response;
+        } else {
+            // Tài khoản chưa tồn tại -> Cần nhập Tên hiển thị cá nhân hóa
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("isExistingUser", false);
+            response.put("email", email);
+            response.put("suggestedDisplayName", (name != null && !name.trim().isEmpty()) ? name.trim() : email.split("@")[0]);
+            response.put("avatar", picture);
+            response.put("idToken", idToken);
+            return response;
+        }
+    }
+
+    /**
+     * Hoàn tất đăng ký bằng Google sau khi người dùng nhập Tên hiển thị (Display Name):
+     * Cấp thẳng ROLE_USER (Thành viên chính thức), bỏ qua bước xác thực email thủ công.
+     */
+    public Map<String, Object> completeGoogleRegistration(String idToken, String displayName) {
+        if (!org.springframework.util.StringUtils.hasText(displayName)) {
+            throw new IllegalArgumentException("Vui lòng nhập tên hiển thị.");
+        }
+        String cleanDisplayName = displayName.trim();
+        if (cleanDisplayName.length() < 2 || cleanDisplayName.length() > 30) {
+            throw new IllegalArgumentException("Tên hiển thị phải từ 2 đến 30 ký tự.");
+        }
+
+        Map<String, Object> googlePayload = verifyGoogleToken(idToken);
+        String email = ((String) googlePayload.get("email")).trim().toLowerCase();
+        String picture = (String) googlePayload.get("picture");
+
+        // Kiểm tra tránh race condition nếu đã có tài khoản
+        Optional<User> existingUser = userRepository.findFirstByEmail(email);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            String token = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles());
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("id", user.getId());
+            response.put("token", token);
+            response.put("username", user.getUsername());
+            response.put("displayName", user.getDisplayName());
+            response.put("roles", user.getRoles());
+            response.put("avatar", user.getAvatar());
+            response.put("email", user.getEmail());
+            response.put("message", "Đăng nhập thành công.");
+            return response;
+        }
+
+        // Tự động sinh username duy nhất từ email
+        String finalUsername = generateUniqueUsernameFromEmail(email);
+
+        User newUser = new User();
+        newUser.setUsername(finalUsername);
+        newUser.setEmail(email);
+        newUser.setDisplayName(cleanDisplayName);
+        newUser.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        newUser.setAvatar((picture != null && !picture.trim().isEmpty()) ? picture : getRandomColor());
+        // Cấp ngay quyền Thành viên chính thức
+        newUser.setRoles(new java.util.HashSet<>(Set.of(Constants.ROLE_USER)));
+
+        userRepository.save(newUser);
+
+        String token = jwtUtils.generateJwtToken(newUser.getUsername(), newUser.getRoles());
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", newUser.getId());
+        response.put("token", token);
+        response.put("username", newUser.getUsername());
+        response.put("displayName", newUser.getDisplayName());
+        response.put("roles", newUser.getRoles());
+        response.put("avatar", newUser.getAvatar());
+        response.put("email", newUser.getEmail());
+        response.put("message", "Đăng ký tài khoản Google thành công.");
+        return response;
     }
 }

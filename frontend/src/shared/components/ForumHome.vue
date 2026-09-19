@@ -224,114 +224,117 @@
       </div>
     </section>
 
-    <!-- Block "Chú ý" cho Mobile (width < 768px) -->
-    <div v-if="pinnedThreads && pinnedThreads.length > 0" class="card mobile-con-so-block mb-3">
-      <div class="card-header section-header">
-        <a @click="$router.push({ name: 'PinnedThreads' })" class="header-link">Chú ý</a>
-      </div>
-      <div class="card-body" style="padding: 0;">
-        <div class="latest-threads-list">
-          <div v-for="thread in pinnedThreads.slice(0, 10)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, false)">
-            <user-profile-popup :user="thread.author" v-if="thread.author">
-              <div class="lt-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#e0e0e0', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
-                <template v-else>
-                  {{ ((thread.author?.displayName || thread.author?.username || 'A')).charAt(0).toUpperCase() }}
-                </template>
-              </div>
-            </user-profile-popup>
-            <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
-            <div class="lt-content">
-              <div class="lt-title">
-                <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
-                  <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
-                    {{ thread.label.name }}
-                  </span>
-                  <span class="lt-title-text">{{ thread.title }}</span>
-                  <span v-if="thread.isFollowed" title="Chủ đề đang theo dõi" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell-watched" style="display: block; pointer-events: none;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                  </span>
-                  <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
-                  </span>
-                  <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  </span>
-                </router-link>
-              </div>
-              <div class="lt-meta d-flex align-items-center">
-                <user-profile-popup :user="thread.author" v-if="thread.author">
-                  <span class="cursor-pointer font-weight-bold me-1">
-                    {{ thread.author?.displayName || thread.author?.username }} <VerifiedBadge :user="thread.author" size="14px" />
-                  </span>
-                </user-profile-popup>
-                <span v-else>Ẩn danh</span>
-                &nbsp;&middot;&nbsp;{{ formatDate(thread.createdAt) }}
-              </div>
-              <div class="lt-meta" style="margin-top: 2px; color: #666; font-size: 0.8rem;">
-                Trả lời: {{ thread.replyCount || 0 }}
+    <!-- Wrapper 2 block Chú ý và Bài viết mới nhất cho Tablet / Mobile -->
+    <div class="tablet-dual-blocks">
+      <!-- Block "Chú ý" cho Mobile (width < 768px) -->
+      <div v-if="pinnedThreads && pinnedThreads.length > 0" class="card mobile-con-so-block mb-3">
+        <div class="card-header section-header">
+          <a @click="$router.push({ name: 'PinnedThreads' })" class="header-link">Chú ý</a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="latest-threads-list">
+            <div v-for="thread in pinnedThreads.slice(0, 10)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, false)">
+              <user-profile-popup :user="thread.author" v-if="thread.author">
+                <div class="lt-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
+                  <template v-else>
+                    {{ ((thread.author?.displayName || thread.author?.username || 'A')).charAt(0).toUpperCase() }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
+              <div class="lt-content">
+                <div class="lt-title">
+                  <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                    <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
+                      {{ thread.label.name }}
+                    </span>
+                    <span class="lt-title-text">{{ thread.title }}</span>
+                    <span v-if="thread.isFollowed" title="Chủ đề đang theo dõi" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell-watched" style="display: block; pointer-events: none;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    </span>
+                    <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
+                    </span>
+                    <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    </span>
+                  </router-link>
+                </div>
+                <div class="lt-meta d-flex align-items-center">
+                  <user-profile-popup :user="thread.author" v-if="thread.author">
+                    <span class="cursor-pointer font-weight-bold me-1">
+                      {{ thread.author?.displayName || thread.author?.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                    </span>
+                  </user-profile-popup>
+                  <span v-else>Ẩn danh</span>
+                  &nbsp;&middot;&nbsp;{{ formatDate(thread.createdAt) }}
+                </div>
+                <div class="lt-meta" style="margin-top: 2px; color: #666; font-size: 0.8rem;">
+                  Trả lời: {{ thread.replyCount || 0 }}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Block "Con sò mới" cho Mobile (width < 768px) -->
-    <div class="card mobile-con-so-block">
-      <div class="card-header section-header">
-        <a @click="$router.push({ name: 'LatestThreads' })" class="header-link">Bài viết mới nhất</a>
-      </div>
-      <div class="card-body" style="padding: 0;">
-        <div v-if="loading" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
-          Đang tải...
+      <!-- Block "Con sò mới" cho Mobile (width < 768px) -->
+      <div class="card mobile-con-so-block">
+        <div class="card-header section-header">
+          <a @click="$router.push({ name: 'LatestThreads' })" class="header-link">Bài viết mới nhất</a>
         </div>
-        <div v-else class="latest-threads-list">
-          <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
-            <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
-              <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
-                <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
-                <template v-else>
-                  {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
-                </template>
-              </div>
-            </user-profile-popup>
-            <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
-            <div class="lt-content">
-              <div class="lt-title">
-                <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
-                  <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
-                    {{ thread.label.name }}
-                  </span>
-                  <span class="lt-title-text">{{ thread.title }}</span>
-                  <span v-if="thread.isFollowed" title="Chủ đề đang theo dõi" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell-watched" style="display: block; pointer-events: none;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                  </span>
-                  <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
-                  </span>
-                  <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  </span>
-                </router-link>
-              </div>
-              <div class="lt-meta d-flex align-items-center">
-                Mới nhất:&nbsp;
-                <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
-                  <span class="cursor-pointer font-weight-bold me-1">
-                    {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="14px" />
-                  </span>
-                </user-profile-popup>
-                <span v-else>Ẩn danh</span>
-                &nbsp;&middot;&nbsp;{{ formatDate(thread.lastPostAt || thread.createdAt) }}
-              </div>
-              <div class="lt-category">
-                <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category?.id } }">{{ thread.category?.name || 'Không rõ' }}</router-link>
+        <div class="card-body" style="padding: 0;">
+          <div v-if="loading" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+            Đang tải...
+          </div>
+          <div v-else class="latest-threads-list">
+            <div v-for="thread in latestThreads.slice(0, 15)" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
+              <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                  <img v-if="isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" :src="formatAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar)" />
+                  <template v-else>
+                    {{ ((thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username || 'A').charAt(0).toUpperCase() }}
+                  </template>
+                </div>
+              </user-profile-popup>
+              <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
+              <div class="lt-content">
+                <div class="lt-title">
+                  <router-link :to="thread.lastPostId ? { name: 'ThreadDetail', params: { id: thread.id }, query: { postId: thread.lastPostId } } : { name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                    <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
+                      {{ thread.label.name }}
+                    </span>
+                    <span class="lt-title-text">{{ thread.title }}</span>
+                    <span v-if="thread.isFollowed" title="Chủ đề đang theo dõi" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell-watched" style="display: block; pointer-events: none;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    </span>
+                    <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
+                    </span>
+                    <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    </span>
+                  </router-link>
+                </div>
+                <div class="lt-meta d-flex align-items-center">
+                  Mới nhất:&nbsp;
+                  <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
+                    <span class="cursor-pointer font-weight-bold me-1">
+                      {{ (thread.lastPostAuthor || thread.author)?.displayName || (thread.lastPostAuthor || thread.author)?.username }} <VerifiedBadge :user="thread.lastPostAuthor || thread.author" size="14px" />
+                    </span>
+                  </user-profile-popup>
+                  <span v-else>Ẩn danh</span>
+                  &nbsp;&middot;&nbsp;{{ formatDate(thread.lastPostAt || thread.createdAt) }}
+                </div>
+                <div class="lt-category">
+                  <router-link :to="{ name: 'CategoryDetail', params: { id: thread.category?.id } }">{{ thread.category?.name || 'Không rõ' }}</router-link>
+                </div>
               </div>
             </div>
-          </div>
-          <div v-if="latestThreads.length === 0" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
-            Chưa có bài viết nào.
+            <div v-if="latestThreads.length === 0" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
+              Chưa có bài viết nào.
+            </div>
           </div>
         </div>
       </div>
