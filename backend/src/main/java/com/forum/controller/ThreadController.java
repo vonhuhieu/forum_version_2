@@ -18,6 +18,7 @@ public class ThreadController {
 
     @GetMapping
     public ResponseEntity<ResponseDTO<?>> getAllThreads(
+            @RequestParam(required = false) Boolean pinned,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long labelId,
             @RequestParam(required = false) String displayName,
@@ -29,7 +30,7 @@ public class ThreadController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortOrder) {
         if (page != null && size != null) {
-            return ResponseEntity.ok(threadService.getAllThreadsPaged(categoryId, labelId, displayName, threadType, keyword, sortBy, sortOrder, page, size));
+            return ResponseEntity.ok(threadService.getAllThreadsPaged(pinned, categoryId, labelId, displayName, threadType, keyword, sortBy, sortOrder, page, size));
         }
         return ResponseEntity.ok(threadService.getAllThreads(categoryId, labelId, limit));
     }
@@ -51,6 +52,12 @@ public class ThreadController {
     }
 
 
+
+    @RequestMapping(value = "/clear-cache", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<ResponseDTO<String>> clearCache() {
+        ThreadService.clearAllCaches();
+        return ResponseEntity.ok(ResponseDTO.success("Cache cleared successfully"));
+    }
 
     @GetMapping("/latest")
     public ResponseEntity<ResponseDTO<List<ThreadDTO>>> getLatestThreads() {

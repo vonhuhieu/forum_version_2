@@ -13,6 +13,10 @@ class ThreadService {
     return api.get('/threads/latest')
   }
 
+  getPinned(params = {}) {
+    return api.get('/threads', { params: { ...params, pinned: true } })
+  }
+
   create(payload) {
     return api.post('/threads', payload)
   }

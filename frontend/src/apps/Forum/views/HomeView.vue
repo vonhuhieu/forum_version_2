@@ -7,20 +7,84 @@
         <div class="forum-slogan" style="font-weight: bold; color: #1a507a; font-size: 1.1rem;">
           HỢP TÁC XÃ VUI VẺ
         </div>
-        <div v-if="isLoggedIn && !isNonOfficial" class="user-actions">
+        <div v-if="canShowPostButton" class="user-actions">
           <button @click="openPostModal" class="btn-post-thread">Đăng bài...</button>
         </div>
       </div>
 
       <div class="main-wrapper">
         <div class="content-left">
-          <ForumHome :stats="stats" :latestThreads="latestThreads" @loaded="onForumHomeLoaded" />
+          <ForumHome :stats="stats" :latestThreads="latestThreads" :pinnedThreads="pinnedThreads" @loaded="onForumHomeLoaded" />
         </div>
         
         <aside class="content-right">
+          <!-- Block "Chú ý" (Pinned Threads) -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header section-header background-f8f9fa pl-and-pr-16">
+              <a @click="$router.push({ name: 'PinnedThreads' })" class="header-link text-transform-uppercase color-1a507a">Chú ý</a>
+            </div>
+            <div class="card-body" style="padding: 0; position: relative;">
+              <Loading :visible="loadingPinned" text="Đang tải..." />
+              <div class="latest-threads-list">
+                <div v-for="thread in pinnedThreads" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, false)">
+                  <user-profile-popup :user="thread.author" v-if="thread.author">
+                    <div class="lt-avatar" :style="!isAvatarUrl(thread.author?.avatar) ? { backgroundColor: thread.author?.avatar || '#e0e0e0', color: '#fff' } : {}">
+                      <img v-if="isAvatarUrl(thread.author?.avatar)" :src="formatAvatarUrl(thread.author?.avatar)" />
+                      <template v-else>
+                        {{ ((thread.author?.displayName || thread.author?.username || 'A')).charAt(0).toUpperCase() }}
+                      </template>
+                    </div>
+                  </user-profile-popup>
+                  <div v-else class="lt-avatar" style="background-color: #ccc; color: #fff;">A</div>
+                  <div class="lt-content">
+                    <div class="lt-title">
+                      <router-link :to="{ name: 'ThreadDetail', params: { id: thread.id } }" :title="thread.title">
+                        <span v-if="thread.label" class="label-tag-mini" :style="{ backgroundColor: thread.label.colorCode, color: thread.label.textColor, borderColor: thread.label.borderColor || 'transparent' }">
+                          {{ thread.label.name }}
+                        </span>
+                        <span class="lt-title-text">{{ thread.title }}</span>
+                        <span v-if="thread.isFollowed" title="Chủ đề đang theo dõi" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell-watched" style="display: block; pointer-events: none;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        </span>
+                        <span v-if="thread.pinned" title="Đã ghim" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="display: block; pointer-events: none;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5a2 2 0 0 0-.44 1.24z"></path></svg>
+                        </span>
+                        <span v-if="thread.locked" title="Đã khóa" style="display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; pointer-events: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </span>
+                      </router-link>
+                    </div>
+                    <div class="lt-meta d-flex align-items-center">
+                      <user-profile-popup :user="thread.author" v-if="thread.author">
+                        <span class="cursor-pointer font-weight-bold me-1">
+                          {{ thread.author?.displayName || thread.author?.username }} <VerifiedBadge :user="thread.author" size="14px" />
+                        </span>
+                      </user-profile-popup>
+                      <span v-else>Ẩn danh</span>
+                      &nbsp;&middot;&nbsp;{{ formatDate(thread.createdAt) }}
+                    </div>
+                    <div class="lt-meta" style="margin-top: 2px; color: #666; font-size: 0.8rem;">
+                      Trả lời: {{ thread.replyCount || 0 }}
+                    </div>
+                  </div>
+                </div>
+                <div v-if="pinnedThreads.length === 0" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
+                  Chưa có bài viết chú ý nào.
+                </div>
+                <div v-if="pinnedTotalPages > 1" class="p-2 border-top d-flex justify-content-center">
+                  <ForumPagination
+                    :current-page="pinnedCurrentPage"
+                    :total-pages="pinnedTotalPages"
+                    @page-changed="onPinnedPageChanged"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header section-header background-f8f9fa pl-and-pr-16">
-              <a @click="$router.push({ name: 'LatestThreads' })" class="header-link text-transform-uppercase color-1a507a">Con sò mới</a>
+              <a @click="$router.push({ name: 'LatestThreads' })" class="header-link text-transform-uppercase color-1a507a">Bài viết mới nhất</a>
             </div>
             <div class="card-body" style="padding: 0;">
               <div v-if="loadingLatest" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
@@ -76,8 +140,8 @@
               </div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-header background-f8f9fa text-transform-uppercase color-1a507a pl-and-pr-16">Vô công rỗi nghề</div>
+          <div class="card display-none">
+            <div class="card-header background-f8f9fa text-transform-uppercase color-1a507a pl-and-pr-16 display-none">Vô công rỗi nghề</div>
             <div class="card-body" style="padding: 1rem;">
               <div class="stat-item" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                 <span>Người có học:</span>
@@ -140,7 +204,7 @@
               {{ group.name }}
             </div>
             <div class="modal-category-list">
-              <template v-for="cat in group.categories.filter(c => !c.parentCategoryId)" :key="cat.id">
+              <template v-for="cat in getVisibleCategories(group.categories.filter(c => !c.parentCategoryId))" :key="cat.id">
                 <!-- Parent -->
                 <div 
                   class="modal-category-item"
@@ -158,7 +222,7 @@
 
                 <!-- Sub-categories -->
                 <div 
-                  v-for="sub in (cat.subCategories && cat.subCategories.length ? cat.subCategories : group.categories.filter(c => c.parentCategoryId === cat.id))" 
+                  v-for="sub in getVisibleCategories(cat.subCategories && cat.subCategories.length ? cat.subCategories : group.categories.filter(c => c.parentCategoryId === cat.id))" 
                   :key="'sub-' + sub.id" 
                   class="modal-category-item modal-sub-category"
                   @click="selectCategory(sub.id)"
@@ -187,11 +251,12 @@ import ForumHome from '@/shared/components/ForumHome.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import ForumPagination from '@/shared/components/ForumPagination.vue'
 import threadService from '@/apps/Forum/services/thread.service'
 import categoryService from '@/apps/Forum/services/category.service'
 import statisticsService from '@/apps/Forum/services/statistics.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, isAdminOrSuperAdmin, canShowPostButtonOnScreen, loadPublicSettings } from '@/shared/utils/utils'
 
 export default {
   name: 'HomeView',
@@ -199,7 +264,8 @@ export default {
     ForumHome,
     Loading,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    ForumPagination
   },
   data() {
     return {
@@ -207,6 +273,12 @@ export default {
       currentUser: null,
       categoryGroupsModal: [],
       showModal: false,
+      pinnedThreads: [],
+      loadingPinned: false,
+      pinnedCurrentPage: 1,
+      pinnedPageSize: 5,
+      pinnedTotalPages: 1,
+      pinnedTotalElements: 0,
       latestThreads: [],
       loadingLatest: false,
       apiDataLoaded: false,
@@ -228,6 +300,12 @@ export default {
     isNonOfficial() {
       return isNonOfficialUser()
     },
+    isAdmin() {
+      return isAdminOrSuperAdmin()
+    },
+    canShowPostButton() {
+      return canShowPostButtonOnScreen('home')
+    },
     isLoading() {
       return !this.apiDataLoaded || !this.forumHomeLoaded || this.loadingCategories
     },
@@ -238,6 +316,7 @@ export default {
   },
   mounted() {
     this.checkAuth()
+    loadPublicSettings()
     this.loadAllData()
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
@@ -251,9 +330,24 @@ export default {
     formatAvatarUrl(avatar) {
       return formatAvatarUrl(avatar)
     },
+    getVisibleCategories(cats) {
+      if (!cats) return []
+      if (this.isAdmin) return cats
+      return cats.filter(c => !c.onlyAdminCanPost)
+    },
     handleAvatarUpdated(event) {
       const { username, avatar } = event.detail
       this.latestThreads = this.latestThreads.map(t => {
+        const updated = { ...t }
+        if (t.author && t.author.username === username) {
+          updated.author = { ...t.author, avatar }
+        }
+        if (t.lastPostAuthor && t.lastPostAuthor.username === username) {
+          updated.lastPostAuthor = { ...t.lastPostAuthor, avatar }
+        }
+        return updated
+      })
+      this.pinnedThreads = this.pinnedThreads.map(t => {
         const updated = { ...t }
         if (t.author && t.author.username === username) {
           updated.author = { ...t.author, avatar }
@@ -295,7 +389,8 @@ export default {
       try {
         await Promise.all([
           this.fetchStatistics(),
-          this.fetchLatestThreads()
+          this.fetchLatestThreads(),
+          this.fetchPinnedThreads()
         ])
       } finally {
         this.apiDataLoaded = true
@@ -318,15 +413,43 @@ export default {
       if (!num) return 0
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
     },
+    async fetchPinnedThreads() {
+      this.loadingPinned = true
+      try {
+        const page = this.pinnedCurrentPage - 1
+        const size = this.pinnedPageSize
+        const res = await threadService.getAll({ pinned: true, page, size, sortBy: 'createdAt', sortOrder: 'desc' })
+        if (res.data && res.data.content) {
+          this.pinnedThreads = res.data.content
+          this.pinnedTotalPages = res.data.totalPages || 1
+          this.pinnedTotalElements = res.data.totalElements || 0
+        } else {
+          this.pinnedThreads = []
+          this.pinnedTotalPages = 1
+          this.pinnedTotalElements = 0
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải bài viết chú ý:', error)
+      } finally {
+        this.loadingPinned = false
+      }
+    },
+    async onPinnedPageChanged(newPage) {
+      this.pinnedCurrentPage = newPage
+      await this.fetchPinnedThreads()
+    },
     async fetchLatestThreads() {
       this.loadingLatest = true
       try {
         const response = await threadService.getLatest()
-        if (response.data) {
+        if (response.data && Array.isArray(response.data)) {
           this.latestThreads = response.data.slice(0, 10)
+        } else {
+          this.latestThreads = []
         }
       } catch (error) {
         console.error('Lỗi khi tải bài viết mới nhất:', error)
+        this.latestThreads = []
       } finally {
         this.loadingLatest = false
       }

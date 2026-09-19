@@ -26,4 +26,14 @@ public class Constants {
     public static final String MEMBER_KEY_MOST_MESSAGES = "most_messages";
     public static final String MEMBER_KEY_MOST_REACTIONS = "most_reactions";
     public static final String MEMBER_KEY_MOST_POINTS = "most_points";
+
+    public static final String SETTING_POST_BUTTON_HOME = "post_button_home";
+    public static final String SETTING_POST_BUTTON_LATEST = "post_button_latest";
+    public static final String SETTING_POST_BUTTON_PINNED = "post_button_pinned";
+    public static final String SETTING_POST_BUTTON_CATEGORY = "post_button_category";
+
+    public static final String DEFAULT_POST_BUTTON_HOME = "ALL";
+    public static final String DEFAULT_POST_BUTTON_LATEST = "ALL";
+    public static final String DEFAULT_POST_BUTTON_PINNED = "ADMIN_ONLY";
+    public static final String DEFAULT_POST_BUTTON_CATEGORY = "ALL";
 }

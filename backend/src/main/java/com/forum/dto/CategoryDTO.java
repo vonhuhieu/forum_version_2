@@ -10,6 +10,7 @@ public class CategoryDTO {
     private String icon;
     private Integer positionOrder;
     private boolean active;
+    private boolean onlyAdminCanPost;
     private Long categoryGroupId;
     private Long parentCategoryId;
     private Long threadCount;

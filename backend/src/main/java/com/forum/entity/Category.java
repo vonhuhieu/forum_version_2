@@ -29,6 +29,9 @@ public class Category {
 
     private boolean active = true;
 
+    @Column(name = "only_admin_can_post", nullable = false)
+    private boolean onlyAdminCanPost = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_group_id")
     private CategoryGroup categoryGroup;
