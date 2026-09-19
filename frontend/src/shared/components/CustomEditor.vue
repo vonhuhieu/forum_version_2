@@ -51,6 +51,37 @@
         />
       </div> -->
     </div>
+
+    <!-- Modal Dán / Chỉnh sửa mã nguồn HTML -->
+    <div v-if="showHtmlSourceModal" class="html-source-modal-overlay" @click.self="showHtmlSourceModal = false">
+      <div class="html-source-modal-card">
+        <div class="html-source-modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <span>Chèn / Chỉnh sửa mã nguồn HTML (Source Code)</span>
+          </div>
+          <button class="btn-close-source" @click="showHtmlSourceModal = false">&times;</button>
+        </div>
+        <div class="html-source-modal-body">
+          <div class="source-hint">
+            💡 Dán mã HTML/CSS tùy chỉnh vào khung bên dưới. Sau khi nhấn <strong>"Áp dụng vào bài viết"</strong>, trình soạn thảo sẽ biên dịch và render thành giao diện trực quan sống động.
+          </div>
+          <textarea 
+            v-model="htmlSourceContent" 
+            class="source-code-textarea" 
+            placeholder="Dán mã HTML vào đây..."
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <div class="html-source-modal-footer">
+          <button type="button" class="btn-clear-source" @click="htmlSourceContent = ''">Xóa trống</button>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn-cancel-source" @click="showHtmlSourceModal = false">Đóng</button>
+            <button type="button" class="btn-apply-source" @click="applyHtmlSource">Áp dụng vào bài viết</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -95,7 +126,8 @@ import {
   TextTransformation
 } from 'ckeditor5'
 import 'ckeditor5/ckeditor5.css'
-import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin } from '@/shared/utils/ckeditorPlugins'
+import { GeneralHtmlSupport } from '@ckeditor/ckeditor5-html-support'
+import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, HtmlSourcePlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
@@ -146,6 +178,8 @@ export default {
       decorateTimer: null,
       showEmojiPicker: false,
       emojiPickerTarget: null,
+      showHtmlSourceModal: false,
+      htmlSourceContent: '',
       editor: ClassicEditor,
       isTagging: false,
       searchQuery: '',
@@ -165,6 +199,16 @@ export default {
       manualCloseQuery: '',
       editorConfig: {
         licenseKey: 'GPL',
+        htmlSupport: {
+          allow: [
+            {
+              name: /.*/,
+              attributes: true,
+              classes: true,
+              styles: true
+            }
+          ]
+        },
         mediaEmbed: {
           extraProviders: [
             {
@@ -211,8 +255,8 @@ export default {
         plugins: [
           Essentials, Paragraph, Heading, Bold, Italic, Underline, Strikethrough,
           Font, Alignment, Link, List, Indent, IndentBlock, Image, ImageUpload, ImageInsert, ImageResize, ImageStyle, ImageToolbar, ImageCaption, ImageTextAlternative, Table,
-          MediaEmbed, BlockQuote, FileRepository, TableToolbar, TableColumnResize, Undo, TextTransformation,
-          MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, QuoteSourcePlugin
+          MediaEmbed, BlockQuote, FileRepository, TableToolbar, TableColumnResize, Undo, TextTransformation, GeneralHtmlSupport,
+          MyCustomUploadAdapterPlugin, CustomUploadPlugin, HtmlSourcePlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, QuoteSourcePlugin
         ],
         toolbar: {
           items: [
@@ -228,7 +272,7 @@ export default {
             '|',
             'outdent', 'indent',
             '|',
-            'link', 'insertImage', 'customUpload', 'mobileToolbarToggle', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
+            'link', 'insertImage', 'customUpload', 'htmlSource', 'mobileToolbarToggle', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
             '|',
             'undo', 'redo'
           ]
@@ -311,6 +355,13 @@ export default {
     }
   },
   methods: {
+    applyHtmlSource() {
+      if (this.editorInstance) {
+        this.editorInstance.setData(this.htmlSourceContent || '');
+        this.$emit('update:modelValue', this.htmlSourceContent || '');
+      }
+      this.showHtmlSourceModal = false;
+    },
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },
@@ -634,6 +685,12 @@ export default {
       editor.on('openEmojiPicker', (evt, data) => {
         this.emojiPickerTarget = markRaw(data.domTarget);
         this.showEmojiPicker = !this.showEmojiPicker;
+      });
+
+      // Lắng nghe sự kiện mở modal mã nguồn HTML từ HtmlSourcePlugin
+      editor.on('openHtmlSource', () => {
+        this.htmlSourceContent = editor.getData();
+        this.showHtmlSourceModal = true;
       });
 
       // Relay sự kiện upload tài liệu ra component cha để hiển thị/ẩn Loading overlay
@@ -1546,6 +1603,181 @@ export default {
   :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle .ck-button__label) {
     color: #d35400 !important;
   }
+}
+
+/* Nút mở hộp thoại HTML source code */
+:deep(.ck-btn-html-source:hover) {
+  color: #0284c7 !important;
+}
+
+/* Modal Dán / Chỉnh sửa mã nguồn HTML */
+.html-source-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+}
+
+.html-source-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 850px;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalScaleIn 0.2s ease-out;
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.html-source-modal-header {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #f8fafc;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.btn-close-source {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.btn-close-source:hover {
+  color: #ffffff;
+}
+
+.html-source-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  gap: 12px;
+}
+
+.source-hint {
+  font-size: 0.85rem;
+  color: #475569;
+  background: #f1f5f9;
+  border-left: 4px solid #3b82f6;
+  padding: 8px 12px;
+  border-radius: 4px;
+  line-height: 1.45;
+}
+
+.source-code-textarea {
+  width: 100%;
+  height: 420px;
+  min-height: 250px;
+  max-height: 55vh;
+  font-family: Consolas, 'Fira Code', 'Courier New', monospace;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  background: #0f172a;
+  color: #38bdf8;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-x: auto;
+}
+
+.source-code-textarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.html-source-modal-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-clear-source {
+  background: transparent;
+  border: 1px dashed #94a3b8;
+  color: #64748b;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-source:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.btn-cancel-source {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 500;
+  font-size: 0.88rem;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-source:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-apply-source {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 7px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s;
+}
+
+.btn-apply-source:hover {
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
 }
 
 </style>

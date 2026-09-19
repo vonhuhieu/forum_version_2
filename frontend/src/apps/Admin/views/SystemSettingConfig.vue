@@ -94,6 +94,63 @@
 
         <hr class="my-4" style="border-top: 1px solid #eee;" />
 
+        <h4 class="mb-3" style="color: #1a507a; font-size: 1.15rem;">Cấu hình hiển thị nút Đăng bài theo màn hình</h4>
+        <p class="text-muted mb-4" style="font-size: 0.9rem;">
+          Tùy chỉnh bật/tắt hoặc giới hạn quyền hiển thị nút <strong>"Đăng bài..."</strong> trên từng giao diện cụ thể của diễn đàn:
+        </p>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fcfcfc; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1">Màn hình Trang chủ (Home)</label>
+              <div class="form-text text-muted mb-2" style="font-size: 0.8rem;">Đường dẫn: <code>/</code></div>
+              <select v-model="settings.post_button_home" class="form-select">
+                <option value="ALL">Mọi thành viên đăng nhập (Mặc định)</option>
+                <option value="ADMIN_ONLY">Chỉ Quản trị viên (BQT)</option>
+                <option value="DISABLED">Ẩn hoàn toàn nút đăng bài</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fcfcfc; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1">Màn hình Mới ra lò (Latest)</label>
+              <div class="form-text text-muted mb-2" style="font-size: 0.8rem;">Đường dẫn: <code>/latest</code></div>
+              <select v-model="settings.post_button_latest" class="form-select">
+                <option value="ALL">Mọi thành viên đăng nhập (Mặc định)</option>
+                <option value="ADMIN_ONLY">Chỉ Quản trị viên (BQT)</option>
+                <option value="DISABLED">Ẩn hoàn toàn nút đăng bài</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fcfcfc; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1">Màn hình Chú ý (Pinned)</label>
+              <div class="form-text text-muted mb-2" style="font-size: 0.8rem;">Đường dẫn: <code>/pinned</code> (Danh sách bài ghim)</div>
+              <select v-model="settings.post_button_pinned" class="form-select">
+                <option value="ADMIN_ONLY">Chỉ Quản trị viên (BQT - Mặc định)</option>
+                <option value="ALL">Mọi thành viên đăng nhập</option>
+                <option value="DISABLED">Ẩn hoàn toàn nút đăng bài</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fcfcfc; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1">Màn hình Chuyên mục (Category)</label>
+              <div class="form-text text-muted mb-2" style="font-size: 0.8rem;">Đường dẫn: <code>/category/:id</code></div>
+              <select v-model="settings.post_button_category" class="form-select">
+                <option value="ALL">Mọi thành viên đăng nhập (Mặc định)</option>
+                <option value="ADMIN_ONLY">Chỉ Quản trị viên (BQT)</option>
+                <option value="DISABLED">Ẩn hoàn toàn nút đăng bài</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" style="border-top: 1px solid #eee;" />
+
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary px-4" :disabled="saving">
             {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
@@ -117,7 +174,11 @@ export default {
         thread_edit_limit_minutes: SETTINGS.DEFAULT_THREAD_EDIT_LIMIT_MINUTES,
         post_edit_limit_minutes: SETTINGS.DEFAULT_POST_EDIT_LIMIT_MINUTES,
         conversation_edit_limit_minutes: SETTINGS.DEFAULT_CONVERSATION_EDIT_LIMIT_MINUTES,
-        conversation_reply_edit_limit_minutes: SETTINGS.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES
+        conversation_reply_edit_limit_minutes: SETTINGS.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES,
+        post_button_home: 'ALL',
+        post_button_latest: 'ALL',
+        post_button_pinned: 'ADMIN_ONLY',
+        post_button_category: 'ALL'
       },
       loading: true,
       saving: false,
@@ -149,6 +210,10 @@ export default {
           if (convoReplyVal !== undefined) {
             this.settings.conversation_reply_edit_limit_minutes = Number(convoReplyVal)
           }
+          if (res.data.post_button_home) this.settings.post_button_home = res.data.post_button_home
+          if (res.data.post_button_latest) this.settings.post_button_latest = res.data.post_button_latest
+          if (res.data.post_button_pinned) this.settings.post_button_pinned = res.data.post_button_pinned
+          if (res.data.post_button_category) this.settings.post_button_category = res.data.post_button_category
         }
       } catch (err) {
         console.error('Không tải được cấu hình hệ thống:', err)
@@ -164,7 +229,11 @@ export default {
           [SETTINGS.THREAD_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.thread_edit_limit_minutes),
           [SETTINGS.POST_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.post_edit_limit_minutes),
           [SETTINGS.CONVERSATION_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.conversation_edit_limit_minutes),
-          [SETTINGS.CONVERSATION_REPLY_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.conversation_reply_edit_limit_minutes)
+          [SETTINGS.CONVERSATION_REPLY_EDIT_LIMIT_MINUTES_KEY]: String(this.settings.conversation_reply_edit_limit_minutes),
+          post_button_home: this.settings.post_button_home,
+          post_button_latest: this.settings.post_button_latest,
+          post_button_pinned: this.settings.post_button_pinned,
+          post_button_category: this.settings.post_button_category
         }
         await settingService.updateSettings(payload)
         alertSuccess('Lưu cấu hình hệ thống thành công')

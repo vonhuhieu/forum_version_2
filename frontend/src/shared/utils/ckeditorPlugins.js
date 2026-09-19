@@ -262,3 +262,26 @@ export function MobileToolbarTogglePlugin(editor) {
     return view;
   });
 }
+
+// Plugin Mở Hộp Thoại Chèn / Sửa Mã Nguồn HTML
+export function HtmlSourcePlugin(editor) {
+  editor.ui.componentFactory.add('htmlSource', locale => {
+    const view = new ButtonView(locale);
+
+    // Icon Code </>
+    const codeIcon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>';
+
+    view.set({
+      label: 'Dán mã HTML / Nguồn (Source Code)',
+      icon: codeIcon,
+      tooltip: true,
+      class: 'ck-btn-html-source'
+    });
+
+    view.on('execute', () => {
+      editor.fire('openHtmlSource');
+    });
+
+    return view;
+  });
+}

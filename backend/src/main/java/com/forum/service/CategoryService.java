@@ -99,6 +99,7 @@ public class CategoryService {
             category.setIcon(categoryDTO.getIcon());
             category.setPositionOrder(categoryDTO.getPositionOrder());
             category.setActive(categoryDTO.isActive());
+            category.setOnlyAdminCanPost(categoryDTO.isOnlyAdminCanPost());
             
             if (categoryDTO.getCategoryGroupId() != null) {
                 com.forum.entity.CategoryGroup group = new com.forum.entity.CategoryGroup();

@@ -140,3 +140,59 @@ export function getVerifiedBadgeSvgHtml(userOrIsVerified, size = '16px') {
 
   return `<span class="verified-badge-wrapper" title="Tài khoản Uy tín / Quản trị viên" style="display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; line-height: 1; margin-left: 4px; pointer-events: none; user-select: none;"><svg class="verified-badge-icon" style="width: ${size}; height: ${size}; display: inline-block; vertical-align: middle; flex-shrink: 0; pointer-events: none;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#1877F2"/><path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
 }
+
+import { reactive } from 'vue';
+
+export const publicSettingsState = reactive({
+  loaded: false,
+  settings: {}
+});
+
+/**
+ * Tải cài đặt hệ thống public và lưu vào reactive state
+ */
+export async function loadPublicSettings() {
+  if (publicSettingsState.loaded) return publicSettingsState.settings;
+  try {
+    const settingServiceModule = await import('@/shared/services/setting.service');
+    const res = await settingServiceModule.default.getPublicSettings();
+    if (res && res.data) {
+      Object.assign(publicSettingsState.settings, res.data);
+    }
+    publicSettingsState.loaded = true;
+    return publicSettingsState.settings;
+  } catch (e) {
+    console.error('Failed to load public settings:', e);
+    return {};
+  }
+}
+
+/**
+ * Kiểm tra xem có được phép hiển thị nút Đăng bài trên màn hình chỉ định hay không
+ * @param {'home'|'latest'|'pinned'|'category'} screenName - Tên định danh màn hình
+ * @returns {boolean}
+ */
+export function canShowPostButtonOnScreen(screenName) {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return false;
+  if (isNonOfficialUser()) return false;
+
+  const isAdmin = isAdminOrSuperAdmin();
+  const settings = publicSettingsState.settings;
+  const settingKey = `post_button_${screenName}`;
+  const settingVal = settings[settingKey];
+
+  // Nếu là màn hình chú ý/ghim (pinned): mặc định chỉ Quản trị viên
+  if (screenName === 'pinned') {
+    const val = settingVal || 'ADMIN_ONLY';
+    if (val === 'DISABLED') return false;
+    if (val === 'ADMIN_ONLY') return isAdmin;
+    return true;
+  }
+
+  // Các màn hình khác: mặc định ALL
+  const val = settingVal || 'ALL';
+  if (val === 'DISABLED') return false;
+  if (val === 'ADMIN_ONLY') return isAdmin;
+  return true;
+}

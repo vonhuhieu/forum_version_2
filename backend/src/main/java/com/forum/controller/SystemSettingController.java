@@ -43,6 +43,15 @@ public class SystemSettingController {
                 Constants.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES));
         settings.put(Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, convoReplyLimit);
         
+        settings.put(Constants.SETTING_POST_BUTTON_HOME, systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_HOME, Constants.DEFAULT_POST_BUTTON_HOME));
+        settings.put(Constants.SETTING_POST_BUTTON_LATEST, systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_LATEST, Constants.DEFAULT_POST_BUTTON_LATEST));
+        settings.put(Constants.SETTING_POST_BUTTON_PINNED, systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_PINNED, Constants.DEFAULT_POST_BUTTON_PINNED));
+        settings.put(Constants.SETTING_POST_BUTTON_CATEGORY, systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_CATEGORY, Constants.DEFAULT_POST_BUTTON_CATEGORY));
+
         return ResponseEntity.ok(ResponseDTO.success(settings));
     }
 
@@ -61,6 +70,18 @@ public class SystemSettingController {
         systemSettingService.getSetting(
                 Constants.SETTING_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES, 
                 Constants.DEFAULT_CONVERSATION_REPLY_EDIT_LIMIT_MINUTES);
+        systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_HOME, 
+                Constants.DEFAULT_POST_BUTTON_HOME);
+        systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_LATEST, 
+                Constants.DEFAULT_POST_BUTTON_LATEST);
+        systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_PINNED, 
+                Constants.DEFAULT_POST_BUTTON_PINNED);
+        systemSettingService.getSetting(
+                Constants.SETTING_POST_BUTTON_CATEGORY, 
+                Constants.DEFAULT_POST_BUTTON_CATEGORY);
         
         Map<String, String> map = systemSettingService.getAllSettings().stream()
                 .collect(Collectors.toMap(SystemSetting::getSettingKey, SystemSetting::getSettingValue));

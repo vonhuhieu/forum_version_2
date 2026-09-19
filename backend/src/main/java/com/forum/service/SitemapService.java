@@ -84,24 +84,31 @@ public class SitemapService {
         xml.append("  <url>\n");
         xml.append("    <loc>").append(baseUrl).append("/latest</loc>\n");
         xml.append("    <changefreq>hourly</changefreq>\n");
-        xml.append("    <priority>0.9</priority>\n");
+        xml.append("    <priority>0.8</priority>\n");
         xml.append("  </url>\n");
 
-        // 3. Trang thành viên
+        // 3. Trang chủ đề ghim / chú ý
+        xml.append("  <url>\n");
+        xml.append("    <loc>").append(baseUrl).append("/pinned</loc>\n");
+        xml.append("    <changefreq>daily</changefreq>\n");
+        xml.append("    <priority>0.8</priority>\n");
+        xml.append("  </url>\n");
+
+        // 4. Trang thành viên
         xml.append("  <url>\n");
         xml.append("    <loc>").append(baseUrl).append("/thanh-vien</loc>\n");
         xml.append("    <changefreq>daily</changefreq>\n");
         xml.append("    <priority>0.8</priority>\n");
         xml.append("  </url>\n");
 
-        // 4. Chuyên mục (Categories)
+        // 5. Chuyên mục (Categories)
         try {
             List<Category> categories = categoryRepository.findAll();
             for (Category cat : categories) {
                 xml.append("  <url>\n");
                 xml.append("    <loc>").append(baseUrl).append("/category/").append(cat.getId()).append("</loc>\n");
                 xml.append("    <changefreq>daily</changefreq>\n");
-                xml.append("    <priority>0.8</priority>\n");
+                xml.append("    <priority>0.7</priority>\n");
                 xml.append("  </url>\n");
             }
         } catch (Exception e) {
