@@ -59,6 +59,12 @@
           {{ item.active ? 'Hoạt động' : 'Tắt' }}
         </span>
       </template>
+
+      <template #item-onlyAdminCanPost="{ item }">
+        <span :class="['badge', item.onlyAdminCanPost ? 'badge-warning' : 'badge-light']" style="font-size: 0.8rem; padding: 4px 8px;">
+          {{ item.onlyAdminCanPost ? 'Chỉ BQT' : 'Công khai' }}
+        </span>
+      </template>
     </DataTable>
 
     <!-- Modal Form Chuyên mục chính -->
@@ -109,6 +115,10 @@
             <option v-for="g in categoryGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
           </select>
         </div>
+        <div class="form-group checkbox-group" style="display: flex; align-items: center; gap: 8px; margin-top: 15px;">
+          <input type="checkbox" v-model="form.onlyAdminCanPost" id="cat-only-admin-post">
+          <label for="cat-only-admin-post" style="cursor: pointer; user-select: none; font-weight: normal; margin-bottom: 0;">Chỉ Quản trị viên mới được đăng bài trong chuyên mục này</label>
+        </div>
         <div class="modal-footer">
           <button type="button" @click="showModal = false" class="btn-cancel">Đóng</button>
           <button type="submit" class="btn-save">{{ isEditing ? 'Cập nhật' : 'Lưu lại' }}</button>
@@ -144,6 +154,11 @@
           {{ item.active ? 'Bật' : 'Tắt' }}
         </span>
       </template>
+      <template #item-onlyAdminCanPost="{ item }">
+        <span :class="['badge', item.onlyAdminCanPost ? 'badge-warning' : 'badge-light']" style="font-size: 0.8rem; padding: 4px 8px;">
+          {{ item.onlyAdminCanPost ? 'Chỉ BQT' : 'Công khai' }}
+        </span>
+      </template>
     </TableModal>
 
     <!-- Modal Form Chuyên mục con (CRUD Sub-cat) -->
@@ -169,6 +184,10 @@
         <div class="form-group checkbox-group">
           <input type="checkbox" v-model="subForm.active" id="sub-active">
           <label for="sub-active">Kích hoạt</label>
+        </div>
+        <div class="form-group checkbox-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+          <input type="checkbox" v-model="subForm.onlyAdminCanPost" id="sub-only-admin-post">
+          <label for="sub-only-admin-post" style="cursor: pointer; user-select: none; font-weight: normal; margin-bottom: 0;">Chỉ Quản trị viên mới được đăng bài trong chuyên mục này</label>
         </div>
         <div class="modal-footer">
           <button type="button" @click="showSubFormModal = false" class="btn-cancel">Hủy</button>
@@ -206,9 +225,10 @@ export default {
         { text: 'Tên chuyên mục', value: 'name', sortable: true },
         { text: 'Mô tả', value: 'description', sortable: true },
         { text: 'Thứ tự', value: 'positionOrder', sortable: true, width: '100px' },
-        { text: 'Trạng thái', value: 'active', sortable: true, width: '120px' }
+        { text: 'Trạng thái', value: 'active', sortable: true, width: '120px' },
+        { text: 'Quyền đăng bài', value: 'onlyAdminCanPost', sortable: true, width: '130px' }
       ],
-      form: { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null },
+      form: { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, onlyAdminCanPost: false, categoryGroupId: null, parentCategoryId: null },
       categoryGroups: [],
       sortField: 'positionOrder',
       sortOrder: 'asc',
@@ -229,13 +249,14 @@ export default {
         { text: 'Tên chuyên mục con', value: 'name', sortable: true },
         { text: 'Mô tả', value: 'description', sortable: true },
         { text: 'Thứ tự', value: 'positionOrder', sortable: true, width: '100px' },
-        { text: 'Trạng thái', value: 'active', sortable: true, width: '120px' }
+        { text: 'Trạng thái', value: 'active', sortable: true, width: '120px' },
+        { text: 'Quyền đăng bài', value: 'onlyAdminCanPost', sortable: true, width: '130px' }
       ],
 
       // Sub-category Form
       showSubFormModal: false,
       isEditingSub: false,
-      subForm: { id: null, name: '', description: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null }
+      subForm: { id: null, name: '', description: '', positionOrder: 0, active: true, onlyAdminCanPost: false, categoryGroupId: null, parentCategoryId: null }
     }
   },
   computed: {
@@ -450,7 +471,7 @@ export default {
       }
     },
     resetForm() {
-      this.form = { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, categoryGroupId: null, parentCategoryId: null }
+      this.form = { id: null, name: '', description: '', icon: '', positionOrder: 0, active: true, onlyAdminCanPost: false, categoryGroupId: null, parentCategoryId: null }
       this.isEditing = false
     },
 
@@ -471,7 +492,7 @@ export default {
     },
     openAddSubCategory() {
       this.subForm = { 
-        id: null, name: '', description: '', positionOrder: 0, active: true, 
+        id: null, name: '', description: '', positionOrder: 0, active: true, onlyAdminCanPost: false,
         categoryGroupId: this.selectedParentCategory.categoryGroupId, 
         parentCategoryId: this.selectedParentCategory.id 
       }

@@ -3,6 +3,7 @@ package com.forum.service;
 import com.forum.dto.ResponseDTO;
 import com.forum.dto.ThreadDTO;
 import com.forum.entity.Thread;
+import com.forum.entity.Category;
 import com.forum.entity.ThreadSubscription;
 import com.forum.entity.User;
 import com.forum.entity.Post;
@@ -39,6 +40,7 @@ public class ThreadService {
     private final SystemSettingService systemSettingService;
     private final UserTitleService userTitleService;
     private final com.forum.repository.UserFollowRepository userFollowRepository;
+    private final com.forum.repository.CategoryRepository categoryRepository;
     private final jakarta.persistence.EntityManager entityManager;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -78,18 +80,6 @@ public class ThreadService {
 
     public ResponseDTO<List<ThreadDTO>> getAllThreads(Long categoryId, Long labelId, Integer limit) {
         boolean canSeeInternal = isUserAuthorizedForInternalThreads();
-        String cacheKey = (categoryId != null ? categoryId.toString() : "null") + "_" + 
-                           (labelId != null ? labelId.toString() : "null") + "_" + 
-                           (limit != null ? limit.toString() : "null") + "_" + 
-                           canSeeInternal;
-        
-        List<ThreadDTO> cached = threadListCache.get(cacheKey);
-        if (cached != null) {
-            List<ThreadDTO> result = copyThreadDTOList(cached);
-            enrichFollowStatus(result);
-            return ResponseDTO.success(result);
-        }
-
         List<Thread> threads;
         if (categoryId != null) {
             if (limit != null && limit == 1) {
@@ -126,15 +116,17 @@ public class ThreadService {
 
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichGeneralThreadFields(dtos);
-        threadListCache.put(cacheKey, dtos);
-
-        List<ThreadDTO> result = copyThreadDTOList(dtos);
-        enrichFollowStatus(result);
-        return ResponseDTO.success(result);
+        enrichFollowStatus(dtos);
+        return ResponseDTO.success(dtos);
     }
 
     public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
             Long categoryId, Long labelId, String displayName, String threadType, String keyword, String sortBy, String sortOrder, int page, int size) {
+        return getAllThreadsPaged(null, categoryId, labelId, displayName, threadType, keyword, sortBy, sortOrder, page, size);
+    }
+
+    public ResponseDTO<com.forum.dto.PageResponseDTO<ThreadDTO>> getAllThreadsPaged(
+            Boolean pinned, Long categoryId, Long labelId, String displayName, String threadType, String keyword, String sortBy, String sortOrder, int page, int size) {
         
         org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
         if (sortBy != null && !sortBy.trim().isEmpty()) {
@@ -200,7 +192,7 @@ public class ThreadService {
         }
         
         org.springframework.data.domain.Page<Thread> threadPage = threadRepository.searchThreads(
-            canSeeInternal, categoryId, labelId, displayName, threadType, searchPattern, pageable);
+            canSeeInternal, pinned, categoryId, labelId, displayName, threadType, searchPattern, pageable);
             
         List<ThreadDTO> dtos = threadMapper.toDTOList(threadPage.getContent());
         enrichThreads(dtos);
@@ -218,14 +210,6 @@ public class ThreadService {
 
     public ResponseDTO<List<ThreadDTO>> getLatestThreads() {
         boolean canSeeInternal = isUserAuthorizedForInternalThreads();
-        String cacheKey = "latest_" + canSeeInternal;
-        List<ThreadDTO> cached = threadListCache.get(cacheKey);
-        if (cached != null) {
-            List<ThreadDTO> result = copyThreadDTOList(cached);
-            enrichFollowStatus(result);
-            return ResponseDTO.success(result);
-        }
-
         List<Thread> threads;
         if (canSeeInternal) {
             threads = threadRepository.findTop20ByOrderByLastPostAtDesc();
@@ -235,25 +219,18 @@ public class ThreadService {
         }
         List<ThreadDTO> dtos = threadMapper.toDTOList(threads);
         enrichGeneralThreadFields(dtos);
-        threadListCache.put(cacheKey, dtos);
-
-        List<ThreadDTO> result = copyThreadDTOList(dtos);
-        enrichFollowStatus(result);
-        return ResponseDTO.success(result);
+        enrichFollowStatus(dtos);
+        return ResponseDTO.success(dtos);
     }
 
     public ResponseDTO<ThreadDTO> getThreadById(Long id) {
         threadViewIncrementer.incrementViewCountAsync(id);
 
-        ThreadDTO baseDto = threadCache.get(id);
-        if (baseDto == null) {
-            Thread thread = threadRepository.findByIdEager(id)
-                    .orElseThrow(() -> new RuntimeException("Thread not found"));
-            baseDto = threadMapper.toDTO(thread);
-            baseDto.setReactionSummary(reactionService.getSummaryForThread(id));
-            baseDto.setRecentReactors(reactionService.getRecentReactorsForThread(id));
-            threadCache.put(id, baseDto);
-        }
+        Thread thread = threadRepository.findByIdEager(id)
+                .orElseThrow(() -> new RuntimeException("Thread not found"));
+        ThreadDTO baseDto = threadMapper.toDTO(thread);
+        baseDto.setReactionSummary(reactionService.getSummaryForThread(id));
+        baseDto.setRecentReactors(reactionService.getRecentReactorsForThread(id));
 
         if (com.forum.utils.Constants.THREAD_SCOPE_INTERNAL.equals(baseDto.getScope()) && !isUserAuthorizedForInternalThreads()) {
             throw new RuntimeException("Access denied");
@@ -493,7 +470,35 @@ public class ThreadService {
         String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         
-        userRepository.findByUsername(username).ifPresent(thread::setAuthor);
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser != null) {
+            thread.setAuthor(currentUser);
+        }
+
+        // Kiểm tra quyền đăng bài trong chuyên mục (nếu chuyên mục chỉ dành cho BQT)
+        if (threadDTO.getCategory() != null && threadDTO.getCategory().getId() != null) {
+            Category cat = categoryRepository.findById(threadDTO.getCategory().getId()).orElse(null);
+            if (cat != null) {
+                Category cur = cat;
+                boolean isCatAdminOnly = false;
+                while (cur != null) {
+                    if (cur.isOnlyAdminCanPost()) {
+                        isCatAdminOnly = true;
+                        break;
+                    }
+                    cur = cur.getParentCategory();
+                }
+                if (isCatAdminOnly) {
+                    boolean isAdmin = currentUser != null && currentUser.getRoles() != null && (
+                        currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_ADMIN) ||
+                        currentUser.getRoles().contains(com.forum.utils.Constants.ROLE_SUPER_ADMIN)
+                    );
+                    if (!isAdmin) {
+                        throw new RuntimeException("Chuyên mục này chỉ dành cho Quản trị viên đăng bài.");
+                    }
+                }
+            }
+        }
         
         if (thread.getPoll() != null) {
             thread.getPoll().setThread(thread);

@@ -7,10 +7,10 @@
         <!-- Block 1: Breadcrumb -->
         <Breadcrumb :items="breadcrumbItems" />
 
-        <!-- Block 2: Danh sách bài viết mới nhất -->
+        <!-- Block 2: Danh sách bài viết chú ý (được ghim) -->
         <div class="card" style="margin-bottom: 2rem;">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Mới ra lò - Danh sách bài viết mới nhất</span>
+            <span>Chú ý - Danh sách bài viết được ghim</span>
             <button v-if="canShowPostButton" class="btn-post-thread" @click="openPostModal">Đăng bài...</button>
           </div>
 
@@ -124,7 +124,7 @@
 
             <div v-if="!threads || threads.length === 0"
               style="padding: 2rem; text-align: center; color: #999;">
-              Chưa có bài viết nào.
+              Chưa có bài viết chú ý nào.
             </div>
           </div>
           
@@ -142,7 +142,7 @@
       </div>
     </main>
 
-    <!-- Modal chọn chuyên mục -->
+    <!-- Modal chọn chuyên mục để đăng bài -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal-card" style="width: 750px; max-width: 95vw; background: #f5f8fa; padding: 0; border-radius: 6px; overflow: hidden;">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; background: #e6f2fa; color: #1a507a; padding: 12px 20px; border-bottom: 1px solid #d0e3f0;">
@@ -197,7 +197,7 @@ import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, isAdminOrSuperAdmin, canShowPostButtonOnScreen, loadPublicSettings } from '@/shared/utils/utils'
 
 export default {
-  name: 'LatestThreadsView',
+  name: 'PinnedThreadsView',
   components: {
     Breadcrumb,
     ForumPagination,
@@ -239,12 +239,12 @@ export default {
       return isAdminOrSuperAdmin()
     },
     canShowPostButton() {
-      return canShowPostButtonOnScreen('latest')
+      return canShowPostButtonOnScreen('pinned')
     },
     breadcrumbItems() {
       return [
         { title: 'Trang chủ', to: { name: 'Home' } },
-        { title: 'Mới ra lò' }
+        { title: 'Chú ý' }
       ]
     },
     totalPages() {
@@ -280,16 +280,21 @@ export default {
       return cats.filter(c => !c.onlyAdminCanPost)
     },
     handleAvatarUpdated(event) {
-      const { username, avatar } = event.detail
+      const { username, avatar } = event.detail || {}
+      if (!username || !avatar) return
+
       this.threads = this.threads.map(t => {
-        const updated = { ...t }
-        if (t.author && t.author.username === username) {
-          updated.author = { ...t.author, avatar }
+        let updated = false
+        const tCopy = { ...t }
+        if (tCopy.author && tCopy.author.username === username) {
+          tCopy.author = { ...tCopy.author, avatar }
+          updated = true
         }
-        if (t.lastPostAuthor && t.lastPostAuthor.username === username) {
-          updated.lastPostAuthor = { ...t.lastPostAuthor, avatar }
+        if (tCopy.lastPostAuthor && tCopy.lastPostAuthor.username === username) {
+          tCopy.lastPostAuthor = { ...tCopy.lastPostAuthor, avatar }
+          updated = true
         }
-        return updated
+        return updated ? tCopy : t
       })
     },
     checkAuth() {
@@ -318,7 +323,7 @@ export default {
       try {
         await this.fetchThreadsPaged()
       } catch (error) {
-        console.error('Lỗi khi tải dữ liệu bài viết mới nhất:', error)
+        console.error('Lỗi khi tải bài viết chú ý:', error)
       } finally {
         this.loading = false
       }
@@ -326,7 +331,7 @@ export default {
     async fetchThreadsPaged() {
       const page = this.currentPage - 1
       const size = this.itemsPerPage
-      const res = await threadService.getAll({ page, size })
+      const res = await threadService.getAll({ pinned: true, page, size, sortBy: 'createdAt', sortOrder: 'desc' })
       if (res.data && res.data.content) {
         this.threads = res.data.content
         this.totalPagesCount = res.data.totalPages || 1

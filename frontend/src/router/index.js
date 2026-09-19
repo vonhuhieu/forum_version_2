@@ -57,7 +57,15 @@ const routes = [
         path: 'latest',
         name: 'LatestThreads',
         component: LatestThreadsView,
+        alias: 'latests',
         meta: { title: 'Chủ đề mới | HỢP TÁC XÃ VUI VẺ' }
+      },
+      {
+        path: 'pinned',
+        name: 'PinnedThreads',
+        component: () => import('@/apps/Forum/views/PinnedThreadsView.vue'),
+        alias: ['chu-y'],
+        meta: { title: 'Bài viết chú ý | HỢP TÁC XÃ VUI VẺ' }
       },
       {
         path: 'category/:id',

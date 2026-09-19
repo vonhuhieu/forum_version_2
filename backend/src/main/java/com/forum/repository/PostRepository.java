@@ -42,6 +42,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     long countByAuthorId(Long authorId);
 
+    List<Post> findByAuthorId(Long authorId);
+
     // FIX HHH90003004: Dùng @EntityGraph thay vì JOIN FETCH nhiều bảng + Pageable.
     // @EntityGraph với many-to-one associations không gây in-memory pagination.
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "thread", "thread.category", "thread.label"})

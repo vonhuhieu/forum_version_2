@@ -38,6 +38,10 @@ public class UserService {
     private final EntityManager entityManager;
     private final EmailService emailService;
     private final UserTitleService userTitleService;
+    @org.springframework.context.annotation.Lazy
+    private final ThreadService threadService;
+    @org.springframework.context.annotation.Lazy
+    private final PostService postService;
 
     public Page<UserDTO> searchUsers(String keyword, String currentUsername, int page, int size) {
         String trimmedKeyword = keyword != null ? keyword.trim() : "";
@@ -461,6 +465,24 @@ public class UserService {
                 .setParameter("userId", id)
                 .executeUpdate();
 
+        // Clean up threads created by this user
+        List<com.forum.entity.Thread> userThreads = threadRepository.findByAuthorId(id);
+        for (com.forum.entity.Thread t : userThreads) {
+            try {
+                threadService.deleteThread(t.getId());
+            } catch (Exception ignored) {
+            }
+        }
+
+        // Clean up remaining posts made by this user in other threads
+        List<com.forum.entity.Post> userPosts = postRepository.findByAuthorId(id);
+        for (com.forum.entity.Post p : userPosts) {
+            try {
+                postService.deletePost(p.getId());
+            } catch (Exception ignored) {
+            }
+        }
+
         entityManager.createQuery("UPDATE Conversation c SET c.creator = null WHERE c.creator.id = :userId")
                 .setParameter("userId", id)
                 .executeUpdate();
@@ -474,6 +496,7 @@ public class UserService {
                 .executeUpdate();
 
         userRepository.delete(user);
+        ThreadService.clearAllCaches();
     }
 
     @Transactional
@@ -518,8 +541,13 @@ public class UserService {
                 entityManager.createNativeQuery("DELETE FROM conversation_messages WHERE sender_id IN (" + ids + ")").executeUpdate();
 
                 entityManager.createNativeQuery("UPDATE conversations SET creator_id = NULL WHERE creator_id IN (" + ids + ")").executeUpdate();
-                entityManager.createNativeQuery("UPDATE threads SET author_id = NULL WHERE author_id IN (" + ids + ")").executeUpdate();
-                entityManager.createNativeQuery("UPDATE posts SET author_id = NULL WHERE author_id IN (" + ids + ")").executeUpdate();
+
+                entityManager.createNativeQuery("DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE author_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM reactions WHERE thread_id IN (SELECT id FROM threads WHERE author_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM thread_subscriptions WHERE thread_id IN (SELECT id FROM threads WHERE author_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM notifications WHERE thread_id IN (SELECT id FROM threads WHERE author_id IN (" + ids + "))").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM threads WHERE author_id IN (" + ids + ")").executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM posts WHERE author_id IN (" + ids + ")").executeUpdate();
 
                 entityManager.createNativeQuery("DELETE FROM reports WHERE reporter_id IN (" + ids + ")").executeUpdate();
                 entityManager.createNativeQuery("UPDATE reports SET resolved_by_id = NULL WHERE resolved_by_id IN (" + ids + ")").executeUpdate();

@@ -304,6 +304,12 @@ export default {
         if (this.category && this.category.categoryGroupId) {
           this.categoryGroup = groupRes.data.find(g => g.id === this.category.categoryGroupId)
         }
+
+        if (this.category && this.category.onlyAdminCanPost && !this.isAdmin) {
+          alertError('Chuyên mục này chỉ dành cho Ban quản trị đăng bài.')
+          this.$router.push({ name: 'Home' })
+          return
+        }
       } catch (error) {
         console.error('Error fetching category:', error)
       }

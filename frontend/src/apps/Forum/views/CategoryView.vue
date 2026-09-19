@@ -14,7 +14,7 @@
               <span>{{ category ? category.name : 'Chuyên mục' }}</span>
               <span v-if="category" style="font-size: 0.8rem; font-weight: normal; opacity: 0.8;">{{ category.description }}</span>
             </div>
-            <button v-if="isLoggedIn && !isNonOfficial" class="btn-post-thread" @click="goToCreateThread">Đăng bài...</button>
+            <button v-if="canShowPostButton && canPostInCategory" class="btn-post-thread" @click="goToCreateThread">Đăng bài...</button>
           </div>
         </div>
 
@@ -442,7 +442,7 @@ import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import CategoryIcon from '@/shared/components/CategoryIcon.vue'
 import { formatForumDate } from '@/shared/utils/date'
-import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, getImeValue } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, getImeValue, isAdminOrSuperAdmin, canShowPostButtonOnScreen, loadPublicSettings } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
 
 export default {
@@ -600,6 +600,16 @@ export default {
     isNonOfficial() {
       return isNonOfficialUser()
     },
+    canShowPostButton() {
+      return canShowPostButtonOnScreen('category')
+    },
+    canPostInCategory() {
+      if (!this.category) return true
+      if (this.category.onlyAdminCanPost) {
+        return isAdminOrSuperAdmin()
+      }
+      return true
+    },
     breadcrumbItems() {
       const items = [{ title: 'Trang chủ', to: { name: 'Home' } }]
       
@@ -669,6 +679,7 @@ export default {
   },
   async mounted() {
     this.checkAuth()
+    loadPublicSettings()
     await this.fetchData()
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
     document.addEventListener('click', this.handleDocumentClick)
