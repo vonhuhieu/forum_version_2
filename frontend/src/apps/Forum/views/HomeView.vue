@@ -3,9 +3,10 @@
     <Loading :visible="isLoading" />
 
     <main class="container">
-      <div class="home-action-bar container" style="display: flex; justify-content: space-between; align-items: center; padding: 0;">
-        <div class="forum-slogan" style="font-weight: bold; color: #1a507a; font-size: 1.1rem;">
-          HỢP TÁC XÃ VUI VẺ
+      <div class="home-action-bar container">
+        <div class="smart-greeting-wrapper">
+          <span class="greeting-icon">{{ greetingData.icon }}</span>
+          <span class="greeting-text"><span class="greeting-period">{{ greetingData.periodTitle }},</span>&nbsp;<span :class="greetingData.isGuest ? 'greeting-guest' : 'greeting-name'" :title="greetingData.name">{{ greetingData.name }}</span>!</span>
         </div>
         <div v-if="canShowPostButton" class="user-actions">
           <button @click="openPostModal" class="btn-post-thread">Đăng bài...</button>
@@ -312,6 +313,39 @@ export default {
     activeModalGroups() {
       if (!this.categoryGroupsModal || !Array.isArray(this.categoryGroupsModal)) return []
       return this.categoryGroupsModal.filter(g => g.active && g.categories && g.categories.length > 0)
+    },
+    greetingData() {
+      const hour = new Date().getHours()
+      let periodTitle = ''
+      let icon = ''
+
+      if (hour >= 5 && hour < 11) {
+        periodTitle = 'Chào buổi sáng'
+        icon = '🌅'
+      } else if (hour >= 11 && hour < 14) {
+        periodTitle = 'Chào buổi trưa'
+        icon = '☀️'
+      } else if (hour >= 14 && hour < 18) {
+        periodTitle = 'Chào buổi chiều'
+        icon = '🌤️'
+      } else if (hour >= 18 && hour < 23) {
+        periodTitle = 'Chào buổi tối'
+        icon = '🌙'
+      } else {
+        periodTitle = 'Đã khuya rồi'
+        icon = '🦉'
+      }
+
+      const rawName = this.currentUser?.displayName || this.currentUser?.username || ''
+      const isGuest = !rawName
+      const name = isGuest ? 'anh/chị' : rawName
+
+      return {
+        icon,
+        periodTitle,
+        name,
+        isGuest
+      }
     }
   },
   mounted() {
@@ -663,6 +697,122 @@ export default {
   font-size: 0.95rem;
   font-weight: 500;
   margin-top: 2px;
+}
+
+/* Lời Chào Thông Minh Theo Buổi (Smart Greeting) - Tối Giản */
+.home-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  margin-bottom: 0.85rem;
+  gap: 12px;
+}
+
+.smart-greeting-wrapper {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a507a;
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+  animation: greetingFadeIn 0.35s ease-out;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@keyframes greetingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.greeting-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transform: translateY(-2px); /* Căn chỉnh tâm thị giác nâng Emoji lên thẳng hàng hoàn hảo với chữ */
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.greeting-text {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+  color: #1a507a;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.greeting-period {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.greeting-guest {
+  color: #1a507a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.greeting-name {
+  color: #0284c7;
+  font-weight: 700;
+  display: inline-block;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.user-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .home-action-bar {
+    margin-bottom: 0.75rem;
+    gap: 8px;
+  }
+
+  .smart-greeting-wrapper {
+    font-size: 15px;
+  }
+
+  .greeting-icon {
+    font-size: 1.15rem;
+    margin-right: 5px;
+  }
+
+  .greeting-name {
+    max-width: 110px;
+  }
+}
+
+@media (max-width: 380px) {
+  .smart-greeting-wrapper {
+    font-size: 14px;
+  }
+
+  .greeting-name {
+    max-width: 80px;
+  }
+
+  .btn-post-thread {
+    padding: 7px 14px;
+    font-size: 0.88rem;
+  }
 }
 
 @import "@/shared/assets/styles/custom.css";
