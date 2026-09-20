@@ -17,6 +17,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Handles file uploads by sending them to Cloudinary CDN.
@@ -44,8 +53,117 @@ public class FileUploadService {
     @Value("${app.upload.local-dir:uploads}")
     private String localDir;
 
+    @Value("${app.upload.video-provider:catbox}")
+    private String videoProvider;
+
+    @Value("${app.upload.catbox-url:https://catbox.moe/user/api.php}")
+    private String catboxUrl;
+
+    @Value("${app.upload.catbox-userhash:}")
+    private String catboxUserHash;
+
     @Autowired
     private Cloudinary cloudinary;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    private boolean isVideoFile(String filename, String contentType) {
+        if (contentType != null && contentType.toLowerCase().startsWith("video/")) {
+            return true;
+        }
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            return lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov")
+                    || lower.endsWith(".avi") || lower.endsWith(".mkv") || lower.endsWith(".m4v")
+                    || lower.endsWith(".flv") || lower.endsWith(".wmv");
+        }
+        return false;
+    }
+
+    private RestTemplate getCatboxStreamingRestTemplate() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory = 
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        // Tắt buffer request body vào RAM, stream trực tiếp qua HTTP sang Catbox
+        requestFactory.setBufferRequestBody(false);
+        requestFactory.setConnectTimeout(60000); // 60 giây kết nối
+        requestFactory.setReadTimeout(300000);   // 5 phút đọc/chờ phản hồi
+        return new RestTemplate(requestFactory);
+    }
+
+    public Map<String, String> uploadVideoToCatbox(MultipartFile file) throws IOException {
+        long maxSizeBytes = 200L * 1024 * 1024; // Giới hạn 200MB của Catbox
+        if (file.getSize() > maxSizeBytes) {
+            throw new IllegalArgumentException("Kích thước video vượt quá giới hạn 200MB của hệ thống.");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String mimeType = file.getContentType();
+        if (mimeType == null || !mimeType.startsWith("video/")) {
+            mimeType = "video/mp4";
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("User-Agent", "Mozilla/5.0 (compatible; HTXVVForum/1.0)");
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("reqtype", "fileupload");
+        if (StringUtils.hasText(catboxUserHash)) {
+            body.add("userhash", catboxUserHash.trim());
+        }
+
+        final String safeFilename = (originalFilename != null && !originalFilename.trim().isEmpty())
+                ? originalFilename : "video.mp4";
+
+        final long fileSize = file.getSize();
+
+        // Sử dụng InputStreamResource với contentLength xác định trước để stream trực tiếp,
+        // không tốn heap memory và không bị độ trễ đọc lặp nhiều lần.
+        org.springframework.core.io.InputStreamResource fileResource = 
+                new org.springframework.core.io.InputStreamResource(file.getInputStream()) {
+            @Override
+            public String getFilename() {
+                return safeFilename;
+            }
+
+            @Override
+            public long contentLength() {
+                return fileSize;
+            }
+        };
+        body.add("fileToUpload", fileResource);
+
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        long startTime = System.currentTimeMillis();
+        System.out.println("[FileUploadService] Bắt đầu stream video sang Catbox: " + safeFilename + " (" + (fileSize / (1024 * 1024)) + " MB)");
+
+        try {
+            RestTemplate streamingTemplate = getCatboxStreamingRestTemplate();
+            ResponseEntity<String> response = streamingTemplate.postForEntity(catboxUrl, requestEntity, String.class);
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                String resultUrl = response.getBody().trim();
+                if (resultUrl.startsWith("http://") || resultUrl.startsWith("https://")) {
+                    System.out.println("[FileUploadService] Đã upload video thành công sang Catbox trong " + duration + "ms: " + originalFilename + " -> " + resultUrl);
+                    Map<String, String> data = new HashMap<>();
+                    data.put("url", resultUrl);
+                    data.put("name", originalFilename);
+                    data.put("type", mimeType);
+                    return data;
+                } else {
+                    throw new IOException("Catbox API từ chối file: " + resultUrl);
+                }
+            } else {
+                throw new IOException("Catbox API phản hồi mã lỗi: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            System.err.println("[FileUploadService] Lỗi khi stream video sang Catbox sau " + duration + "ms: " + e.getMessage());
+            throw new IOException("Tải video lên máy chủ lưu trữ Catbox thất bại: " + e.getMessage(), e);
+        }
+    }
 
     /**
      * Determine the Cloudinary resource_type for a given MIME type.
@@ -112,6 +230,13 @@ public class FileUploadService {
 
         if (isHeic) {
             System.out.println("[FileUploadService] Received HEIC file for backend processing: " + originalFilename + " (" + file.getSize() + " bytes)");
+        }
+
+        // Tự động phân luồng Video: Chuyển tiếp sang Catbox.moe để tiết kiệm 100% băng thông & ổ cứng VPS
+        if (isVideoFile(originalFilename, mimeType)) {
+            if ("catbox".equalsIgnoreCase(videoProvider)) {
+                return uploadVideoToCatbox(file);
+            }
         }
 
         // 1. Local File Storage Provider

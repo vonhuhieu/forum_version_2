@@ -23,11 +23,13 @@ public class FileUploadController {
         try {
             Map<String, String> data = fileUploadService.uploadFile(file);
             if (data == null) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(ResponseDTO.fail(null, "Tệp tải lên không hợp lệ hoặc rỗng."));
             }
             return ResponseEntity.ok(ResponseDTO.success(data));
-        } catch (IOException ex) {
-            return ResponseEntity.internalServerError().build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body(ResponseDTO.fail(null, ex.getMessage()));
         }
     }
 
@@ -36,8 +38,10 @@ public class FileUploadController {
         try {
             List<Map<String, String>> uploadedFiles = fileUploadService.uploadMultipleFiles(files);
             return ResponseEntity.ok(ResponseDTO.success(uploadedFiles));
-        } catch (IOException ex) {
-            return ResponseEntity.internalServerError().build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body(ResponseDTO.fail(null, ex.getMessage()));
         }
     }
 }
