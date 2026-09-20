@@ -17,7 +17,7 @@
           <span class="google-brand-name">Google</span>
         </div>
         <div v-if="!hasGoogleClientId" class="dev-mock-box">
-          <label class="dev-mock-label">Tài khoản Google (Thử nghiệm):</label>
+          <label class="dev-mock-label">Tài khoản Google (Thử nghiệm Local):</label>
           <input 
             type="email" 
             v-model="mockEmail" 
