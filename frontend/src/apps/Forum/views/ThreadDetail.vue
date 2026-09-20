@@ -383,7 +383,7 @@ import ReactionListPopup from '@/shared/components/ReactionListPopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import Loading from '@/shared/components/Loading.vue'
 import { downloadFileAsBlob, extractAttachmentFilename } from '@/shared/utils/downloadUtils'
-import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml, formatUploadUrl, formatAvatarUrl } from '@/shared/utils/utils'
+import { isNonOfficialUser, isAvatarUrl, getVerifiedBadgeSvgHtml, formatUploadUrl, formatAvatarUrl, processGofileLinks, renderGofileCardHtml } from '@/shared/utils/utils'
 import { getBackendBaseUrl } from '@/shared/services/api.service'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
@@ -1009,6 +1009,11 @@ export default {
            }
            return `<figure class="media"><video controls style="width: 100%; max-height: 500px; object-fit: contain; background: #000;" src="${fixedUrl}"></video></figure>`
         }
+
+        if (url.includes('gofile.io')) {
+          return renderGofileCardHtml(url);
+        }
+
         return `<a href="${url}" target="_blank">${url}</a>`
       })
       
@@ -1072,6 +1077,11 @@ export default {
       // 3. Tự động gắn Backend Base URL cho tất cả các ảnh /uploads/ (bao gồm cả ảnh trong khối blockquote trích dẫn)
       if (processed) {
         processed = processed.replace(/(src=["'])\/uploads\//gi, `$1${backendUrl}/uploads/`)
+      }
+
+      // 4. Chuyển đổi mọi liên kết Gofile thành Card xem trước (Unfurl Link Card phong cách Xamvn)
+      if (processed) {
+        processed = processGofileLinks(processed)
       }
 
       return processed

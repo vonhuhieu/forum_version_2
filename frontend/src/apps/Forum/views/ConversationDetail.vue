@@ -284,7 +284,7 @@ import reactionService from '@/apps/Forum/services/reaction.service'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
-import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml, processGofileLinks } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 
@@ -700,6 +700,10 @@ export default {
         }
       } catch (err) {
         console.error('Lỗi khi tự động cập nhật nội dung trích dẫn đối thoại:', err)
+      }
+
+      if (processed) {
+        processed = processGofileLinks(processed)
       }
 
       return processed
