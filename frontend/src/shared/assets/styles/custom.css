@@ -57,6 +57,13 @@
     display: none !important;
 }
 
+.social-login-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 @media (min-width: 1025px) {
     .min-height-100-on-pc {
         min-height: 100px !important;
