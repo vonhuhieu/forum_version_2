@@ -328,4 +328,6 @@ export default {
   color: #94a3b8;
   text-transform: lowercase;
 }
+
+@import "@/shared/assets/styles/custom.css";
 </style>

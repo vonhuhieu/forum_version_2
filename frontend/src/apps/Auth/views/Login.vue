@@ -220,13 +220,6 @@ export default {
   text-transform: lowercase;
 }
 
-/* Nút đăng nhập Google */
-.social-login-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
 .social-label {
   font-size: 0.88rem;
   color: #475569;
@@ -252,4 +245,6 @@ export default {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
 }
+
+@import "@/shared/assets/styles/custom.css";
 </style>
