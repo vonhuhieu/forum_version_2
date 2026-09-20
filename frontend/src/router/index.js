@@ -18,6 +18,7 @@ import LatestThreadsView from '@/apps/Forum/views/LatestThreadsView.vue'
 import ForgotPassword from '@/apps/Auth/views/ForgotPassword.vue'
 import RegisterComplete from '@/apps/Auth/views/RegisterComplete.vue'
 import GoogleRegisterComplete from '@/apps/Auth/views/GoogleRegisterComplete.vue'
+import GoogleCallback from '@/apps/Auth/views/GoogleCallback.vue'
 import ConfirmEmail from '@/apps/Forum/views/ConfirmEmail.vue'
 import AddConversation from '@/apps/Forum/views/AddConversation.vue'
 import ConversationDetail from '@/apps/Forum/views/ConversationDetail.vue'
@@ -153,6 +154,12 @@ const routes = [
         path: 'register/google-complete',
         name: 'GoogleRegisterComplete',
         component: GoogleRegisterComplete,
+        meta: { guestOnly: true }
+      },
+      {
+        path: 'auth/google/callback',
+        name: 'GoogleCallback',
+        component: GoogleCallback,
         meta: { guestOnly: true }
       }
     ]

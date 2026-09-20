@@ -32,6 +32,9 @@ class AuthService {
   verifyGoogle(idToken) {
     return api.post('/auth/google/verify', { idToken })
   }
+  exchangeGoogleCode(payload) {
+    return api.post('/auth/google/code', payload)
+  }
   completeGoogleRegister(payload) {
     return api.post('/auth/google/register', payload)
   }

@@ -21,8 +21,17 @@ public class AuthService {
     @Value("${google.client.id:}")
     private String googleClientId;
 
+    @Value("${google.client.secret:}")
+    private String googleClientSecret;
+
     @Value("${google.token-info-url:https://oauth2.googleapis.com/tokeninfo}")
     private String googleTokenInfoUrl;
+
+    @Value("${google.token-url:https://oauth2.googleapis.com/token}")
+    private String googleTokenUrl;
+
+    @Value("${google.user-info-url:https://www.googleapis.com/oauth2/v3/userinfo}")
+    private String googleUserInfoUrl;
 
     @Autowired
     private UserRepository userRepository;
@@ -363,6 +372,52 @@ public class AuthService {
             return body;
         } catch (Exception e) {
             throw new IllegalArgumentException("Xác thực tài khoản Google thất bại: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Đổi Authorization Code lấy Tokens từ Google (OAuth2 redirect flow),
+     * sau đó xác thực và xử lý đăng nhập / hoàn tất thông tin đăng ký.
+     */
+    public Map<String, Object> exchangeGoogleCode(String code, String redirectUri) {
+        if (!org.springframework.util.StringUtils.hasText(code)) {
+            throw new IllegalArgumentException("Mã xác thực Google (code) không hợp lệ.");
+        }
+
+        // Hỗ trợ Mock code cho môi trường test/dev nếu cần
+        if (code.startsWith("mock-google-code:")) {
+            String mockEmail = code.substring("mock-google-code:".length()).trim();
+            return processGoogleAuth("mock-google-token:" + mockEmail);
+        }
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+
+            org.springframework.util.MultiValueMap<String, String> map = new org.springframework.util.LinkedMultiValueMap<>();
+            map.add("code", code);
+            map.add("client_id", googleClientId != null ? googleClientId.trim() : "");
+            map.add("client_secret", googleClientSecret != null ? googleClientSecret.trim() : "");
+            map.add("redirect_uri", redirectUri != null ? redirectUri.trim() : "");
+            map.add("grant_type", "authorization_code");
+
+            org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, String>> requestEntity =
+                    new org.springframework.http.HttpEntity<>(map, headers);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> responseBody = restTemplate.postForObject(googleTokenUrl, requestEntity, Map.class);
+
+            if (responseBody == null || !responseBody.containsKey("id_token")) {
+                throw new IllegalArgumentException("Không thể nhận id_token từ Google.");
+            }
+
+            String idToken = (String) responseBody.get("id_token");
+            return processGoogleAuth(idToken);
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new IllegalArgumentException("Google từ chối đổi mã xác thực: " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Đổi mã xác thực Google thất bại: " + e.getMessage());
         }
     }
 
