@@ -716,3 +716,27 @@ div.thread-title .label-tag {
 .swal2-container {
   z-index: 1000000 !important;
 }
+
+/* Tùy chỉnh Toast thông báo: Con trỏ tay & Nút đóng x */
+.swal2-toast {
+  cursor: pointer !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+.swal2-toast .swal2-close {
+  font-size: 20px !important;
+  color: #64748b !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+}
+
+.swal2-toast .swal2-close:hover {
+  color: #0f172a !important;
+  transform: scale(1.15) !important;
+}
+
