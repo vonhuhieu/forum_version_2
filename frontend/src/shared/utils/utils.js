@@ -196,3 +196,78 @@ export function canShowPostButtonOnScreen(screenName) {
   if (val === 'ADMIN_ONLY') return isAdmin;
   return true;
 }
+
+/**
+ * Render chuỗi HTML cho thẻ xem trước liên kết Gofile (Rich Link Preview Card phong cách Xamvn)
+ * @param {string} url - Đường dẫn Gofile (ví dụ https://gofile.io/d/kWoURoaM)
+ * @returns {string} - Chuỗi HTML của Card
+ */
+export function renderGofileCardHtml(url) {
+  const cleanUrl = (url || '').trim();
+  return `
+    <div class="gofile-unfurl-wrapper">
+      <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="gofile-unfurl-card" title="Mở video/tệp tin trên Gofile trong tab mới">
+        <div class="gofile-unfurl-figure">
+          <svg class="gofile-icon-svg" viewBox="0 0 64 48" width="56" height="42" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 14h12M2 24h18M6 34h14" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M12 18h10M14 30h8" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 10h12l4 4h18a3 3 0 0 1 3 3v20a3 3 0 0 1-3 3H22a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z" fill="#f59e0b"/>
+            <path d="M19 20h38v17a3 3 0 0 1-3 3H22a3 3 0 0 1-3-3V20z" fill="#fbbf24"/>
+            <path d="M25 12h24v8H25z" fill="#ffffff" opacity="0.9" rx="1"/>
+          </svg>
+        </div>
+        <div class="gofile-unfurl-main">
+          <div class="gofile-unfurl-title">Gofile — Cloud Storage Made Simple</div>
+          <div class="gofile-unfurl-desc">Secure, fast and free cloud storage solution. Upload and share files instantly.</div>
+          <div class="gofile-unfurl-minor">
+            <span class="gofile-favicon-dot"></span>
+            <span class="gofile-domain">gofile.io</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  `.trim();
+}
+
+/**
+ * Quét và chuyển đổi tất cả các liên kết Gofile trong chuỗi HTML bài viết thành Card Gofile Preview
+ * @param {string} html - Chuỗi HTML bài viết
+ * @returns {string} - Chuỗi HTML đã được chuyển đổi
+ */
+export function processGofileLinks(html) {
+  if (!html || typeof html !== 'string' || !html.includes('gofile.io')) return html || '';
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const gofileLinks = doc.querySelectorAll('a[href*="gofile.io"]');
+    if (gofileLinks.length === 0) return html;
+
+    gofileLinks.forEach(link => {
+      // Nếu link này đã nằm trong gofile-unfurl-card thì bỏ qua không lồng thêm
+      if (link.closest('.gofile-unfurl-wrapper') || link.classList.contains('gofile-unfurl-card')) {
+        return;
+      }
+
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      const cardHtml = renderGofileCardHtml(href);
+      const temp = doc.createElement('div');
+      temp.innerHTML = cardHtml;
+      const cardElement = temp.firstElementChild;
+
+      const parent = link.parentElement;
+      if (parent && parent.tagName === 'P' && parent.textContent.trim() === link.textContent.trim()) {
+        parent.replaceWith(cardElement);
+      } else {
+        link.replaceWith(cardElement);
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error('Lỗi khi chuyển đổi liên kết Gofile sang Card:', err);
+    return html;
+  }
+}
+

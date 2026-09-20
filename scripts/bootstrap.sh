@@ -182,7 +182,7 @@ cat > /etc/nginx/sites-available/forum << EOF
 server {
     listen 80;
     server_name $DOMAIN;
-    client_max_body_size 100M;
+    client_max_body_size 200M;
 
     location /uploads/ {
         alias $FORUM_DIR/uploads/;

@@ -123,11 +123,12 @@ import {
   TableToolbar,
   TableColumnResize,
   Undo,
-  TextTransformation
+  TextTransformation,
+  AutoLink
 } from 'ckeditor5'
 import 'ckeditor5/ckeditor5.css'
 import { GeneralHtmlSupport } from '@ckeditor/ckeditor5-html-support'
-import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, HtmlSourcePlugin } from '@/shared/utils/ckeditorPlugins'
+import { MyCustomUploadAdapterPlugin, CustomUploadPlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, HtmlSourcePlugin, QuickHostLinkPlugins, AutoLinkOnPastePlugin } from '@/shared/utils/ckeditorPlugins'
 import EmojiPicker from '@/shared/components/EmojiPicker.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
@@ -255,8 +256,8 @@ export default {
         plugins: [
           Essentials, Paragraph, Heading, Bold, Italic, Underline, Strikethrough,
           Font, Alignment, Link, List, Indent, IndentBlock, Image, ImageUpload, ImageInsert, ImageResize, ImageStyle, ImageToolbar, ImageCaption, ImageTextAlternative, Table,
-          MediaEmbed, BlockQuote, FileRepository, TableToolbar, TableColumnResize, Undo, TextTransformation, GeneralHtmlSupport,
-          MyCustomUploadAdapterPlugin, CustomUploadPlugin, HtmlSourcePlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, QuoteSourcePlugin
+          MediaEmbed, BlockQuote, FileRepository, TableToolbar, TableColumnResize, Undo, TextTransformation, GeneralHtmlSupport, AutoLink,
+          MyCustomUploadAdapterPlugin, CustomUploadPlugin, HtmlSourcePlugin, TabIndentPlugin, ClearPastedImageWidthPlugin, EmojiPickerPlugin, MobileToolbarTogglePlugin, QuoteSourcePlugin, QuickHostLinkPlugins, AutoLinkOnPastePlugin
         ],
         toolbar: {
           items: [
@@ -272,9 +273,10 @@ export default {
             '|',
             'outdent', 'indent',
             '|',
-            'link', 'insertImage', 'customUpload', 'htmlSource', 'mobileToolbarToggle', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
+            'link', 'insertImage', 'customUpload', 'openCatbox', 'openGofile', 'htmlSource', 'emojiPicker', 'insertTable', 'mediaEmbed', 'blockQuote',
             '|',
-            'undo', 'redo'
+            'undo', 'redo',
+            'mobileToolbarToggle'
           ]
         },
         typing: {
@@ -1538,6 +1540,15 @@ export default {
   }
 }
 
+/* Nút tiện ích Catbox và Gofile */
+:deep(.ck-btn-quick-catbox:hover) {
+  color: #ff6b6b !important;
+}
+
+:deep(.ck-btn-quick-gofile:hover) {
+  color: #228be6 !important;
+}
+
 /* Trên Mobile (màn hình <= 768px) */
 @media (max-width: 768px) {
   /* Nút Mở rộng / Thu hẹp trên mobile */
@@ -1552,7 +1563,7 @@ export default {
     border: 1px solid #bce1f7 !important;
     border-radius: 4px !important;
     padding: 4px 12px !important;
-    margin-left: 6px !important;
+    margin-left: auto !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
   }
@@ -1576,9 +1587,16 @@ export default {
     border-radius: 4px !important;
   }
 
+  /* Nút tiện ích Catbox & Gofile trên mobile */
+  :deep(.ck-btn-quick-catbox),
+  :deep(.ck-btn-quick-gofile) {
+    display: inline-flex !important;
+    border-radius: 4px !important;
+  }
+
   /* Khi ở trạng thái THU HẸP (Mặc định trên Mobile):
-     Ẩn toàn bộ nút công cụ và separators, CHỈ HIỂN THỊ nút customUpload và nút Mở rộng */
-  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items > *:not(.ck-btn-custom-upload):not(.ck-btn-mobile-toggle)) {
+     Ẩn toàn bộ nút công cụ và separators, CHỈ HIỂN THỊ nút customUpload, nút Catbox, nút Gofile và nút Mở rộng */
+  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items > *:not(.ck-btn-custom-upload):not(.ck-btn-quick-catbox):not(.ck-btn-quick-gofile):not(.ck-btn-mobile-toggle)) {
     display: none !important;
   }
 
@@ -1595,9 +1613,12 @@ export default {
     display: inline-flex !important;
   }
 
+  /* Nút Thu hẹp khi mở rộng: Luôn đứng ở vị trí cuối cùng của thanh công cụ */
   :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle) {
+    order: 99999 !important;
     background-color: #fdeed9 !important;
     border-color: #f39c12 !important;
+    margin-left: auto !important;
   }
 
   :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle .ck-button__label) {

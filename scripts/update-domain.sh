@@ -65,7 +65,7 @@ cat > "$NGINX_CONF" << EOF
 server {
     listen 80;
     server_name $NEW_API_DOMAIN;
-    client_max_body_size 100M;
+    client_max_body_size 200M;
 
     location /uploads/ {
         alias $FORUM_DIR/uploads/;

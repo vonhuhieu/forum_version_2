@@ -75,6 +75,17 @@ export function CustomUploadPlugin(editor) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
+        // Kiểm tra giới hạn video trước khi tải lên (Tối đa 200MB)
+        const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
+        for (const file of files) {
+          const isVideo = (file.type && file.type.startsWith('video/')) ||
+            /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(file.name);
+          if (isVideo && file.size > MAX_VIDEO_SIZE) {
+            alert(`Tệp video "${file.name}" vượt quá giới hạn 200MB của hệ thống. Vui lòng nén nhỏ video hoặc chia sẻ qua liên kết bên ngoài.`);
+            return;
+          }
+        }
+
         // Thông báo bắt đầu upload để Vue cha có thể hiển thị Loading overlay
         editor.fire('uploadMultipleStart');
 
@@ -142,7 +153,8 @@ export function CustomUploadPlugin(editor) {
           }
         } catch (err) {
           console.error('Error uploading multiple files:', err);
-          alert('Không thể tải lên tệp đính kèm. Vui lòng thử lại sau.');
+          const errorMsg = err.response?.data?.message || err.message || 'Không thể tải lên tệp đính kèm. Vui lòng thử lại sau.';
+          alert(errorMsg);
         } finally {
           // Thông báo kết thúc upload (dù thành công hay thất bại) để ẩn Loading overlay
           editor.fire('uploadMultipleEnd');
@@ -285,3 +297,123 @@ export function HtmlSourcePlugin(editor) {
     return view;
   });
 }
+
+// Plugin Nút Tiện Ích Mở Catbox.moe và Gofile.io
+export function QuickHostLinkPlugins(editor) {
+  // Nút mở Catbox.moe
+  editor.ui.componentFactory.add('openCatbox', locale => {
+    const view = new ButtonView(locale);
+    // Icon chú mèo Catbox
+    const catIcon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a9 9 0 0 0-9 9c0 3.2 1.7 6.1 4.3 7.7L6 22l3.4-1.5c.8.3 1.7.5 2.6.5 5 0 9-4 9-9s-4-9-9-9zm-3 8c.8 0 1.5.7 1.5 1.5S9.8 13 9 13s-1.5-.7-1.5-1.5S8.2 10 9 10zm6 0c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5.7-1.5 1.5-1.5zm-3 6.5c-1.5 0-2.8-.8-3.4-2h6.8c-.6 1.2-1.9 2-3.4 2z"/></svg>';
+
+    view.set({
+      label: 'Catbox.moe (Tải video/ảnh lấy direct link .mp4)',
+      icon: catIcon,
+      tooltip: true,
+      class: 'ck-btn-quick-catbox'
+    });
+
+    view.extendTemplate({
+      attributes: {
+        class: ['ck-btn-quick-catbox']
+      }
+    });
+
+    view.on('execute', () => {
+      window.open('https://catbox.moe', '_blank', 'noopener,noreferrer');
+    });
+
+    return view;
+  });
+
+  // Nút mở Gofile.io
+  editor.ui.componentFactory.add('openGofile', locale => {
+    const view = new ButtonView(locale);
+    // Icon Cloud Upload Gofile
+    const cloudIcon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>';
+
+    view.set({
+      label: 'Gofile.io (Tải file lớn / video nặng không giới hạn)',
+      icon: cloudIcon,
+      tooltip: true,
+      class: 'ck-btn-quick-gofile'
+    });
+
+    view.extendTemplate({
+      attributes: {
+        class: ['ck-btn-quick-gofile']
+      }
+    });
+
+    view.on('execute', () => {
+      window.open('https://gofile.io', '_blank', 'noopener,noreferrer');
+    });
+
+    return view;
+  });
+}
+
+// Plugin Tự Động Chuyển Đổi Mọi URL Thành Liên Kết (Hyperlink) Khi Dán (Auto-link on Paste)
+export function AutoLinkOnPastePlugin(editor) {
+  // Lắng nghe sự kiện clipboardInput trên editing view document
+  editor.editing.view.document.on('clipboardInput', (evt, data) => {
+    const dataTransfer = data.dataTransfer;
+    if (!dataTransfer) return;
+
+    // Lấy chuỗi văn bản thuần túy (plain text)
+    const plainText = dataTransfer.getData('text/plain');
+    if (!plainText || !plainText.trim()) return;
+
+    // Nếu dữ liệu HTML từ clipboard đã có sẵn thẻ <a> với thuộc tính href thì để CKEditor xử lý mặc định
+    const htmlData = dataTransfer.getData('text/html');
+    if (htmlData && /<a\s+[^>]*href=/i.test(htmlData)) {
+      return;
+    }
+
+    // Regex kiểm tra xem trong plainText có chứa URL bắt đầu bằng http:// hoặc https:// không
+    const urlRegex = /(https?:\/\/[^\s<>"']+)/i;
+    if (!urlRegex.test(plainText)) {
+      return;
+    }
+
+    // Hàm escape ký tự đặc biệt HTML an toàn
+    const escapeHtml = (str) => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    // Tách các dòng để giữ nguyên cấu trúc dòng
+    const lines = plainText.split(/\r?\n/);
+    const convertedLines = lines.map(line => {
+      const escaped = escapeHtml(line);
+      return escaped.replace(/(https?:\/\/[^\s<>"']+)/gi, (rawUrl) => {
+        // Tách các dấu câu dính ở cuối URL (nếu có: .,;:!?)
+        let trailingPunct = '';
+        const cleanUrl = rawUrl.replace(/[.,;:!?)]+$/, (punct) => {
+          trailingPunct = punct;
+          return '';
+        });
+        return `<a href="${cleanUrl}">${cleanUrl}</a>${trailingPunct}`;
+      });
+    });
+
+    const finalHtml = convertedLines.length === 1
+      ? convertedLines[0]
+      : convertedLines.map(line => `<p>${line || '&nbsp;'}</p>`).join('');
+
+    try {
+      if (editor.data && editor.data.processor) {
+        // Tạo ViewDocumentFragment và gán vào data.content để CKEditor chuyển thành Model Text có thuộc tính linkHref
+        data.content = editor.data.processor.toView(finalHtml);
+      }
+    } catch (err) {
+      console.error('[AutoLinkOnPastePlugin] Lỗi khi chuyển đổi URL sang liên kết:', err);
+    }
+  }, { priority: 'high' });
+}
+
+
