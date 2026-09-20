@@ -94,6 +94,7 @@
 import AuthService from '@/apps/Auth/services/auth.service'
 import Loading from '@/shared/components/Loading.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
+import { toastSuccess } from '@/shared/utils/swal'
 
 export default {
   name: 'GoogleRegisterComplete',
@@ -170,6 +171,7 @@ export default {
 
         // Bắn sự kiện cập nhật trạng thái đăng nhập
         window.dispatchEvent(new Event('auth-change'))
+        toastSuccess('Đăng ký tài khoản thành công!')
 
         // Điều hướng thẳng về trang chủ với quyền thành viên chính thức
         this.$router.push({ name: 'Home' })

@@ -113,6 +113,18 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/google/code")
+    public ResponseEntity<?> exchangeGoogleCode(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        String redirectUri = request.get("redirectUri");
+        try {
+            Map<String, Object> result = authService.exchangeGoogleCode(code, redirectUri);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/google/verify")
     public ResponseEntity<?> verifyGoogleAuth(@RequestBody Map<String, String> request) {
         String idToken = request.get("idToken");

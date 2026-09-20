@@ -75,11 +75,27 @@ export const toastError = (message) => {
   })
 }
 
+export const toastInfo = (message) => {
+  Toast.fire({
+    icon: 'info',
+    title: message
+  })
+}
+
+export const toastWarning = (message) => {
+  Toast.fire({
+    icon: 'warning',
+    title: message
+  })
+}
+
 export default {
   alertSuccess,
   alertWarning,
   alertError,
   alertConfirm,
   toastSuccess,
-  toastError
+  toastError,
+  toastInfo,
+  toastWarning
 }

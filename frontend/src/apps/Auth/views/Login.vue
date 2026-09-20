@@ -52,7 +52,7 @@
       </form>
     </div>
 
-    <!-- Popup Xác nhận Tiếp tục với Google (Hình 1) -->
+    <!-- Popup Xác nhận Tiếp tục với Google -->
     <GoogleConfirmModal 
       :visible="showGoogleModal" 
       @confirm="handleGoogleConfirmed" 
@@ -65,7 +65,7 @@
 import AuthService from '@/apps/Auth/services/auth.service'
 import Loading from '@/shared/components/Loading.vue'
 import GoogleConfirmModal from '@/apps/Auth/components/GoogleConfirmModal.vue'
-import { initGoogleAuth, promptGoogleLogin } from '@/shared/utils/googleAuth'
+import { redirectToGoogleOAuth } from '@/shared/utils/googleAuth'
 
 export default {
   name: 'Login',
@@ -85,8 +85,6 @@ export default {
     }
   },
   mounted() {
-    initGoogleAuth(this.handleGoogleCredentialResponse)
-
     const savedEmail = localStorage.getItem('remembered_email') || localStorage.getItem('remembered_username')
     const savedPass = localStorage.getItem('remembered_password')
     if (savedEmail && savedPass) {
@@ -102,45 +100,7 @@ export default {
     },
     handleGoogleConfirmed(mockEmail) {
       this.showGoogleModal = false
-      promptGoogleLogin(this.handleGoogleCredentialResponse, mockEmail)
-    },
-    async handleGoogleCredentialResponse(googleResponse) {
-      if (!googleResponse || !googleResponse.credential) return
-
-      this.isLoading = true
-      this.error = ''
-
-      try {
-        const res = await AuthService.verifyGoogle(googleResponse.credential)
-
-        if (res.data.isExistingUser) {
-          // Tài khoản đã có -> Đăng nhập thành công
-          localStorage.setItem('token', res.data.token)
-          localStorage.setItem('user', JSON.stringify(res.data))
-          window.dispatchEvent(new Event('auth-change'))
-
-          const roles = res.data.roles || []
-          if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')) {
-            this.$router.push({ name: 'AdminMenu' })
-          } else {
-            this.$router.push({ name: 'Home' })
-          }
-        } else {
-          // Tài khoản mới -> Chuyển sang màn hình Đăng ký bằng Google (Hình 3)
-          sessionStorage.setItem('pending_google_auth', JSON.stringify({
-            email: res.data.email,
-            suggestedDisplayName: res.data.suggestedDisplayName,
-            avatar: res.data.avatar,
-            idToken: res.data.idToken
-          }))
-
-          this.$router.push({ name: 'GoogleRegisterComplete' })
-        }
-      } catch (err) {
-        this.error = err.response?.data?.message || 'Xác thực tài khoản Google thất bại.'
-      } finally {
-        this.isLoading = false
-      }
+      redirectToGoogleOAuth('login', mockEmail)
     },
     async handleLogin() {
       this.isLoading = true
