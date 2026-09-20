@@ -276,7 +276,7 @@ export default {
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
 }
 .quick-title {
