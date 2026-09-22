@@ -13,6 +13,10 @@ class ReactionService {
       endpoint = `/reactions/posts/${targetId}`
     } else if (type === 'message') {
       endpoint = `/reactions/messages/${targetId}`
+    } else if (type === 'profile-post') {
+      endpoint = `/reactions/profile-posts/${targetId}`
+    } else if (type === 'profile-post-comment') {
+      endpoint = `/reactions/profile-post-comments/${targetId}`
     }
     return api.post(`${endpoint}?iconId=${iconId}`)
   }
@@ -25,6 +29,10 @@ class ReactionService {
       endpoint = `/reactions/posts/${targetId}`
     } else if (type === 'message') {
       endpoint = `/reactions/messages/${targetId}`
+    } else if (type === 'profile-post') {
+      endpoint = `/reactions/profile-posts/${targetId}`
+    } else if (type === 'profile-post-comment') {
+      endpoint = `/reactions/profile-post-comments/${targetId}`
     }
     return api.delete(endpoint)
   }

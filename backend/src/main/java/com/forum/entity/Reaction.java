@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
     uniqueConstraints = {
         @UniqueConstraint(name = "uq_user_thread_reaction", columnNames = {"user_id", "thread_id"}),
         @UniqueConstraint(name = "uq_user_post_reaction", columnNames = {"user_id", "post_id"}),
-        @UniqueConstraint(name = "uq_user_message_reaction", columnNames = {"user_id", "conversation_message_id"})
+        @UniqueConstraint(name = "uq_user_message_reaction", columnNames = {"user_id", "conversation_message_id"}),
+        @UniqueConstraint(name = "uq_user_profile_post_reaction", columnNames = {"user_id", "profile_post_id"}),
+        @UniqueConstraint(name = "uq_user_profile_post_comment_reaction", columnNames = {"user_id", "profile_post_comment_id"})
     }
 )
 @Data
@@ -46,6 +48,14 @@ public class Reaction {
     @ManyToOne
     @JoinColumn(name = "conversation_message_id")
     private ConversationMessage conversationMessage; // Nullable, only filled if reacting to conversation message
+
+    @ManyToOne
+    @JoinColumn(name = "profile_post_id")
+    private ProfilePost profilePost; // Nullable, only filled if reacting to profile post
+
+    @ManyToOne
+    @JoinColumn(name = "profile_post_comment_id")
+    private ProfilePostComment profilePostComment; // Nullable, only filled if reacting to profile post comment
 
     @CreationTimestamp
     private LocalDateTime createdAt;
