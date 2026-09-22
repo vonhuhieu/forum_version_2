@@ -102,4 +102,30 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @Query("DELETE FROM Reaction r WHERE r.post.id = :postId")
     void deleteByPostId(@Param("postId") Long postId);
+
+    Optional<Reaction> findByUserIdAndProfilePostId(Long userId, Long profilePostId);
+
+    Optional<Reaction> findByUserIdAndProfilePostCommentId(Long userId, Long profilePostCommentId);
+
+    void deleteByUserIdAndProfilePostId(Long userId, Long profilePostId);
+
+    void deleteByUserIdAndProfilePostCommentId(Long userId, Long profilePostCommentId);
+
+    @Query("SELECT r.reactionIcon, COUNT(r), MAX(r.updatedAt) FROM Reaction r WHERE r.profilePost.id = :profilePostId GROUP BY r.reactionIcon")
+    List<Object[]> aggregateByProfilePostId(@Param("profilePostId") Long profilePostId);
+
+    @Query("SELECT r.reactionIcon, COUNT(r), MAX(r.updatedAt) FROM Reaction r WHERE r.profilePostComment.id = :commentId GROUP BY r.reactionIcon")
+    List<Object[]> aggregateByProfilePostCommentId(@Param("commentId") Long commentId);
+
+    List<Reaction> findTop3ByProfilePostIdOrderByUpdatedAtDesc(Long profilePostId);
+
+    List<Reaction> findTop3ByProfilePostCommentIdOrderByUpdatedAtDesc(Long commentId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Reaction r WHERE r.profilePost.id = :profilePostId")
+    void deleteByProfilePostId(@Param("profilePostId") Long profilePostId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Reaction r WHERE r.profilePostComment.id = :commentId")
+    void deleteByProfilePostCommentId(@Param("commentId") Long commentId);
 }

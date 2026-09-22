@@ -109,4 +109,32 @@ public class ReactionController {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         return ResponseEntity.ok(ResponseDTO.success(reactionService.getReceivedReactions(iconId, pageable)));
     }
+
+    @PostMapping("/profile-posts/{id}")
+    public ResponseEntity<ResponseDTO<Void>> reactToProfilePost(@PathVariable Long id, @RequestParam Long iconId) {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.reactToProfilePostAsync(username, id, iconId);
+        return ResponseEntity.ok(ResponseDTO.success(null));
+    }
+
+    @DeleteMapping("/profile-posts/{id}")
+    public ResponseEntity<ResponseDTO<Void>> removeReactionFromProfilePost(@PathVariable Long id) {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.removeReactionFromProfilePostAsync(username, id);
+        return ResponseEntity.ok(ResponseDTO.success(null));
+    }
+
+    @PostMapping("/profile-post-comments/{id}")
+    public ResponseEntity<ResponseDTO<Void>> reactToProfilePostComment(@PathVariable Long id, @RequestParam Long iconId) {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.reactToProfilePostCommentAsync(username, id, iconId);
+        return ResponseEntity.ok(ResponseDTO.success(null));
+    }
+
+    @DeleteMapping("/profile-post-comments/{id}")
+    public ResponseEntity<ResponseDTO<Void>> removeReactionFromProfilePostComment(@PathVariable Long id) {
+        String username = (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        reactionService.removeReactionFromProfilePostCommentAsync(username, id);
+        return ResponseEntity.ok(ResponseDTO.success(null));
+    }
 }

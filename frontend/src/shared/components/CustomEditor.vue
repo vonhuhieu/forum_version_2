@@ -170,6 +170,10 @@ export default {
     isEdit: {
       type: Boolean,
       default: false
+    },
+    autoFocus: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue', 'ready', 'image-uploaded', 'upload-loading-start', 'upload-loading-end'],
@@ -357,6 +361,13 @@ export default {
     }
   },
   methods: {
+    focus() {
+      if (this.editorInstance) {
+        try {
+          this.editorInstance.editing.view.focus();
+        } catch (e) { /* ignore */ }
+      }
+    },
     applyHtmlSource() {
       if (this.editorInstance) {
         this.editorInstance.setData(this.htmlSourceContent || '');
@@ -429,6 +440,17 @@ export default {
     },
     onEditorReady(editor) {
       this.editorInstance = editor;
+      this.$emit('ready', editor);
+
+      if (this.autoFocus) {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            try {
+              editor.editing.view.focus();
+            } catch (e) { /* ignore */ }
+          }, 60);
+        });
+      }
 
       editor.model.document.on('change:data', () => {
         if (this.decorateTimer) clearTimeout(this.decorateTimer);

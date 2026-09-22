@@ -12,6 +12,10 @@ import com.forum.repository.PostRepository;
 import com.forum.repository.ReportRepository;
 import com.forum.repository.ThreadRepository;
 import com.forum.repository.UserRepository;
+import com.forum.entity.ProfilePost;
+import com.forum.entity.ProfilePostComment;
+import com.forum.repository.ProfilePostCommentRepository;
+import com.forum.repository.ProfilePostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +39,9 @@ public class ReportService {
     private final PostRepository postRepository;
     private final ThreadService threadService;
     private final PostService postService;
+    private final ProfilePostRepository profilePostRepository;
+    private final ProfilePostCommentRepository profilePostCommentRepository;
+    private final ProfilePostService profilePostService;
 
     public ResponseDTO<ReportDTO> createReport(ReportDTO dto, String reporterUsername) {
         User reporter = userRepository.findByUsername(reporterUsername)
@@ -45,7 +52,8 @@ public class ReportService {
         }
 
         String targetType = dto.getTargetType().toUpperCase();
-        if (!"THREAD".equals(targetType) && !"POST".equals(targetType)) {
+        if (!"THREAD".equals(targetType) && !"POST".equals(targetType)
+                && !"PROFILE_POST".equals(targetType) && !"PROFILE_POST_COMMENT".equals(targetType)) {
             throw new RuntimeException("Invalid target type");
         }
 
@@ -56,11 +64,23 @@ public class ReportService {
             if (thread.getAuthor() != null && thread.getAuthor().getId().equals(reporter.getId())) {
                 throw new RuntimeException("You cannot report your own thread");
             }
-        } else {
+        } else if ("POST".equals(targetType)) {
             Post post = postRepository.findById(dto.getTargetId())
                     .orElseThrow(() -> new RuntimeException("Post not found"));
             if (post.getAuthor() != null && post.getAuthor().getId().equals(reporter.getId())) {
                 throw new RuntimeException("You cannot report your own post");
+            }
+        } else if ("PROFILE_POST".equals(targetType)) {
+            ProfilePost pp = profilePostRepository.findById(dto.getTargetId())
+                    .orElseThrow(() -> new RuntimeException("Profile post not found"));
+            if (pp.getAuthor() != null && pp.getAuthor().getId().equals(reporter.getId())) {
+                throw new RuntimeException("You cannot report your own profile post");
+            }
+        } else if ("PROFILE_POST_COMMENT".equals(targetType)) {
+            ProfilePostComment ppc = profilePostCommentRepository.findById(dto.getTargetId())
+                    .orElseThrow(() -> new RuntimeException("Profile post comment not found"));
+            if (ppc.getAuthor() != null && ppc.getAuthor().getId().equals(reporter.getId())) {
+                throw new RuntimeException("You cannot report your own comment");
             }
         }
 
@@ -121,7 +141,7 @@ public class ReportService {
                     dto.setTargetAuthorUsername("N/A (Đã xóa)");
                     dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
                 }
-            } else {
+            } else if ("POST".equals(dto.getTargetType())) {
                 Optional<Post> postOpt = postRepository.findById(dto.getTargetId());
                 if (postOpt.isPresent()) {
                     Post p = postOpt.get();
@@ -133,6 +153,34 @@ public class ReportService {
                         cleanContent = cleanContent.substring(0, 80) + "...";
                     }
                     dto.setTargetContentSnippet("Bình luận: " + cleanContent);
+                } else {
+                    dto.setTargetAuthorUsername("N/A (Đã xóa)");
+                    dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
+                }
+            } else if ("PROFILE_POST".equals(dto.getTargetType())) {
+                Optional<ProfilePost> ppOpt = profilePostRepository.findById(dto.getTargetId());
+                if (ppOpt.isPresent()) {
+                    ProfilePost pp = ppOpt.get();
+                    dto.setTargetAuthorUsername(pp.getAuthor() != null ? pp.getAuthor().getUsername() : "Ẩn danh");
+                    String cleanContent = pp.getContent() != null ? pp.getContent().replaceAll("<[^>]*>", "") : "";
+                    if (cleanContent.length() > 80) {
+                        cleanContent = cleanContent.substring(0, 80) + "...";
+                    }
+                    dto.setTargetContentSnippet("Bài đăng hồ sơ: " + cleanContent);
+                } else {
+                    dto.setTargetAuthorUsername("N/A (Đã xóa)");
+                    dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
+                }
+            } else if ("PROFILE_POST_COMMENT".equals(dto.getTargetType())) {
+                Optional<ProfilePostComment> ppcOpt = profilePostCommentRepository.findById(dto.getTargetId());
+                if (ppcOpt.isPresent()) {
+                    ProfilePostComment ppc = ppcOpt.get();
+                    dto.setTargetAuthorUsername(ppc.getAuthor() != null ? ppc.getAuthor().getUsername() : "Ẩn danh");
+                    String cleanContent = ppc.getContent() != null ? ppc.getContent().replaceAll("<[^>]*>", "") : "";
+                    if (cleanContent.length() > 80) {
+                        cleanContent = cleanContent.substring(0, 80) + "...";
+                    }
+                    dto.setTargetContentSnippet("Bình luận hồ sơ: " + cleanContent);
                 } else {
                     dto.setTargetAuthorUsername("N/A (Đã xóa)");
                     dto.setTargetContentSnippet("Nội dung đã bị xóa trước đó");
@@ -205,6 +253,14 @@ public class ReportService {
                 if (postRepository.existsById(report.getTargetId())) {
                     postService.deletePost(report.getTargetId());
                 }
+            } else if ("PROFILE_POST".equals(report.getTargetType())) {
+                if (profilePostRepository.existsById(report.getTargetId())) {
+                    profilePostService.deleteProfilePost(report.getTargetId(), adminUsername);
+                }
+            } else if ("PROFILE_POST_COMMENT".equals(report.getTargetType())) {
+                if (profilePostCommentRepository.existsById(report.getTargetId())) {
+                    profilePostService.deleteComment(report.getTargetId(), adminUsername);
+                }
             }
         }
 
@@ -240,6 +296,14 @@ public class ReportService {
             } else if ("POST".equals(targetType.toUpperCase())) {
                 if (postRepository.existsById(targetId)) {
                     postService.deletePost(targetId);
+                }
+            } else if ("PROFILE_POST".equals(targetType.toUpperCase())) {
+                if (profilePostRepository.existsById(targetId)) {
+                    profilePostService.deleteProfilePost(targetId, adminUsername);
+                }
+            } else if ("PROFILE_POST_COMMENT".equals(targetType.toUpperCase())) {
+                if (profilePostCommentRepository.existsById(targetId)) {
+                    profilePostService.deleteComment(targetId, adminUsername);
                 }
             }
         }

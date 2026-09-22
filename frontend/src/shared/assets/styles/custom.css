@@ -114,6 +114,10 @@
         padding-left: 6px !important;
         padding-right: 6px !important;
     }
+
+    .no-padding-mobile {
+        padding: 0 !important;
+    }
 }
 
 @media (max-width: 376px) {
