@@ -105,10 +105,17 @@
             <div class="profile-tabs-bar">
               <button 
                 class="profile-tab-btn pl-and-pr-6" 
+                :class="{ 'is-active': activeTab === 'profile_posts' }"
+                @click="switchTab('profile_posts')"
+              >
+                Lưu bút
+              </button>
+              <button 
+                class="profile-tab-btn pl-and-pr-6" 
                 :class="{ 'is-active': activeTab === 'posts' }"
                 @click="switchTab('posts')"
               >
-                Bài đăng ({{ userStats.threadCount || 0 }})
+                Chủ đề ({{ userStats.threadCount || 0 }})
               </button>
               <button 
                 class="profile-tab-btn pl-and-pr-6" 
@@ -125,15 +132,111 @@
                 Giới thiệu
               </button>
             </div>
+          </div>
 
-            <!-- Thành phần 3: Danh sách & Phân trang -->
-            <div class="profile-tab-content only-pt-1_5rem-on-pc">
+          <!-- Thành phần 3: Danh sách & Phân trang -->
+          <div class="profile-tab-content-wrapper">
+            <!-- Tab 1: Lưu bút (Profile posts) -->
+            <div v-if="activeTab === 'profile_posts'" class="profile-posts-panel">
+              <!-- Form nhập liệu trạng thái -->
+              <div class="profile-status-input-card">
+                <div class="status-input-row" :class="{ 'is-expanded': showStatusEditor }">
+                  <!-- Cột trái: Avatar người đang đăng nhập -->
+                  <div class="status-avatar-col">
+                    <div 
+                      class="status-avatar" 
+                      :style="!isAvatarUrl(currentUserAvatar) ? { backgroundColor: currentUserAvatar || '#1a507a' } : {}"
+                    >
+                      <img v-if="isAvatarUrl(currentUserAvatar)" :src="formatAvatarUrl(currentUserAvatar)" alt="avatar" />
+                      <span v-else>{{ myInitial }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Cột phải: Input giả lập / Trình soạn thảo CustomEditor -->
+                  <div class="status-form-col no-padding-mobile">
+                    <!-- Trạng thái thu gọn mặc định -->
+                    <div 
+                      v-if="!showStatusEditor" 
+                      class="status-fake-input" 
+                      @click="openStatusEditor"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pen-icon">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Bạn đang nghĩ gì?</span>
+                    </div>
+
+                    <!-- Trạng thái mở rộng trình soạn thảo -->
+                    <div v-else class="status-editor-expanded">
+                      <CustomEditor
+                        ref="statusEditorRef"
+                        v-model="newPostContent"
+                        minHeight="140px"
+                        :autoFocus="true"
+                      />
+                      <div class="status-editor-actions">
+                        <button 
+                          class="btn-submit-status" 
+                          :disabled="isSubmittingPost || !newPostContent.trim()" 
+                          @click="submitProfilePost"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                          </svg>
+                          {{ isSubmittingPost ? 'Đang đăng...' : 'Đăng' }}
+                        </button>
+                        <button 
+                          class="btn-cancel-status" 
+                          @click="cancelStatusEditor"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Danh sách bài đăng Lưu bút -->
+              <div v-if="profilePostsLoading" class="list-loading-state">
+                Đang tải bài viết lưu bút...
+              </div>
+              <div v-else-if="profilePosts.length === 0" class="list-empty-state">
+                Chưa có bài viết lưu bút nào trên hồ sơ này. Hãy là người đầu tiên để lại lời nhắn!
+              </div>
+              <div v-else class="profile-posts-list">
+                <ProfilePostItem
+                  v-for="post in profilePosts"
+                  :key="post.id"
+                  :post="post"
+                  :currentUser="currentUser"
+                  :reactionIconsList="reactionIconsList"
+                  :isLoggedIn="isLoggedIn"
+                  @deleted="handleProfilePostDeleted"
+                  @updated="handleProfilePostUpdated"
+                />
+              </div>
+
+              <!-- Phân trang Lưu bút -->
+              <div class="pagination-wrapper p-1_5rem-on-pc" v-if="profilePostsTotalPages > 1">
+                <ForumPagination 
+                  :current-page="profilePostsCurrentPage" 
+                  :total-pages="profilePostsTotalPages" 
+                  @page-changed="handleProfilePostsPageChange"
+                />
+              </div>
+            </div>
+
+            <!-- Các Tab khác: Bọc trong card riêng biệt để giữ nguyên viền đẹp -->
+            <div v-else class="card profile-other-tab-card">
               <!-- Tab: Giới thiệu -->
               <div v-if="activeTab === 'about'" class="about-tab-panel">
                 <p class="about-empty-text">Thành viên này chưa viết lời giới thiệu.</p>
               </div>
 
-              <!-- Tab: Bài đăng & Bình luận/Phản hồi -->
+              <!-- Tab: Chủ đề & Bình luận/Phản hồi -->
               <div v-else class="list-tab-panel">
                 <div v-if="listLoading" class="list-loading-state">
                   Đang tải dữ liệu...
@@ -149,23 +252,21 @@
                         <user-profile-popup :user="item.author || userStats">
                           <span class="item-avatar" :style="!isAvatarUrl((item.author || userStats).avatar) ? { backgroundColor: (item.author || userStats).avatar || '#ccc' } : {}">
                             <img v-if="isAvatarUrl((item.author || userStats).avatar)" :src="formatAvatarUrl((item.author || userStats).avatar)" />
-                            <template v-else>
-                              {{ ((item.author || userStats).displayName || (item.author || userStats).username || userInitial).charAt(0).toUpperCase() }}
-                            </template>
+                            <span v-else>{{ ((item.author || userStats).displayName || (item.author || userStats).username || '?').charAt(0).toUpperCase() }}</span>
                           </span>
                         </user-profile-popup>
                       </div>
 
-                      <!-- Cột bên phải: Nội dung -->
+                      <!-- Cột bên phải: Nội dung chi tiết -->
                       <div class="item-details-col">
-                        <!-- Dòng 1: Tiêu đề + Label -->
+                        <!-- Dòng 1: Tiêu đề thread -->
                         <div class="item-title-row">
                           <span 
-                            v-if="item.label || item.threadLabel" 
+                            v-if="item.label" 
                             class="label-tag-mini" 
-                            :style="getLabelStyle(item.label || item.threadLabel)"
+                            :style="getLabelStyle(item.label)"
                           >
-                            {{ (item.label || item.threadLabel).name }}
+                            {{ item.label.title }}
                           </span>
                           <router-link 
                             :to="getItemRoute(item)" 
@@ -255,10 +356,14 @@ import AvatarUploadModal from '@/shared/components/AvatarUploadModal.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import ProfilePostItem from '@/shared/components/ProfilePostItem.vue'
+import CustomEditor from '@/shared/components/CustomEditor.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import userFollowService from '@/apps/Forum/services/user-follow.service'
+import profilePostService from '@/apps/Forum/services/profile-post.service'
+import reactionService from '@/apps/Forum/services/reaction.service'
 import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
 
@@ -271,14 +376,16 @@ export default {
     AvatarUploadModal,
     Loading,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    ProfilePostItem,
+    CustomEditor
   },
   data() {
     return {
       loading: false,
       listLoading: false,
       userStats: {},
-      activeTab: 'posts', // 'posts' | 'comments' | 'about'
+      activeTab: 'profile_posts', // 'profile_posts' | 'posts' | 'comments' | 'about'
       items: [],
       currentPage: 1,
       totalPages: 1,
@@ -286,10 +393,38 @@ export default {
       showUploadModal: false,
       uploadMode: 'avatar', // 'avatar' | 'banner'
       isFollowing: false,
-      loadingFollow: false
+      loadingFollow: false,
+
+      // Profile Posts (Lưu bút) state
+      profilePosts: [],
+      profilePostsCurrentPage: 1,
+      profilePostsTotalPages: 1,
+      profilePostsLoading: false,
+      showStatusEditor: false,
+      newPostContent: '',
+      isSubmittingPost: false,
+      reactionIconsList: []
     }
   },
   computed: {
+    currentUser() {
+      const currentUserStr = localStorage.getItem('user')
+      return currentUserStr ? JSON.parse(currentUserStr) : null
+    },
+    currentUserAvatar() {
+      return this.currentUser?.avatar || ''
+    },
+    isLoggedIn() {
+      return !!localStorage.getItem('token')
+    },
+    myInitial() {
+      const name = this.currentUser?.displayName || this.currentUser?.username || '?'
+      return name.charAt(0).toUpperCase()
+    },
+    targetUsername() {
+      const queryUsername = this.$route.query.username
+      return queryUsername || this.currentUser?.username || ''
+    },
     isCurrentUser() {
       return this.checkIsCurrentUser(this.$route.query.username)
     },
@@ -318,7 +453,8 @@ export default {
           return
         }
         this.currentPage = 1
-        this.activeTab = 'posts'
+        this.profilePostsCurrentPage = 1
+        this.activeTab = 'profile_posts'
         this.loadProfileData()
       }
     }
@@ -336,6 +472,7 @@ export default {
       }
     }
     this.loadProfileData()
+    this.loadReactionIcons()
   },
   mounted() {
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
@@ -496,7 +633,8 @@ export default {
       try {
         await Promise.all([
           this.fetchUserStats(),
-          this.fetchTabData()
+          this.fetchTabData(),
+          this.loadReactionIcons()
         ])
       } catch (e) {
         console.error('Lỗi load dữ liệu profile:', e)
@@ -586,6 +724,11 @@ export default {
     },
     async fetchTabData() {
       if (this.activeTab === 'about') return
+
+      if (this.activeTab === 'profile_posts') {
+        await this.fetchProfilePosts()
+        return
+      }
       
       this.listLoading = true
       try {
@@ -625,12 +768,113 @@ export default {
     },
     switchTab(tab) {
       this.activeTab = tab
-      this.currentPage = 1
-      this.fetchTabData()
+      if (tab === 'profile_posts') {
+        this.profilePostsCurrentPage = 1
+        this.fetchProfilePosts()
+      } else if (tab === 'posts' || tab === 'comments') {
+        this.currentPage = 1
+        this.fetchTabData()
+      }
     },
     handlePageChange(page) {
       this.currentPage = page
       this.fetchTabData()
+    },
+    async loadReactionIcons() {
+      try {
+        const res = await reactionService.getIcons()
+        this.reactionIconsList = res.data || []
+      } catch (e) {
+        console.error('Lỗi tải reaction icons:', e)
+      }
+    },
+    async fetchProfilePosts() {
+      this.profilePostsLoading = true
+      try {
+        const username = this.targetUsername
+        if (!username) return
+        const res = await profilePostService.getProfilePosts(username, this.profilePostsCurrentPage - 1, 10)
+        if (res.data) {
+          this.profilePosts = res.data.content || []
+          this.profilePostsTotalPages = res.data.totalPages || 1
+        } else {
+          this.profilePosts = []
+          this.profilePostsTotalPages = 1
+        }
+      } catch (e) {
+        console.error('Lỗi tải bài viết lưu bút:', e)
+        this.profilePosts = []
+        this.profilePostsTotalPages = 1
+      } finally {
+        this.profilePostsLoading = false
+      }
+    },
+    handleProfilePostsPageChange(page) {
+      this.profilePostsCurrentPage = page
+      this.fetchProfilePosts()
+    },
+    openStatusEditor() {
+      if (!this.isLoggedIn) {
+        toastError('Vui lòng đăng nhập để đăng bài viết lên hồ sơ')
+        return
+      }
+      this.showStatusEditor = true
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.$refs.statusEditorRef?.focus()
+        }, 60)
+      })
+    },
+    cancelStatusEditor() {
+      this.showStatusEditor = false
+      this.newPostContent = ''
+    },
+    async submitProfilePost() {
+      if (!this.newPostContent.trim()) {
+        toastError('Vui lòng nhập nội dung bài viết')
+        return
+      }
+      if (!this.isLoggedIn) {
+        toastError('Vui lòng đăng nhập để thực hiện')
+        return
+      }
+
+      this.isSubmittingPost = true
+      try {
+        const payload = {
+          profileUsername: this.targetUsername,
+          content: this.newPostContent.trim()
+        }
+        await profilePostService.createProfilePost(payload)
+        toastSuccess('Đăng bài viết lên hồ sơ thành công')
+        
+        // Đưa form về giao diện mặc định và reset nội dung
+        this.showStatusEditor = false
+        this.newPostContent = ''
+
+        // Đồng bộ lại phân trang máy chủ: reset về trang 1 và tải lại danh sách 10 bài mới nhất
+        this.profilePostsCurrentPage = 1
+        await this.fetchProfilePosts()
+      } catch (e) {
+        console.error('Lỗi khi đăng bài viết hồ sơ:', e)
+        toastError(e.response?.data?.message || 'Có lỗi xảy ra khi đăng bài')
+      } finally {
+        this.isSubmittingPost = false
+      }
+    },
+    async handleProfilePostDeleted() {
+      // Tải lại dữ liệu từ server để nạp bù bài viết và cập nhật tổng số trang chuẩn xác
+      await this.fetchProfilePosts()
+      if (this.profilePostsCurrentPage > this.profilePostsTotalPages) {
+        this.profilePostsCurrentPage = Math.max(1, this.profilePostsTotalPages)
+        await this.fetchProfilePosts()
+      }
+    },
+    handleProfilePostUpdated(updatedPost) {
+      const index = this.profilePosts.findIndex(p => p.id === updatedPost.id)
+      if (index !== -1) {
+        this.profilePosts.splice(index, 1, updatedPost)
+      }
     },
     async navigateToItem(item) {
       if (this.activeTab === 'posts') {
@@ -705,7 +949,7 @@ export default {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 6px;
 }
 
 /* Card base */
@@ -1090,6 +1334,41 @@ export default {
   display: none;
 }
 
+@media (max-width: 767px) {
+  .profile-tabs-bar {
+    scrollbar-width: thin;
+    scrollbar-color: #1a507a #edf0f2;
+  }
+  .profile-tabs-bar::-webkit-scrollbar {
+    display: block !important;
+    height: 3px;
+  }
+  .profile-tabs-bar::-webkit-scrollbar-track {
+    background: #edf0f2;
+  }
+  .profile-tabs-bar::-webkit-scrollbar-thumb {
+    background: #1a507a;
+    border-radius: 3px;
+  }
+
+  /* Form nhập liệu trên mobile: Ẩn cột avatar, thẻ input chiếm full width chuẩn voz */
+  .status-avatar-col {
+    display: none !important;
+  }
+  .status-form-col::before,
+  .status-form-col::after {
+    display: none !important;
+  }
+  .status-form-col {
+    padding: 10px 12px;
+    width: 100%;
+  }
+  .status-fake-input {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+}
+
 .profile-tab-btn {
   background: none;
   border: none;
@@ -1324,6 +1603,7 @@ export default {
 
 .profile-header-card {
   position: relative;
+  margin-bottom: 8px !important;
 }
 
 .profile-info-upper.positioned-absolute {
@@ -1448,6 +1728,203 @@ export default {
     white-space: normal !important;
     word-break: break-word;
   }
+}
+
+/* Profile Tab Content Wrapper & Status Input Card */
+.profile-tab-content-wrapper {
+  margin-top: 0 !important;
+}
+
+.profile-other-tab-card {
+  padding: 1.5rem;
+}
+
+.profile-status-input-card {
+  background: #ffffff;
+  border: 1px solid #d8dbe0;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
+}
+
+.status-input-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.status-avatar-col {
+  width: 64px;
+  flex-shrink: 0;
+  background-color: #f5f6f8;
+  border-right: 1px solid #d8dbe0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  transition: all 0.2s ease;
+}
+
+.status-input-row.is-expanded .status-avatar-col {
+  align-items: flex-start;
+  padding-top: 14px;
+}
+
+.status-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  background-color: #1a507a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.status-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.status-form-col {
+  flex: 1;
+  min-width: 0;
+  background-color: #ffffff;
+  padding: 10px 14px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.status-input-row.is-expanded .status-form-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Mũi tên tin nhắn tại vách ngăn giữa 2 cột trỏ về phía Avatar */
+.status-form-col::before,
+.status-form-col::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  display: block;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.status-input-row:not(.is-expanded) .status-form-col::before,
+.status-input-row:not(.is-expanded) .status-form-col::after {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.status-input-row.is-expanded .status-form-col::before {
+  top: 24px;
+}
+.status-input-row.is-expanded .status-form-col::after {
+  top: 25px;
+}
+
+.status-form-col::before {
+  right: 100%;
+  border-width: 8px 8px 8px 0;
+  border-color: transparent #d8dbe0 transparent transparent;
+}
+
+.status-form-col::after {
+  right: calc(100% - 1px);
+  border-width: 7px 7px 7px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+
+/* Thẻ input nằm trọn bên trong box cột phải */
+.status-fake-input {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f6fa;
+  border: 1px solid #cde0ed;
+  border-radius: 4px;
+  padding: 14px;
+  color: #6a8296;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-fake-input:hover {
+  border-color: #1a507a;
+  background-color: #e5f1f9;
+  color: #1a507a;
+}
+.status-fake-input:hover .pen-icon {
+  color: #1a507a;
+}
+
+.pen-icon {
+  color: #7d96a8;
+  transition: color 0.2s;
+}
+
+.status-editor-expanded {
+  width: 100%;
+}
+
+.status-editor-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-submit-status {
+  background: #1a507a;
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+.btn-submit-status:hover:not(:disabled) {
+  background: #133a59;
+}
+.btn-submit-status:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel-status {
+  background: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-cancel-status:hover {
+  background: #cbd5e0;
+}
+
+.profile-posts-list {
+  display: flex;
+  flex-direction: column;
 }
 
 @import "@/shared/assets/styles/custom.css";

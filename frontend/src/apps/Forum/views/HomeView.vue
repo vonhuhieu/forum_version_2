@@ -6,7 +6,7 @@
       <div class="home-action-bar container">
         <div class="smart-greeting-wrapper">
           <span class="greeting-icon">{{ greetingData.icon }}</span>
-          <span class="greeting-text"><span class="greeting-period">{{ greetingData.periodTitle }},</span>&nbsp;<span :class="greetingData.isGuest ? 'greeting-guest' : 'greeting-name'" :title="greetingData.name">{{ greetingData.name }}</span>!</span>
+          <span class="greeting-text"><span class="greeting-period">{{ greetingData.periodTitle }},</span>&nbsp;<span :class="greetingData.isGuest ? 'greeting-guest' : 'greeting-name'" :title="greetingData.name">{{ greetingData.name }}</span>🥰</span>
         </div>
         <div v-if="canShowPostButton" class="user-actions">
           <button @click="openPostModal" class="btn-post-thread">Đăng bài...</button>
@@ -338,7 +338,7 @@ export default {
 
       const rawName = this.currentUser?.displayName || this.currentUser?.username || ''
       const isGuest = !rawName
-      const name = isGuest ? 'anh/chị' : rawName
+      const name = isGuest ? 'bạn' : `bạn ${rawName}`
 
       return {
         icon,

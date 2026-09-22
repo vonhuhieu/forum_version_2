@@ -32,6 +32,8 @@ public class ReactionService {
     private final NotificationService notificationService;
     private final ConversationMessageRepository conversationMessageRepository;
     private final UserTitleService userTitleService;
+    private final ProfilePostRepository profilePostRepository;
+    private final ProfilePostCommentRepository profilePostCommentRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -654,5 +656,109 @@ public class ReactionService {
             }
         }
         return dto;
+    }
+
+    public List<ReactionSummaryDTO> getSummaryForProfilePost(Long profilePostId) {
+        List<Object[]> results = reactionRepository.aggregateByProfilePostId(profilePostId);
+        return mapAggregateResults(results);
+    }
+
+    public List<ReactionSummaryDTO> getSummaryForProfilePostComment(Long commentId) {
+        List<Object[]> results = reactionRepository.aggregateByProfilePostCommentId(commentId);
+        return mapAggregateResults(results);
+    }
+
+    public ReactionIconDTO getCurrentUserReactionForProfilePost(Long profilePostId, String username) {
+        if (username == null || username.equals("anonymousUser")) return null;
+        return userRepository.findByUsername(username).flatMap(user ->
+            reactionRepository.findByUserIdAndProfilePostId(user.getId(), profilePostId)
+                    .map(Reaction::getReactionIcon)
+                    .map(reactionIconService::convertToDTO)
+        ).orElse(null);
+    }
+
+    public ReactionIconDTO getCurrentUserReactionForProfilePostComment(Long commentId, String username) {
+        if (username == null || username.equals("anonymousUser")) return null;
+        return userRepository.findByUsername(username).flatMap(user ->
+            reactionRepository.findByUserIdAndProfilePostCommentId(user.getId(), commentId)
+                    .map(Reaction::getReactionIcon)
+                    .map(reactionIconService::convertToDTO)
+        ).orElse(null);
+    }
+
+    @Async
+    @Transactional
+    public void reactToProfilePostAsync(String username, Long profilePostId, Long iconId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+        ProfilePost profilePost = profilePostRepository.findById(profilePostId).orElse(null);
+        if (profilePost == null) return;
+        ReactionIcon icon = reactionIconRepository.findById(iconId).orElse(null);
+        if (icon == null) return;
+
+        if (profilePost.getAuthor() != null && profilePost.getAuthor().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndProfilePostId(currentUser.getId(), profilePostId);
+        if (existing.isPresent()) {
+            Reaction reaction = existing.get();
+            reaction.setReactionIcon(icon);
+            reactionRepository.save(reaction);
+        } else {
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(currentUser);
+            newReaction.setProfilePost(profilePost);
+            newReaction.setReactionIcon(icon);
+            reactionRepository.save(newReaction);
+        }
+    }
+
+    @Async
+    @Transactional
+    public void removeReactionFromProfilePostAsync(String username, Long profilePostId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+        reactionRepository.deleteByUserIdAndProfilePostId(currentUser.getId(), profilePostId);
+    }
+
+    @Async
+    @Transactional
+    public void reactToProfilePostCommentAsync(String username, Long commentId, Long iconId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+        ProfilePostComment comment = profilePostCommentRepository.findById(commentId).orElse(null);
+        if (comment == null) return;
+        ReactionIcon icon = reactionIconRepository.findById(iconId).orElse(null);
+        if (icon == null) return;
+
+        if (comment.getAuthor() != null && comment.getAuthor().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        Optional<Reaction> existing = reactionRepository.findByUserIdAndProfilePostCommentId(currentUser.getId(), commentId);
+        if (existing.isPresent()) {
+            Reaction reaction = existing.get();
+            reaction.setReactionIcon(icon);
+            reactionRepository.save(reaction);
+        } else {
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(currentUser);
+            newReaction.setProfilePostComment(comment);
+            newReaction.setReactionIcon(icon);
+            reactionRepository.save(newReaction);
+        }
+    }
+
+    @Async
+    @Transactional
+    public void removeReactionFromProfilePostCommentAsync(String username, Long commentId) {
+        if (username == null || username.equals("anonymousUser")) return;
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser == null) return;
+        reactionRepository.deleteByUserIdAndProfilePostCommentId(currentUser.getId(), commentId);
     }
 }
