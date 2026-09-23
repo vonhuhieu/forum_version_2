@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Loading :visible="loadingUsers || submitting" />
+    <Loading :visible="loadingUsers || submitting || isUploadLoading" />
     
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
@@ -42,9 +42,32 @@
           </div>
 
           <!-- Nội dung đối thoại -->
-          <div class="editor-block" style="margin-bottom: 1.5rem; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+          <div class="editor-block" style="margin-bottom: 1.5rem;">
             <div class="editor-container">
-              <CustomEditor ref="editor" v-model="form.content" :allowedUsers="selectedRecipients" />
+              <CustomEditor 
+                ref="editor" 
+                v-model="form.content" 
+                :allowedUsers="selectedRecipients" 
+                @image-uploaded="handleImageUploaded"
+                @upload-loading-start="handleUploadLoadingStart"
+                @upload-loading-end="handleUploadLoadingEnd"
+              />
+
+              <!-- Khối xem trước đính kèm chân bài đối thoại -->
+              <div v-if="attachedImages && attachedImages.length > 0" class="attachment-block" style="margin: 1.5rem 0; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
+                <div class="attachment-label" style="font-weight: bold; color: #1a507a; margin-bottom: 1rem; font-size: 0.95rem;">Đính kèm</div>
+                <div class="attachment-list" style="display: flex; flex-wrap: wrap; gap: 15px;">
+                  <img v-for="(img, idx) in attachedImages" :key="idx" :src="img.url" :alt="img.name" style="width: 200px; height: 200px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; cursor: zoom-in;" />
+                </div>
+              </div>
+
+              <ImageUploaderPanel 
+                ref="uploaderPanel" 
+                v-model:images="attachedImages" 
+                @insert-images="handleInsertImages"
+                @upload-loading-start="handleUploadLoadingStart"
+                @upload-loading-end="handleUploadLoadingEnd"
+              />
             </div>
           </div>
 
@@ -93,14 +116,18 @@ import { alertSuccess, alertError } from '@/shared/utils/swal'
 import { getImeValue } from '@/shared/utils/utils'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
+import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
+import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
 
 export default {
   name: 'AddConversation',
+  mixins: [editorAttachmentMixin],
   components: {
     Breadcrumb,
     CustomEditor,
+    ImageUploaderPanel,
     Loading,
     UserSearchInput
   },
@@ -116,6 +143,7 @@ export default {
       searchTimeout: null,
       submitting: false,
       loadingUsers: false,
+      attachedImages: [],
       form: {
         title: '',
         content: '',
@@ -253,11 +281,22 @@ export default {
 
       this.submitting = true
       try {
+        const finalContent = this.buildAttachmentHtml(this.attachedImages, this.form.content || '', {
+          id: 'attachment-section',
+          marginTop: '2rem',
+          paddingTop: '1.5rem',
+          labelSize: '0.95rem',
+          labelMarginBottom: '1rem',
+          imgWidth: '200px',
+          imgHeight: '200px',
+          imgMargin: '5px'
+        })
+
         const recipientDisplayNames = this.selectedRecipients.map(r => r.username)
         const payload = {
           recipientDisplayNames: recipientDisplayNames,
           title: this.form.title,
-          content: this.form.content,
+          content: finalContent,
           allowInvite: this.form.allowInvite,
           locked: this.form.locked
         }
@@ -281,6 +320,14 @@ export default {
       } finally {
         this.submitting = false
       }
+    },
+    handleInsertImages(urls, type) {
+      if (this.$refs.editor && this.$refs.editor.insertImages) {
+        this.$refs.editor.insertImages(urls, type)
+      }
+    },
+    handleImageUploaded(image) {
+      this.attachedImages.push(image)
     }
   }
 }

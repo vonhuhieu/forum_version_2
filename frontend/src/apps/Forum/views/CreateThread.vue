@@ -146,7 +146,13 @@
                 </div>
               </div>
 
-              <ImageUploaderPanel ref="uploaderPanel" v-model:images="attachedImages" @insert-images="handleInsertImages" />
+              <ImageUploaderPanel 
+                ref="uploaderPanel" 
+                v-model:images="attachedImages" 
+                @insert-images="handleInsertImages"
+                @upload-loading-start="isUploadLoading = true"
+                @upload-loading-end="isUploadLoading = false"
+              />
             </div>
 
             <!-- Poll Form -->

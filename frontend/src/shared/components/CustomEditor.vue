@@ -725,6 +725,26 @@ export default {
         this.$emit('upload-loading-end');
       });
 
+      // Tự động nhận diện nút 'Tải hình ảnh lên từ máy tính' và gán class ck-btn-insert-image để giữ hiển thị khi toolbar thu hẹp
+      this.$nextTick(() => {
+        try {
+          const toolbarEl = editor.ui.view?.toolbar?.element;
+          if (toolbarEl) {
+            const allItems = toolbarEl.querySelectorAll('.ck-toolbar__items > *');
+            allItems.forEach(el => {
+              if (el.querySelector('.ck-splitbutton') ||
+                  el.querySelector('[data-cke-tooltip-text*="máy tính"]') ||
+                  el.querySelector('[data-cke-tooltip-text*="hình ảnh"]') ||
+                  el.querySelector('[data-cke-tooltip-text*="computer"]') ||
+                  el.querySelector('[data-cke-tooltip-text*="Image"]') ||
+                  el.querySelector('[data-cke-tooltip-text*="image"]')) {
+                el.classList.add('ck-btn-insert-image');
+              }
+            });
+          }
+        } catch (e) { /* ignore */ }
+      });
+
       // Lắng nghe thay đổi dữ liệu để bắt cú pháp tag @
       editor.model.document.on('change:data', () => {
         this.checkMentionTrigger();
@@ -1552,15 +1572,8 @@ export default {
 }
 
 /* ========================================================
-   CẤU HÌNH RESPONSIVE CHO THANH CÔNG CỤ TRÊN MOBILE
+   CẤU HÌNH THANH CÔNG CỤ RÚT GỌN & MỞ RỘNG (Áp dụng chung mọi thiết bị: PC, Tablet, Mobile)
    ======================================================== */
-
-/* Trên PC / Tablet (màn hình > 768px): Ẩn hoàn toàn nút chuyển đổi Mobile Toggle */
-@media (min-width: 769px) {
-  :deep(.ck-btn-mobile-toggle) {
-    display: none !important;
-  }
-}
 
 /* Nút tiện ích Catbox và Gofile */
 :deep(.ck-btn-quick-catbox:hover) {
@@ -1571,81 +1584,89 @@ export default {
   color: #228be6 !important;
 }
 
-/* Trên Mobile (màn hình <= 768px) */
-@media (max-width: 768px) {
-  /* Nút Mở rộng / Thu hẹp trên mobile */
-  :deep(.ck-btn-mobile-toggle) {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    color: #1a507a !important;
-    background-color: #ebf5fb !important;
-    border: 1px solid #bce1f7 !important;
-    border-radius: 4px !important;
-    padding: 4px 12px !important;
-    margin-left: auto !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-  }
+/* Nút Mở rộng / Thu hẹp (áp dụng trên mọi thiết bị: PC, Tablet, Mobile) */
+:deep(.ck-btn-mobile-toggle) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  color: #1a507a !important;
+  background-color: #ebf5fb !important;
+  border: 1px solid #bce1f7 !important;
+  border-radius: 4px !important;
+  padding: 4px 12px !important;
+  margin-left: auto !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
 
-  :deep(.ck-btn-mobile-toggle .ck-button__label) {
-    font-weight: 600 !important;
-    color: #1a507a !important;
-    font-size: 0.85rem !important;
-  }
+:deep(.ck-btn-mobile-toggle .ck-button__label) {
+  font-weight: 600 !important;
+  color: #1a507a !important;
+  font-size: 0.85rem !important;
+}
 
-  :deep(.ck-btn-mobile-toggle:hover),
-  :deep(.ck-btn-mobile-toggle:active) {
-    background-color: #d4ecf9 !important;
-    border-color: #1a507a !important;
-  }
+:deep(.ck-btn-mobile-toggle:hover),
+:deep(.ck-btn-mobile-toggle:active) {
+  background-color: #d4ecf9 !important;
+  border-color: #1a507a !important;
+}
 
-  /* Nút tải lên tệp đính kèm trên mobile */
-  :deep(.ck-btn-custom-upload) {
-    display: inline-flex !important;
-    background-color: #f8f9fa !important;
-    border-radius: 4px !important;
-  }
+/* Nút tải hình ảnh lên từ máy tính */
+:deep(.ck-btn-insert-image) {
+  display: inline-flex !important;
+  border-radius: 4px !important;
+}
 
-  /* Nút tiện ích Catbox & Gofile trên mobile */
-  :deep(.ck-btn-quick-catbox),
-  :deep(.ck-btn-quick-gofile) {
-    display: inline-flex !important;
-    border-radius: 4px !important;
-  }
+/* Nút tải lên tệp đính kèm */
+:deep(.ck-btn-custom-upload) {
+  display: inline-flex !important;
+  background-color: #f8f9fa !important;
+  border-radius: 4px !important;
+}
 
-  /* Khi ở trạng thái THU HẸP (Mặc định trên Mobile):
-     Ẩn toàn bộ nút công cụ và separators, CHỈ HIỂN THỊ nút customUpload, nút Catbox, nút Gofile và nút Mở rộng */
-  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items > *:not(.ck-btn-custom-upload):not(.ck-btn-quick-catbox):not(.ck-btn-quick-gofile):not(.ck-btn-mobile-toggle)) {
-    display: none !important;
-  }
+/* Nút tiện ích Catbox & Gofile */
+:deep(.ck-btn-quick-catbox),
+:deep(.ck-btn-quick-gofile) {
+  display: inline-flex !important;
+  border-radius: 4px !important;
+}
 
-  :deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items) {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 8px !important;
-    padding: 6px 8px !important;
-  }
+/* KHI Ở TRẠNG THÁI THU HẸP (MẶC ĐỊNH TRÊN TẤT CẢ CÁC THIẾT BỊ):
+   Ẩn toàn bộ nút công cụ và separators, CHỈ HIỂN THỊ:
+   1. Nút "Tải hình ảnh lên từ máy tính" (.ck-btn-insert-image)
+   2. Nút "Tải lên tệp đính kèm" (.ck-btn-custom-upload)
+   3. Nút "Catbox" (.ck-btn-quick-catbox)
+   4. Nút "Gofile" (.ck-btn-quick-gofile)
+   5. Nút "Mở rộng" (.ck-btn-mobile-toggle) */
+:deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items > *:not(.ck-btn-insert-image):not(.ck-btn-custom-upload):not(.ck-btn-quick-catbox):not(.ck-btn-quick-gofile):not(.ck-btn-mobile-toggle)) {
+  display: none !important;
+}
 
-  /* Khi ở trạng thái MỞ RỘNG trên Mobile: Hiển thị đầy đủ tất cả các nút */
-  :deep(.ck-editor.mobile-toolbar-expanded .ck-toolbar__items > *) {
-    display: inline-flex !important;
-  }
+:deep(.ck-editor:not(.mobile-toolbar-expanded) .ck-toolbar__items) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  padding: 6px 8px !important;
+}
 
-  /* Nút Thu hẹp khi mở rộng: Luôn đứng ở vị trí cuối cùng của thanh công cụ */
-  :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle) {
-    order: 99999 !important;
-    background-color: #fdeed9 !important;
-    border-color: #f39c12 !important;
-    margin-left: auto !important;
-  }
+/* KHI Ở TRẠNG THÁI MỞ RỘNG: Hiển thị đầy đủ tất cả các nút công cụ */
+:deep(.ck-editor.mobile-toolbar-expanded .ck-toolbar__items > *) {
+  display: inline-flex !important;
+}
 
-  :deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle .ck-button__label) {
-    color: #d35400 !important;
-  }
+/* Nút Thu hẹp khi mở rộng: Luôn đứng ở vị trí cuối cùng của thanh công cụ */
+:deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle) {
+  order: 99999 !important;
+  background-color: #fdeed9 !important;
+  border-color: #f39c12 !important;
+  margin-left: auto !important;
+}
+
+:deep(.ck-editor.mobile-toolbar-expanded .ck-btn-mobile-toggle .ck-button__label) {
+  color: #d35400 !important;
 }
 
 /* Nút mở hộp thoại HTML source code */
