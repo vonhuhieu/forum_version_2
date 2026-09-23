@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Loading :visible="loading" />
+    <Loading :visible="loading || isUploadLoading" />
 
     <main class="container" style="padding-top: 2rem;">
       <!-- Breadcrumb -->
@@ -174,7 +174,27 @@
                         v-model="newPostContent"
                         minHeight="140px"
                         :autoFocus="true"
+                        @image-uploaded="handleNewPostImageUploaded"
+                        @upload-loading-start="handleUploadLoadingStart"
+                        @upload-loading-end="handleUploadLoadingEnd"
                       />
+
+                      <!-- Khối xem trước đính kèm chân bài đăng lưu bút -->
+                      <div v-if="newPostAttachedImages && newPostAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 0; border-top: 1px dashed #ddd; padding-top: 1rem;">
+                        <div class="attachment-label" style="font-weight: bold; color: #1a507a; margin-bottom: 0.5rem; font-size: 0.9rem;">Đính kèm</div>
+                        <div class="attachment-list" style="display: flex; flex-wrap: wrap; gap: 10px;" @click="handleContentImageClick">
+                          <img v-for="(img, idx) in newPostAttachedImages" :key="idx" :src="img.url" :alt="img.name" style="width: 150px; height: 150px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; cursor: zoom-in;" />
+                        </div>
+                      </div>
+
+                      <ImageUploaderPanel 
+                        ref="newPostUploaderPanel" 
+                        v-model:images="newPostAttachedImages" 
+                        @insert-images="handleNewPostInsertImages" 
+                        @upload-loading-start="handleUploadLoadingStart"
+                        @upload-loading-end="handleUploadLoadingEnd"
+                      />
+
                       <div class="status-editor-actions">
                         <button 
                           class="btn-submit-status" 
@@ -340,11 +360,18 @@
     <!-- Modal Upload ảnh đại diện / ảnh bìa -->
     <AvatarUploadModal 
       :show="showUploadModal" 
-      :currentUser="userStats"
-      :mode="uploadMode"
-      @close="showUploadModal = false"
-      @avatar-updated="onAvatarUpdated"
-      @banner-updated="onBannerUpdated"
+      :currentUser="userStats" 
+      :mode="uploadMode" 
+      @close="showUploadModal = false" 
+      @avatar-updated="onAvatarUpdated" 
+      @banner-updated="onBannerUpdated" 
+    />
+
+    <!-- Modal Xem ảnh phóng to toàn màn hình -->
+    <ImageLightboxModal 
+      :visible="showLightbox" 
+      :src="lightboxImageUrl" 
+      @close="closeLightbox" 
     />
   </div>
 </template>
@@ -358,6 +385,8 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import ProfilePostItem from '@/shared/components/ProfilePostItem.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
+import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
+import ImageLightboxModal from '@/shared/components/ImageLightboxModal.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml } from '@/shared/utils/utils'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
@@ -366,10 +395,12 @@ import profilePostService from '@/apps/Forum/services/profile-post.service'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
+import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
+import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
 
 export default {
   name: 'UserProfile',
-  mixins: [userMixin],
+  mixins: [userMixin, editorAttachmentMixin, imageLightboxMixin],
   components: {
     Breadcrumb,
     ForumPagination,
@@ -378,7 +409,9 @@ export default {
     UserProfilePopup,
     VerifiedBadge,
     ProfilePostItem,
-    CustomEditor
+    CustomEditor,
+    ImageUploaderPanel,
+    ImageLightboxModal
   },
   data() {
     return {
@@ -402,6 +435,7 @@ export default {
       profilePostsLoading: false,
       showStatusEditor: false,
       newPostContent: '',
+      newPostAttachedImages: [],
       isSubmittingPost: false,
       reactionIconsList: []
     }
@@ -828,6 +862,7 @@ export default {
     cancelStatusEditor() {
       this.showStatusEditor = false
       this.newPostContent = ''
+      this.newPostAttachedImages = []
     },
     async submitProfilePost() {
       if (!this.newPostContent.trim()) {
@@ -841,9 +876,11 @@ export default {
 
       this.isSubmittingPost = true
       try {
+        const finalContent = this.buildAttachmentHtml(this.newPostAttachedImages, this.newPostContent.trim())
+
         const payload = {
           profileUsername: this.targetUsername,
-          content: this.newPostContent.trim()
+          content: finalContent
         }
         await profilePostService.createProfilePost(payload)
         toastSuccess('Đăng bài viết lên hồ sơ thành công')
@@ -851,6 +888,7 @@ export default {
         // Đưa form về giao diện mặc định và reset nội dung
         this.showStatusEditor = false
         this.newPostContent = ''
+        this.newPostAttachedImages = []
 
         // Đồng bộ lại phân trang máy chủ: reset về trang 1 và tải lại danh sách 10 bài mới nhất
         this.profilePostsCurrentPage = 1
@@ -861,6 +899,14 @@ export default {
       } finally {
         this.isSubmittingPost = false
       }
+    },
+    handleNewPostInsertImages(urls, type) {
+      if (this.$refs.statusEditorRef && this.$refs.statusEditorRef.insertImages) {
+        this.$refs.statusEditorRef.insertImages(urls, type)
+      }
+    },
+    handleNewPostImageUploaded(image) {
+      this.newPostAttachedImages.push(image)
     },
     async handleProfilePostDeleted() {
       // Tải lại dữ liệu từ server để nạp bù bài viết và cập nhật tổng số trang chuẩn xác

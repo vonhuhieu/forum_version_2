@@ -11,6 +11,9 @@ class MyUploadAdapter {
   }
 
   upload() {
+    if (this.editor) {
+      this.editor.fire('uploadMultipleStart');
+    }
     return this.loader.file.then(file => new Promise((resolve, reject) => {
       const formData = new FormData()
       formData.append('file', file)
@@ -32,7 +35,17 @@ class MyUploadAdapter {
       .catch(err => {
         reject(err)
       })
-    }))
+      .finally(() => {
+        if (this.editor) {
+          this.editor.fire('uploadMultipleEnd');
+        }
+      })
+    })).catch(err => {
+      if (this.editor) {
+        this.editor.fire('uploadMultipleEnd');
+      }
+      throw err;
+    })
   }
 
   abort() {}

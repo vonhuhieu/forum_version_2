@@ -1,5 +1,8 @@
 <template>
   <div class="profile-post-card" :id="`profile-post-${post.id}`">
+    <!-- Component Loading mờ toàn màn hình dùng chung hệ thống -->
+    <Loading :visible="isUploadLoading" />
+
     <div class="profile-post-row">
       <!-- Cột bên trái: Avatar người đăng bài -->
       <div class="post-left-col">
@@ -22,6 +25,8 @@
             v-model="editContent"
             minHeight="140px"
             :is-edit="true"
+            @upload-loading-start="handleUploadLoadingStart"
+            @upload-loading-end="handleUploadLoadingEnd"
           />
           <div class="inline-editor-actions">
             <button 
@@ -75,6 +80,7 @@
                 class="post-html-content ql-editor"
                 :class="{ 'is-clamped': isContentClamped && !isExpanded }"
                 v-html="post.content"
+                @click="handleContentImageClick"
               ></div>
               <button 
                 v-if="isContentClamped" 
@@ -224,6 +230,8 @@
                       v-model="editCommentContent"
                       minHeight="100px"
                       :is-edit="true"
+                      @upload-loading-start="handleUploadLoadingStart"
+                      @upload-loading-end="handleUploadLoadingEnd"
                     />
                     <div class="inline-editor-actions mt-2">
                       <button 
@@ -248,7 +256,7 @@
                         </user-profile-popup>
                         <VerifiedBadge :user="comment.author" size="13px" />
                       </div>
-                      <div class="comment-html-text ql-editor" v-html="comment.content"></div>
+                      <div class="comment-html-text ql-editor" v-html="comment.content" @click="handleContentImageClick"></div>
                     </div>
 
                     <!-- Meta row: Thời gian & Action buttons chung 1 hàng (như voz hình 5) -->
@@ -380,7 +388,27 @@
                     minHeight="100px"
                     ref="commentEditorRef"
                     :autoFocus="true"
+                    @image-uploaded="handleCommentImageUploaded"
+                    @upload-loading-start="handleUploadLoadingStart"
+                    @upload-loading-end="handleUploadLoadingEnd"
                   />
+
+                  <!-- Khối xem trước đính kèm chân bình luận -->
+                  <div v-if="commentAttachedImages && commentAttachedImages.length > 0" class="attachment-block" style="margin: 0.8rem 0; border-top: 1px dashed #ddd; padding-top: 0.8rem;">
+                    <div class="attachment-label" style="font-weight: bold; color: #1a507a; margin-bottom: 0.4rem; font-size: 0.85rem;">Đính kèm</div>
+                    <div class="attachment-list" style="display: flex; flex-wrap: wrap; gap: 8px;" @click="handleContentImageClick">
+                      <img v-for="(img, idx) in commentAttachedImages" :key="idx" :src="img.url" :alt="img.name" style="width: 120px; height: 120px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; cursor: zoom-in;" />
+                    </div>
+                  </div>
+
+                  <ImageUploaderPanel 
+                    ref="commentUploaderPanel" 
+                    v-model:images="commentAttachedImages" 
+                    @insert-images="handleCommentInsertImages" 
+                    @upload-loading-start="handleUploadLoadingStart"
+                    @upload-loading-end="handleUploadLoadingEnd"
+                  />
+
                   <div class="comment-editor-actions">
                     <button 
                       class="btn-submit-comment" 
@@ -410,11 +438,21 @@
       :submitting="submittingReport"
       @submit="handleReportSubmit"
     />
+
+    <!-- Modal Xem ảnh phóng to toàn màn hình -->
+    <ImageLightboxModal 
+      :visible="showLightbox" 
+      :src="lightboxImageUrl" 
+      @close="closeLightbox" 
+    />
   </div>
 </template>
 
 <script>
+import Loading from '@/shared/components/Loading.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
+import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
+import ImageLightboxModal from '@/shared/components/ImageLightboxModal.vue'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
 import ReactionSummary from '@/shared/components/ReactionSummary.vue'
 import ReportModal from '@/shared/components/ReportModal.vue'
@@ -425,11 +463,17 @@ import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import profilePostService from '@/apps/Forum/services/profile-post.service'
 import reportService from '@/apps/Forum/services/report.service'
+import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
+import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
 
 export default {
   name: 'ProfilePostItem',
+  mixins: [editorAttachmentMixin, imageLightboxMixin],
   components: {
+    Loading,
     CustomEditor,
+    ImageUploaderPanel,
+    ImageLightboxModal,
     ReactionButton,
     ReactionSummary,
     ReportModal,
@@ -474,6 +518,7 @@ export default {
       // New Comment input
       showCommentInput: false,
       commentContent: '',
+      commentAttachedImages: [],
       isSubmittingComment: false,
 
       // Edit Comment
@@ -706,6 +751,7 @@ export default {
     cancelCommentInput() {
       this.showCommentInput = false
       this.commentContent = ''
+      this.commentAttachedImages = []
     },
     async submitComment() {
       if (!this.commentContent.trim()) {
@@ -715,7 +761,17 @@ export default {
 
       this.isSubmittingComment = true
       try {
-        const res = await profilePostService.createComment(this.post.id, this.commentContent)
+        const finalContent = this.buildAttachmentHtml(this.commentAttachedImages, this.commentContent.trim(), {
+          marginTop: '0.8rem',
+          paddingTop: '0.8rem',
+          labelSize: '0.85rem',
+          labelMarginBottom: '0.4rem',
+          imgWidth: '120px',
+          imgHeight: '120px',
+          imgMargin: '3px'
+        })
+
+        const res = await profilePostService.createComment(this.post.id, finalContent)
         toastSuccess('Đăng bình luận thành công')
         
         if (res.data) {
@@ -735,12 +791,21 @@ export default {
         // Reset form về mặc định
         this.showCommentInput = false
         this.commentContent = ''
+        this.commentAttachedImages = []
       } catch (e) {
         console.error('Lỗi khi đăng bình luận:', e)
         toastError(e.response?.data?.message || 'Có lỗi xảy ra khi đăng bình luận')
       } finally {
         this.isSubmittingComment = false
       }
+    },
+    handleCommentInsertImages(urls, type) {
+      if (this.$refs.commentEditorRef && this.$refs.commentEditorRef.insertImages) {
+        this.$refs.commentEditorRef.insertImages(urls, type)
+      }
+    },
+    handleCommentImageUploaded(image) {
+      this.commentAttachedImages.push(image)
     },
 
     // --- Comment Edit & Delete ---

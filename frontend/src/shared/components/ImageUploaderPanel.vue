@@ -184,6 +184,7 @@ export default {
       if (files.length === 0) return
 
       this.isUploading = true
+      this.$emit('upload-loading-start')
       try {
         const formData = new FormData()
         files.forEach(file => formData.append('files', file))
@@ -204,6 +205,7 @@ export default {
         alert('Không thể tải ảnh. Vui lòng thử lại sau.')
       } finally {
         this.isUploading = false
+        this.$emit('upload-loading-end')
       }
     },
     addImage(image) {
