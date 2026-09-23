@@ -103,7 +103,15 @@
               </div>
               
               <div v-if="editingItemId === item.id" class="inline-edit-box">
-                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" @image-uploaded="handleEditImageUploaded" />
+                <CustomEditor 
+                  ref="inlineEditEditor" 
+                  v-model="editForm.content" 
+                  minHeight="150px" 
+                  :is-edit="true" 
+                  @image-uploaded="handleEditImageUploaded"
+                  @upload-loading-start="isUploadLoading = true"
+                  @upload-loading-end="isUploadLoading = false"
+                />
                 
                 <!-- Khối xem trước đính kèm khi sửa nhanh bài viết gốc -->
                 <div v-if="editAttachedImages && editAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -113,7 +121,14 @@
                   </div>
                 </div>
 
-                <ImageUploaderPanel ref="inlineEditUploader" v-model:images="editAttachedImages" @insert-images="handleEditInsertImages" style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" />
+                <ImageUploaderPanel 
+                  ref="inlineEditUploader" 
+                  v-model:images="editAttachedImages" 
+                  @insert-images="handleEditInsertImages" 
+                  @upload-loading-start="isUploadLoading = true"
+                  @upload-loading-end="isUploadLoading = false"
+                  style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" 
+                />
                 <div class="edit-actions-footer">
                   <button class="btn-save" :disabled="submittingEdit" @click="submitEdit(item)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -201,7 +216,15 @@
               </div>
               
               <div v-if="editingItemId === item.id" class="inline-edit-box">
-                <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" @image-uploaded="handleEditImageUploaded" />
+                <CustomEditor 
+                  ref="inlineEditEditor" 
+                  v-model="editForm.content" 
+                  minHeight="150px" 
+                  :is-edit="true" 
+                  @image-uploaded="handleEditImageUploaded"
+                  @upload-loading-start="isUploadLoading = true"
+                  @upload-loading-end="isUploadLoading = false"
+                />
                 
                 <!-- Khối xem trước đính kèm khi sửa nhanh bài viết -->
                 <div v-if="editAttachedImages && editAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
@@ -211,7 +234,14 @@
                   </div>
                 </div>
 
-                <ImageUploaderPanel ref="inlineEditUploader" v-model:images="editAttachedImages" @insert-images="handleEditInsertImages" style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" />
+                <ImageUploaderPanel 
+                  ref="inlineEditUploader" 
+                  v-model:images="editAttachedImages" 
+                  @insert-images="handleEditInsertImages" 
+                  @upload-loading-start="isUploadLoading = true"
+                  @upload-loading-end="isUploadLoading = false"
+                  style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" 
+                />
                 <div class="edit-actions-footer">
                   <button class="btn-save" :disabled="submittingEdit" @click="submitEdit(item)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -290,7 +320,14 @@
                </div>
              </div>
 
-             <ImageUploaderPanel ref="uploaderPanel" v-model:images="replyAttachedImages" @insert-images="handleInsertImages" style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" />
+             <ImageUploaderPanel 
+               ref="uploaderPanel" 
+               v-model:images="replyAttachedImages" 
+               @insert-images="handleInsertImages" 
+               @upload-loading-start="isUploadLoading = true"
+               @upload-loading-end="isUploadLoading = false"
+               style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" 
+             />
              
              <div class="editor-footer" style="padding: 15px; display: flex; justify-content: flex-end; background: #f8f9fa; border-top: 1px solid #eee;">
                <button class="btn-post" :disabled="submittingPost" @click="submitReply">
@@ -348,17 +385,12 @@
   </div>
   <Loading :visible="loading || isUploadLoading" />
 
-  <!-- Lightbox Modal -->
-  <div v-if="showLightbox" class="lightbox-modal" @click="closeLightbox">
-    <div class="lightbox-content">
-      <button class="btn-close-lightbox" @click="closeLightbox">&times;</button>
-      <div class="lightbox-main">
-        <div class="lightbox-image-wrapper">
-          <img :src="activeImageUrl" class="main-lightbox-img lightbox-img-custom" @click.stop />
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Lightbox Modal dùng chung hỗ trợ Zoom & Kéo thả -->
+  <ImageLightboxModal 
+    :visible="showLightbox" 
+    :src="activeImageUrl" 
+    @close="closeLightbox" 
+  />
 </template>
 
 <script>
@@ -389,6 +421,7 @@ import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
 import bookmarkService from '@/apps/Forum/services/bookmark.service'
 import BookmarkPopup from '@/shared/components/BookmarkPopup.vue'
+import ImageLightboxModal from '@/shared/components/ImageLightboxModal.vue'
 
 export default {
   name: 'ThreadDetail',
@@ -397,6 +430,7 @@ export default {
     PollDisplay,
     CustomEditor,
     ImageUploaderPanel,
+    ImageLightboxModal,
     ForumPagination,
     ReactionButton,
     ReactionSummary,

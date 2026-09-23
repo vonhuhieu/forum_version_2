@@ -1,5 +1,8 @@
 <template>
   <div v-if="!loading && conversation">
+    <!-- Component Loading mờ toàn màn hình dùng chung hệ thống -->
+    <Loading :visible="isUploadLoading" />
+
     <main class="container" style="padding-top: 2rem;">
       <Breadcrumb :items="breadcrumbItems" />
 
@@ -108,7 +111,33 @@
                   </div>
 
                   <div v-if="editingMessageId === msg.id" class="inline-edit-box" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff; margin-bottom: 10px;">
-                    <CustomEditor ref="inlineEditEditor" v-model="editForm.content" minHeight="150px" :is-edit="true" />
+                    <CustomEditor 
+                      ref="inlineEditEditor" 
+                      v-model="editForm.content" 
+                      minHeight="150px" 
+                      :is-edit="true" 
+                      @image-uploaded="handleEditImageUploaded"
+                      @upload-loading-start="handleUploadLoadingStart"
+                      @upload-loading-end="handleUploadLoadingEnd"
+                    />
+
+                    <!-- Khối xem trước đính kèm khi sửa tin nhắn -->
+                    <div v-if="editAttachedImages && editAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 0; border-top: 1px dashed #ddd; padding-top: 1rem;">
+                      <div class="attachment-label" style="font-weight: bold; color: #1a507a; margin-bottom: 0.5rem; font-size: 0.9rem;">Đính kèm</div>
+                      <div class="attachment-list" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <img v-for="(img, idx) in editAttachedImages" :key="idx" :src="img.url" :alt="img.name" style="width: 140px; height: 140px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; cursor: zoom-in;" />
+                      </div>
+                    </div>
+
+                    <ImageUploaderPanel 
+                      ref="inlineEditUploader" 
+                      v-model:images="editAttachedImages" 
+                      @insert-images="handleEditInsertImages" 
+                      @upload-loading-start="handleUploadLoadingStart"
+                      @upload-loading-end="handleUploadLoadingEnd"
+                      style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee; margin-top: 8px;" 
+                    />
+
                     <div class="edit-actions-footer" style="margin-top: 10px; display: flex; gap: 10px;">
                       <button class="btn-save" :disabled="submittingEdit" @click="submitEditMessage(msg)" style="padding: 6px 12px; background-color: #1a507a; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         {{ submittingEdit ? 'Đang lưu...' : 'Lưu' }}
@@ -176,7 +205,32 @@
                   </div>
               </div>
               <div class="post-main" style="padding: 0; border: 1px solid #e0e0e0;">
-                 <CustomEditor ref="replyEditor" v-model="replyForm.content" minHeight="150px" :allowedUsers="conversationParticipantsForTag" />
+                 <CustomEditor 
+                   ref="replyEditor" 
+                   v-model="replyForm.content" 
+                   minHeight="150px" 
+                   :allowedUsers="conversationParticipantsForTag" 
+                   @image-uploaded="handleReplyImageUploaded" 
+                   @upload-loading-start="handleUploadLoadingStart"
+                   @upload-loading-end="handleUploadLoadingEnd"
+                 />
+
+                 <!-- Khối xem trước đính kèm chân phản hồi đối thoại -->
+                 <div v-if="replyAttachedImages && replyAttachedImages.length > 0" class="attachment-block" style="margin: 1rem 1.5rem; border-top: 1px dashed #ddd; padding-top: 1.5rem;">
+                   <div class="attachment-label" style="font-weight: bold; color: #1a507a; margin-bottom: 1rem; font-size: 0.95rem;">Đính kèm</div>
+                   <div class="attachment-list" style="display: flex; flex-wrap: wrap; gap: 15px;">
+                     <img v-for="(img, idx) in replyAttachedImages" :key="idx" :src="img.url" :alt="img.name" style="width: 150px; height: 150px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; cursor: zoom-in;" />
+                   </div>
+                 </div>
+
+                 <ImageUploaderPanel 
+                   ref="replyUploaderPanel" 
+                   v-model:images="replyAttachedImages" 
+                   @insert-images="handleReplyInsertImages" 
+                   @upload-loading-start="handleUploadLoadingStart"
+                   @upload-loading-end="handleUploadLoadingEnd"
+                   style="padding: 10px; background: #fdfdfd; border-top: 1px solid #eee;" 
+                 />
                  
                  <div class="editor-footer" style="padding: 15px; display: flex; justify-content: flex-end; background: #f8f9fa; border-top: 1px solid #eee;">
                    <button class="btn-post" :disabled="submittingReply" @click="submitReply">
@@ -263,6 +317,13 @@
       type="messages"
       :summary="reactionPopupData.summary" 
     />
+
+    <!-- Modal Xem ảnh phóng to toàn màn hình -->
+    <ImageLightboxModal 
+      :visible="showLightbox" 
+      :src="lightboxImageUrl" 
+      @close="closeLightbox" 
+    />
   </div>
 
   <div v-else-if="loading" class="container" style="padding: 3rem; text-align: center;">
@@ -275,6 +336,7 @@ import webSocketService from '@/shared/services/websocket.service'
 import conversationService from '@/apps/Forum/services/conversation.service'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
+import ImageUploaderPanel from '@/shared/components/ImageUploaderPanel.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { alertSuccess, alertError, toastSuccess } from '@/shared/utils/swal'
 import ReactionButton from '@/shared/components/ReactionButton.vue'
@@ -287,12 +349,20 @@ import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import { isAvatarUrl, formatAvatarUrl, getVerifiedBadgeSvgHtml, processGofileLinks } from '@/shared/utils/utils'
 import settingService from '@/shared/services/setting.service'
 import { ROLES, SETTINGS } from '@/shared/utils/constants'
+import Loading from '@/shared/components/Loading.vue'
+import ImageLightboxModal from '@/shared/components/ImageLightboxModal.vue'
+import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
+import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
 
 export default {
   name: 'ConversationDetail',
+  mixins: [editorAttachmentMixin, imageLightboxMixin],
   components: {
+    Loading,
+    ImageLightboxModal,
     Breadcrumb,
     CustomEditor,
+    ImageUploaderPanel,
     ReactionButton,
     ReactionSummary,
     ReactionListPopup,
@@ -317,6 +387,7 @@ export default {
         content: '',
         quotedMessageId: null
       },
+      replyAttachedImages: [],
       currentUsername: parsedUser ? (parsedUser.displayName || parsedUser.username) : 'Me',
       currentUserAvatar: parsedUser ? parsedUser.avatar : '#3498db',
       currentUser: parsedUser,
@@ -338,6 +409,7 @@ export default {
       editForm: {
         content: ''
       },
+      editAttachedImages: [],
       submittingEdit: false
     }
   },
@@ -607,9 +679,20 @@ export default {
 
       this.submittingReply = true
       try {
-        const hasQuote = this.replyForm.content.includes('<blockquote')
+        const finalContent = this.buildAttachmentHtml(this.replyAttachedImages, this.replyForm.content || '', {
+          id: 'attachment-section',
+          marginTop: '1.5rem',
+          paddingTop: '1.5rem',
+          labelSize: '0.95rem',
+          labelMarginBottom: '1rem',
+          imgWidth: '200px',
+          imgHeight: '200px',
+          imgMargin: '5px'
+        })
+
+        const hasQuote = finalContent.includes('<blockquote')
         const payload = {
-          content: this.replyForm.content
+          content: finalContent
         }
         if (hasQuote && this.replyForm.quotedMessageId) {
           payload.quotedMessageId = this.replyForm.quotedMessageId
@@ -619,6 +702,7 @@ export default {
         
         this.replyForm.content = ''
         this.replyForm.quotedMessageId = null
+        this.replyAttachedImages = []
         toastSuccess('Gửi tin nhắn thành công')
         this.scrollToBottom()
       } catch (e) {
@@ -709,6 +793,10 @@ export default {
       return processed
     },
     handleContentClick(e) {
+      if (e.target && e.target.tagName === 'IMG') {
+        this.openLightbox(e.target.src)
+        return
+      }
       const strongElem = e.target.closest('blockquote p:first-child strong')
       if (!strongElem) return
 
@@ -867,6 +955,7 @@ export default {
     cancelEditingMessage() {
       this.editingMessageId = null;
       this.editForm.content = '';
+      this.editAttachedImages = [];
     },
     async submitEditMessage(msg) {
       if (!this.editForm.content.trim()) {
@@ -875,8 +964,19 @@ export default {
       }
       this.submittingEdit = true;
       try {
-        await conversationService.updateMessage(msg.id, { content: this.editForm.content });
-        msg.content = this.editForm.content;
+        const finalContent = this.buildAttachmentHtml(this.editAttachedImages, this.editForm.content || '', {
+          id: 'attachment-section',
+          marginTop: '1.5rem',
+          paddingTop: '1.5rem',
+          labelSize: '0.95rem',
+          labelMarginBottom: '1rem',
+          imgWidth: '200px',
+          imgHeight: '200px',
+          imgMargin: '5px'
+        })
+
+        await conversationService.updateMessage(msg.id, { content: finalContent });
+        msg.content = finalContent;
         alertSuccess('Cập nhật tin nhắn thành công');
         this.cancelEditingMessage();
       } catch (error) {
@@ -886,6 +986,25 @@ export default {
       } finally {
         this.submittingEdit = false;
       }
+    },
+    handleReplyInsertImages(urls, type) {
+      if (this.$refs.replyEditor && this.$refs.replyEditor.insertImages) {
+        this.$refs.replyEditor.insertImages(urls, type)
+      }
+    },
+    handleReplyImageUploaded(image) {
+      this.replyAttachedImages.push(image)
+    },
+    handleEditInsertImages(urls, type) {
+      if (this.$refs.inlineEditEditor) {
+        const editor = Array.isArray(this.$refs.inlineEditEditor) ? this.$refs.inlineEditEditor[0] : this.$refs.inlineEditEditor
+        if (editor && editor.insertImages) {
+          editor.insertImages(urls, type)
+        }
+      }
+    },
+    handleEditImageUploaded(image) {
+      this.editAttachedImages.push(image)
     }
   }
 }
