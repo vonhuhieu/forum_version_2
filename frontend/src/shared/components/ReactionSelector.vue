@@ -49,7 +49,8 @@ export default {
   border: 1px solid #e4e6eb;
   position: absolute;
   bottom: 100%;
-  left: 0;
+  right: -20px;
+  left: auto;
   margin-bottom: 8px;
   z-index: 1000;
   gap: 6px;
@@ -143,7 +144,17 @@ export default {
 @media (max-width: 767px) {
   .reaction-selector-tray {
     left: auto !important;
-    right: -81px !important;
+    right: -70px !important;
+    padding: 5px 8px !important;
+    gap: 4px !important;
+  }
+  .reaction-img-container {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .reaction-img-container :deep(.svg-icon-wrapper) {
+    width: 32px !important;
+    height: 32px !important;
   }
 }
 </style>
