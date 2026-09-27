@@ -26,12 +26,20 @@ public class JwtUtils {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
+    // 30 ngày = 30 * 24 * 60 * 60 * 1000 = 2,592,000,000L ms
+    private static final long REMEMBER_ME_EXPIRATION_MS = 30L * 24 * 60 * 60 * 1000;
+
     public String generateJwtToken(String username, java.util.Set<String> roles) {
+        return generateJwtToken(username, roles, false);
+    }
+
+    public String generateJwtToken(String username, java.util.Set<String> roles, boolean rememberMe) {
+        long duration = rememberMe ? REMEMBER_ME_EXPIRATION_MS : jwtExpirationMs;
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roles", roles)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .setExpiration(new Date(System.currentTimeMillis() + duration))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
