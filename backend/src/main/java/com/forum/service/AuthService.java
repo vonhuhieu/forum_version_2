@@ -46,6 +46,10 @@ public class AuthService {
     private EmailService emailService;
 
     public Map<String, Object> authenticateUser(String identifier, String password) {
+        return authenticateUser(identifier, password, false);
+    }
+
+    public Map<String, Object> authenticateUser(String identifier, String password, boolean rememberMe) {
         if (identifier == null || identifier.trim().isEmpty() || password == null) {
             return null;
         }
@@ -71,7 +75,7 @@ public class AuthService {
                 userRepository.save(user);
             }
 
-            String token = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles());
+            String token = jwtUtils.generateJwtToken(user.getUsername(), user.getRoles(), rememberMe);
             java.util.Map<String, Object> response = new java.util.HashMap<>();
             response.put("id", user.getId());
             response.put("token", token);
