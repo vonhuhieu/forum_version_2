@@ -6,12 +6,12 @@
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label>Email</label>
-          <input v-model="email" required placeholder="example@domain.com">
+          <input type="text" name="username" autocomplete="username" v-model="email" required placeholder="example@domain.com">
         </div>
         <div class="form-group">
           <label>Mật khẩu</label>
           <div class="password-wrapper">
-            <input :type="showPassword ? 'text' : 'password'" v-model="password" required placeholder="Nhập mật khẩu">
+            <input :type="showPassword ? 'text' : 'password'" name="password" autocomplete="current-password" v-model="password" required placeholder="Nhập mật khẩu">
             <span class="toggle-icon" @click="showPassword = !showPassword">
               <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -20,7 +20,7 @@
         </div>
         <div class="remember-group">
           <input type="checkbox" id="remember" v-model="rememberMe">
-          <label for="remember">Nhớ mật khẩu</label>
+          <label for="remember">Ghi nhớ đăng nhập</label>
         </div>
         <div v-if="error" class="error-msg">{{ error }}</div>
         <button type="submit" class="btn-login">VÀO HỆ THỐNG</button>
@@ -85,11 +85,14 @@ export default {
     }
   },
   mounted() {
+    // Tự động thanh tẩy rủi ro bảo mật cũ nếu người dùng đã từng lưu mật khẩu trước đây
+    if (localStorage.getItem('remembered_password')) {
+      localStorage.removeItem('remembered_password')
+    }
+
     const savedEmail = localStorage.getItem('remembered_email') || localStorage.getItem('remembered_username')
-    const savedPass = localStorage.getItem('remembered_password')
-    if (savedEmail && savedPass) {
+    if (savedEmail) {
       this.email = savedEmail
-      this.password = savedPass
       this.rememberMe = true
     }
   },
@@ -109,17 +112,19 @@ export default {
         const response = await AuthService.login({
           email: this.email,
           username: this.email,
-          password: this.password
+          password: this.password,
+          rememberMe: this.rememberMe
         })
 
         if (this.rememberMe) {
           localStorage.setItem('remembered_email', this.email)
-          localStorage.setItem('remembered_password', this.password)
         } else {
           localStorage.removeItem('remembered_email')
           localStorage.removeItem('remembered_username')
-          localStorage.removeItem('remembered_password')
         }
+
+        // Triệt tiêu vĩnh viễn khóa remembered_password
+        localStorage.removeItem('remembered_password')
 
         localStorage.setItem('token', response.data.token)
         localStorage.setItem('user', JSON.stringify(response.data))

@@ -19,14 +19,16 @@ public class AuthController {
     private TurnstileService turnstileService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String identifier = loginRequest.get("email");
+    public ResponseEntity<?> login(@RequestBody Map<String, Object> loginRequest) {
+        String identifier = (String) loginRequest.get("email");
         if (identifier == null || identifier.trim().isEmpty()) {
-            identifier = loginRequest.get("username");
+            identifier = (String) loginRequest.get("username");
         }
-        String password = loginRequest.get("password");
+        String password = (String) loginRequest.get("password");
+        boolean rememberMe = Boolean.TRUE.equals(loginRequest.get("rememberMe"))
+                || "true".equalsIgnoreCase(String.valueOf(loginRequest.get("rememberMe")));
 
-        Map<String, Object> authData = authService.authenticateUser(identifier, password);
+        Map<String, Object> authData = authService.authenticateUser(identifier, password, rememberMe);
         if (authData != null) {
             return ResponseEntity.ok(authData);
         } else {
