@@ -17,4 +17,6 @@ public interface UserTitleRepository extends JpaRepository<UserTitle, Long> {
     
     // Lấy title mặc định cho trạng thái chưa xác thực
     Optional<UserTitle> findFirstByType(TitleType type);
+
+    Optional<UserTitle> findByName(String name);
 }

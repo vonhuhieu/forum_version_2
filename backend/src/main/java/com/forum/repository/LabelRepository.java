@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface LabelRepository extends JpaRepository<Label, Long> {
     List<Label> findAllByOrderByIdDesc();
+    java.util.Optional<Label> findByName(String name);
 }

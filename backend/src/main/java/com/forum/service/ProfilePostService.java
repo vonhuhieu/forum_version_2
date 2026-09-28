@@ -34,6 +34,7 @@ public class ProfilePostService {
     private final UserService userService;
     private final ReactionService reactionService;
     private final ReactionRepository reactionRepository;
+    private final com.forum.service.moderation.ProfanityFilterService profanityFilterService;
 
     private boolean isUserAdmin(User user) {
         if (user == null || user.getRoles() == null) return false;
@@ -169,8 +170,17 @@ public class ProfilePostService {
         User profileUser = userRepository.findByUsername(dto.getProfileUsername())
                 .orElseThrow(() -> new RuntimeException("Profile user not found: " + dto.getProfileUsername()));
 
+        String postContent = dto.getContent().trim();
+        if (profanityFilterService.isFilterEnabled()) {
+            var res = profanityFilterService.validateAndClean(postContent);
+            if (res.isBlocked()) {
+                throw new RuntimeException("Nội dung không hợp lệ: " + res.getViolationMessage());
+            }
+            postContent = res.getMaskedContent();
+        }
+
         ProfilePost post = new ProfilePost();
-        post.setContent(dto.getContent().trim());
+        post.setContent(postContent);
         post.setAuthor(author);
         post.setProfileUser(profileUser);
         post.setCommentsCount(0);
@@ -211,7 +221,16 @@ public class ProfilePostService {
             throw new RuntimeException("Bạn không có quyền chỉnh sửa bài viết này");
         }
 
-        post.setContent(content.trim());
+        String postContent = content.trim();
+        if (profanityFilterService.isFilterEnabled()) {
+            var res = profanityFilterService.validateAndClean(postContent);
+            if (res.isBlocked()) {
+                throw new RuntimeException("Nội dung không hợp lệ: " + res.getViolationMessage());
+            }
+            postContent = res.getMaskedContent();
+        }
+
+        post.setContent(postContent);
         ProfilePost updated = profilePostRepository.save(post);
 
         return ProfilePostDTO.builder()
@@ -273,8 +292,17 @@ public class ProfilePostService {
         User author = userRepository.findByUsername(authorUsername)
                 .orElseThrow(() -> new RuntimeException("User not found: " + authorUsername));
 
+        String commentContent = dto.getContent().trim();
+        if (profanityFilterService.isFilterEnabled()) {
+            var res = profanityFilterService.validateAndClean(commentContent);
+            if (res.isBlocked()) {
+                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+            }
+            commentContent = res.getMaskedContent();
+        }
+
         ProfilePostComment comment = new ProfilePostComment();
-        comment.setContent(dto.getContent().trim());
+        comment.setContent(commentContent);
         comment.setProfilePost(post);
         comment.setAuthor(author);
 
@@ -313,7 +341,16 @@ public class ProfilePostService {
             throw new RuntimeException("Bạn không có quyền chỉnh sửa bình luận này");
         }
 
-        comment.setContent(content.trim());
+        String commentContent = content.trim();
+        if (profanityFilterService.isFilterEnabled()) {
+            var res = profanityFilterService.validateAndClean(commentContent);
+            if (res.isBlocked()) {
+                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+            }
+            commentContent = res.getMaskedContent();
+        }
+
+        comment.setContent(commentContent);
         ProfilePostComment updated = profilePostCommentRepository.save(comment);
 
         return ProfilePostCommentDTO.builder()
