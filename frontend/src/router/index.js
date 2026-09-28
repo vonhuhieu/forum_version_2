@@ -70,6 +70,13 @@ const routes = [
         meta: { title: 'Bài viết chú ý | HỢP TÁC XÃ VUI VẺ' }
       },
       {
+        path: 'diem-tin',
+        name: 'NewsFeed',
+        component: () => import('@/apps/Forum/views/NewsFeedView.vue'),
+        alias: ['tin-tuc', 'leu-bao'],
+        meta: { title: 'Điểm Tin Thời Sự & Đàm Đạo | HỢP TÁC XÃ VUI VẺ' }
+      },
+      {
         path: 'category/:id',
         name: 'CategoryDetail',
         component: CategoryView
