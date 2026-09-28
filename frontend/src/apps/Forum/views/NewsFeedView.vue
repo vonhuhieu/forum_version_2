@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Loading :visible="loading" />
+    <Loading :visible="loading || crawling" :text="crawling ? 'Đang quét và cập nhật bản tin mới...' : 'Đang tải bản tin...'" />
     <main class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
       <!-- Breadcrumb -->
       <Breadcrumb :items="breadcrumbItems" />
@@ -209,8 +209,8 @@ export default {
   computed: {
     breadcrumbItems() {
       return [
-        { text: 'Trang chủ', to: { name: 'Home' } },
-        { text: 'Điểm tin', active: true }
+        { title: 'Trang chủ', to: { name: 'Home' } },
+        { title: 'Điểm tin' }
       ]
     },
     currentTabLabel() {
@@ -249,8 +249,8 @@ export default {
           page: this.currentPage - 1,
           size: this.pageSize
         })
-        if (response.data && response.data.data) {
-          const pageData = response.data.data
+        const pageData = response.data?.data !== undefined ? response.data.data : response.data
+        if (pageData) {
           this.threads = pageData.content || []
           this.totalPages = pageData.totalPages || 1
           this.totalElements = pageData.totalElements || 0
@@ -264,8 +264,9 @@ export default {
     async fetchStats() {
       try {
         const response = await newsService.getNewsStats()
-        if (response.data && response.data.data) {
-          this.stats = response.data.data
+        const statsData = response.data?.data !== undefined ? response.data.data : response.data
+        if (statsData) {
+          this.stats = statsData
         }
       } catch (err) {
         // ignore
@@ -303,8 +304,9 @@ export default {
       this.crawlMessage = ''
       try {
         const res = await newsService.triggerManualCrawl()
-        if (res.data && res.data.data) {
-          this.crawlMessage = res.data.data.message || 'Cào tin thành công!'
+        const crawlData = res.data?.data !== undefined ? res.data.data : res.data
+        if (crawlData) {
+          this.crawlMessage = crawlData.message || 'Cào tin thành công!'
           await this.fetchNews()
           await this.fetchStats()
         }
