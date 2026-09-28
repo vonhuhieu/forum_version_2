@@ -18,12 +18,14 @@
             <svg v-if="hasVotedFor(option.id)" class="voted-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             <span :class="{ 'voted-text': hasVotedFor(option.id) }">{{ option.optionText }}</span>
           </div>
-          <div class="vote-stats">
-            <span class="vote-count">Số phiếu: {{ option.voteCount }}</span>
-            <span class="vote-percent">{{ option.percentage.toFixed(1) }}%</span>
-          </div>
-          <div class="progress-col">
-            <div v-if="option.percentage > 0" class="progress-bar-fill" :style="{ width: option.percentage + '%' }"></div>
+          <div class="result-details">
+            <div class="vote-stats">
+              <span class="vote-count">Số phiếu: {{ option.voteCount }}</span>
+              <span class="vote-percent">{{ option.percentage.toFixed(1) }}%</span>
+            </div>
+            <div class="progress-col">
+              <div v-if="option.percentage > 0" class="progress-bar-fill" :style="{ width: option.percentage + '%' }"></div>
+            </div>
           </div>
         </div>
 
@@ -480,6 +482,11 @@ export default {
   font-size: 1rem;
 }
 
+.result-details {
+  display: flex;
+  align-items: center;
+}
+
 .voted-icon {
   color: #f39c12;
 }
@@ -510,6 +517,9 @@ export default {
   width: 250px;
   height: 14px;
   margin-left: 15px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
 .progress-bar-fill {
@@ -624,5 +634,56 @@ export default {
 
 .btn-change-vote:hover, .btn-back-vote:hover {
   background: #1f618d;
+}
+
+@media (max-width: 768px) {
+  .result-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .option-name {
+    width: 100%;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .result-details {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .vote-stats {
+    min-width: auto;
+    gap: 10px;
+    font-size: 0.88rem;
+    justify-content: flex-start;
+    flex-shrink: 0;
+  }
+
+  .vote-percent {
+    min-width: auto;
+  }
+
+  .progress-col {
+    flex: 1;
+    width: auto;
+    margin-left: 0;
+    min-width: 60px;
+  }
+
+  .poll-footer {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .poll-meta {
+    flex-wrap: wrap;
+  }
 }
 </style>
