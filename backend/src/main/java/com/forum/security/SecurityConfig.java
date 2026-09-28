@@ -15,6 +15,7 @@ import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${app.cors.allowed-origins}")
@@ -54,6 +55,8 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/search/public").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/members/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/settings/public").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/news/crawl-now").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 // Cấu hình bảo vệ cho tác vụ ADMIN / SUPER_ADMIN
                 .requestMatchers("/api/menus/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/categories/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

@@ -42,6 +42,7 @@ public class ThreadService {
     private final com.forum.repository.UserFollowRepository userFollowRepository;
     private final com.forum.repository.CategoryRepository categoryRepository;
     private final jakarta.persistence.EntityManager entityManager;
+    private final com.forum.service.moderation.ProfanityFilterService profanityFilterService;
 
     private static final java.util.Map<Long, ThreadDTO> threadCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<String, List<ThreadDTO>> threadListCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -512,6 +513,24 @@ public class ThreadService {
             label.setId(threadDTO.getLabel().getId());
             thread.setLabel(label);
         }
+
+        // Lọc từ cấm toàn diện
+        if (profanityFilterService.isFilterEnabled()) {
+            if (thread.getTitle() != null) {
+                var titleRes = profanityFilterService.validateAndClean(thread.getTitle());
+                if (titleRes.isBlocked()) {
+                    throw new RuntimeException("Tiêu đề bài viết không hợp lệ: " + titleRes.getViolationMessage());
+                }
+                thread.setTitle(titleRes.getMaskedContent());
+            }
+            if (thread.getContent() != null) {
+                var contentRes = profanityFilterService.validateAndClean(thread.getContent());
+                if (contentRes.isBlocked()) {
+                    throw new RuntimeException("Nội dung bài viết không hợp lệ: " + contentRes.getViolationMessage());
+                }
+                thread.setContent(contentRes.getMaskedContent());
+            }
+        }
         
         Thread saved = threadRepository.save(thread);
         clearListCache();
@@ -588,8 +607,30 @@ public class ThreadService {
                 }
             }
 
-            thread.setTitle(threadDTO.getTitle());
-            thread.setContent(threadDTO.getContent());
+            if (profanityFilterService.isFilterEnabled()) {
+                if (threadDTO.getTitle() != null) {
+                    var titleRes = profanityFilterService.validateAndClean(threadDTO.getTitle());
+                    if (titleRes.isBlocked()) {
+                        throw new RuntimeException("Tiêu đề bài viết không hợp lệ: " + titleRes.getViolationMessage());
+                    }
+                    thread.setTitle(titleRes.getMaskedContent());
+                } else {
+                    thread.setTitle(threadDTO.getTitle());
+                }
+
+                if (threadDTO.getContent() != null) {
+                    var contentRes = profanityFilterService.validateAndClean(threadDTO.getContent());
+                    if (contentRes.isBlocked()) {
+                        throw new RuntimeException("Nội dung bài viết không hợp lệ: " + contentRes.getViolationMessage());
+                    }
+                    thread.setContent(contentRes.getMaskedContent());
+                } else {
+                    thread.setContent(threadDTO.getContent());
+                }
+            } else {
+                thread.setTitle(threadDTO.getTitle());
+                thread.setContent(threadDTO.getContent());
+            }
             if (threadDTO.getScope() != null && !threadDTO.getScope().trim().isEmpty()) {
                 thread.setScope(threadDTO.getScope());
             }

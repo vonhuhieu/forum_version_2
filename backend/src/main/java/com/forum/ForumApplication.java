@@ -15,6 +15,7 @@ import java.util.TimeZone;
 })
 @EnableAsync
 @org.springframework.cache.annotation.EnableCaching
+@org.springframework.scheduling.annotation.EnableScheduling
 public class ForumApplication {
 
     public static void main(String[] args) {

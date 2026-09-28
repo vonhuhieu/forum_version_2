@@ -49,6 +49,7 @@ public class PostService {
     private final NotificationRepository notificationRepository;
     private final ReactionRepository reactionRepository;
     private final com.forum.repository.UserFollowRepository userFollowRepository;
+    private final com.forum.service.moderation.ProfanityFilterService profanityFilterService;
 
     private SearchDocument mapPostToSearchDocument(Post post) {
         SearchDocument doc = new SearchDocument();
@@ -245,6 +246,15 @@ public class PostService {
         // Get username from SecurityContext
         String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         userRepository.findByUsername(username).ifPresent(post::setAuthor);
+
+        // Lọc từ cấm toàn diện
+        if (profanityFilterService.isFilterEnabled() && post.getContent() != null) {
+            var res = profanityFilterService.validateAndClean(post.getContent());
+            if (res.isBlocked()) {
+                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+            }
+            post.setContent(res.getMaskedContent());
+        }
 
         Post saved = postRepository.save(post);
         evictCache(postDTO.getThreadId());
@@ -471,7 +481,15 @@ public class PostService {
             }
         }
 
-        post.setContent(postDTO.getContent());
+        if (profanityFilterService.isFilterEnabled() && postDTO.getContent() != null) {
+            var res = profanityFilterService.validateAndClean(postDTO.getContent());
+            if (res.isBlocked()) {
+                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+            }
+            post.setContent(res.getMaskedContent());
+        } else {
+            post.setContent(postDTO.getContent());
+        }
         post.setAttachedImages(postDTO.getAttachedImages());
 
         Post saved = postRepository.save(post);
