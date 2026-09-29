@@ -1,5 +1,9 @@
 # Chuẩn Mực Lập Trình (Clean Code & Architectural Standards)
 
+> [!IMPORTANT]
+> **QUY TẮC BẮT BUỘC TRƯỚC KHI THỰC HIỆN BẤT KỲ TÁC VỤ LẬP TRÌNH NÀO:**
+> Trước khi đề xuất, sửa đổi hoặc thêm bất kỳ dòng code nào (cả Backend Spring Boot và Frontend Vue.js), AI Assistant **BẮT BUỘC** phải đọc kỹ lại toàn bộ nội dung quy chuẩn trong tài liệu này để tự rà soát và đối chiếu. Tuyệt đối không để xảy ra vi phạm: không hardcode chuỗi/số (Zero Magic Values), không khai báo hằng số rải rác ngoài `Constants.java` và `constants.js` (Single Source of Truth), không tự chế component loading/breadcrumb riêng lẻ.
+
 Tài liệu quy chuẩn bắt buộc áp dụng cho toàn bộ mã nguồn của dự án (cả Backend Spring Boot và Frontend Vue.js). Bất kỳ thay đổi mã nguồn nào cũng phải tuân thủ nghiêm ngặt các quy định sau.
 
 ---

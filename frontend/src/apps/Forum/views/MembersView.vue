@@ -2,20 +2,9 @@
   <div>
     <Loading :visible="isLoading" />
 
-    <main class="container" style="padding-bottom: 3rem;">
-      <!-- Breadcrumb (hiển thị khi ở màn hình danh sách) -->
-      <div v-if="isListView" class="members-breadcrumb">
-        <router-link to="/" class="bc-home-link" title="Trang chủ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-        </router-link>
-        <span class="bc-sep">›</span>
-        <router-link to="/thanh-vien" class="bc-link">Thành viên</router-link>
-        <span class="bc-sep">›</span>
-        <span class="bc-current">{{ currentBlockTitle }}</span>
-      </div>
+    <main class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+      <!-- Breadcrumb chuẩn toàn hệ thống -->
+      <Breadcrumb :items="breadcrumbItems" />
 
       <!-- Action bar / Title -->
       <div class="members-title-bar" style="margin-top: 1rem; margin-bottom: 1rem;">
@@ -303,6 +292,7 @@
 
 <script>
 import userService from '@/apps/Forum/services/user.service'
+import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import Loading from '@/shared/components/Loading.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
@@ -314,6 +304,7 @@ import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 export default {
   name: 'MembersView',
   components: {
+    Breadcrumb,
     Loading,
     UserProfilePopup,
     UserSearchInput,
@@ -349,6 +340,17 @@ export default {
       if (this.currentKey === MEMBER_KEYS.MOST_REACTIONS) return 'Nhiều điểm tương tác nhất'
       if (this.currentKey === MEMBER_KEYS.MOST_POINTS) return 'Nhiều điểm nhất'
       return 'Tổng quan'
+    },
+    breadcrumbItems() {
+      if (this.isListView) {
+        return [
+          { title: 'Thành viên', to: '/thanh-vien' },
+          { title: this.currentBlockTitle }
+        ]
+      }
+      return [
+        { title: 'Thành viên' }
+      ]
     }
   },
   watch: {
@@ -710,47 +712,6 @@ export default {
   border-color: #b3c6d6;
 }
 
-/* Breadcrumb */
-.members-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.bc-home-link {
-  display: inline-flex;
-  align-items: center;
-  color: #1a507a;
-  text-decoration: none;
-}
-
-.bc-home-link:hover {
-  color: #d13838;
-}
-
-.bc-link {
-  color: #1a507a;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.bc-link:hover {
-  text-decoration: underline;
-}
-
-.bc-sep {
-  color: #888;
-  font-size: 1rem;
-}
-
-.bc-current {
-  color: #444;
-  font-weight: 500;
-}
 
 .members-page-title {
   font-size: 1.5rem;

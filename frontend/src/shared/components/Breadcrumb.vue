@@ -10,15 +10,15 @@
 
       <!-- Danh sách các item truyền vào -->
       <li 
-        v-for="(item, index) in items" 
+        v-for="(item, index) in normalizedItems" 
         :key="index" 
         class="breadcrumb-item"
-        :class="{ active: index === items.length - 1 }"
+        :class="{ active: index === normalizedItems.length - 1 }"
       >
         <span class="separator">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </span>
-        <template v-if="item.to && index !== items.length - 1">
+        <template v-if="item.to && index !== normalizedItems.length - 1">
           <router-link :to="item.to">{{ item.title }}</router-link>
         </template>
         <template v-else>
@@ -30,6 +30,8 @@
 </template>
 
 <script>
+import { BREADCRUMB_HOME_TITLES } from '@/shared/utils/constants'
+
 export default {
   name: 'Breadcrumb',
   props: {
@@ -37,6 +39,18 @@ export default {
       type: Array,
       default: () => [],
       // Cấu trúc mong đợi: [{ title: '...', to: '...' }]
+    }
+  },
+  computed: {
+    normalizedItems() {
+      if (!Array.isArray(this.items)) return []
+      // Tự động loại bỏ item đầu tiên nếu nó là Trang chủ vì icon Home đã luôn hiển thị ở đầu
+      return this.items.filter((item, index) => {
+        if (index === 0 && item && BREADCRUMB_HOME_TITLES.includes(item.title)) {
+          return false
+        }
+        return true
+      })
     }
   }
 }

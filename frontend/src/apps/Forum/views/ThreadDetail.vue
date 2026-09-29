@@ -512,7 +512,7 @@ export default {
   },
   computed: {
     breadcrumbItems() {
-      const items = [{ title: 'Trang chủ', to: { name: 'Home' } }]
+      const items = []
       const query = {}
       if (this.$route.query.labelId) {
         query.labelId = this.$route.query.labelId
@@ -530,13 +530,11 @@ export default {
         query.sortOrder = this.$route.query.sortOrder
       }
       
-      if (this.thread && this.thread.category && this.thread.category.categoryGroupId) {
-        if (this.categoryGroup) {
-           items.push({ 
-             title: this.categoryGroup.name, 
-             to: { name: 'Home', hash: `#group-${this.categoryGroup.id}` } 
-           })
-        }
+      if (this.categoryGroup) {
+        items.push({ 
+          title: this.categoryGroup.name, 
+          to: { name: 'Home', hash: `#group-${this.categoryGroup.id}` } 
+        })
       }
 
       if (this.thread && this.thread.category && this.allCategories && this.allCategories.length > 0) {
@@ -921,15 +919,19 @@ export default {
         this.thread = { ...response.data, content }
         this.updateMetaTags(this.thread)
 
-        // Fetch Group Name
-        if (this.thread.category && this.thread.category.categoryGroupId) {
+        // Fetch Categories and Group for Breadcrumb
+        if (this.thread && this.thread.category) {
           try {
             const [catRes, groupRes] = await Promise.all([
                categoryService.getAll(),
                categoryService.getGroups()
             ])
-            this.allCategories = catRes.data
-            this.categoryGroup = groupRes.data.find(g => g.id === this.thread.category.categoryGroupId)
+            this.allCategories = catRes.data || []
+            const fullCategory = this.allCategories.find(c => c.id === this.thread.category.id) || this.thread.category
+            const targetGroupId = fullCategory.categoryGroupId || this.thread.category.categoryGroupId
+            if (targetGroupId) {
+              this.categoryGroup = (groupRes.data || []).find(g => g.id === targetGroupId) || null
+            }
           } catch (e) {
             console.error('Lỗi khi tải nhóm chuyên mục:', e)
           }
