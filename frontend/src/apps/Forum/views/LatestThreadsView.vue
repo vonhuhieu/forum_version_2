@@ -10,7 +10,7 @@
         <!-- Block 2: Danh sách bài viết mới nhất -->
         <div class="card" style="margin-bottom: 2rem;">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Mới ra lò - Danh sách bài viết mới nhất</span>
+            <span>Cuộc sống quanh đây</span>
             <button v-if="canShowPostButton" class="btn-post-thread" @click="openPostModal">Đăng bài...</button>
           </div>
 
@@ -244,7 +244,7 @@ export default {
     breadcrumbItems() {
       return [
         { title: 'Trang chủ', to: { name: 'Home' } },
-        { title: 'Mới ra lò' }
+        { title: 'Cuộc sống quanh đây' }
       ]
     },
     totalPages() {
