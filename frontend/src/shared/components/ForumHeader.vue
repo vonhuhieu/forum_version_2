@@ -596,7 +596,7 @@
     </div>
   </header>
 
-  <div class="container header-banner-container">
+  <div v-if="isHomePage" class="container header-banner-container">
     <div class="banner-box" style="margin-top: 1rem;">
       <img src="/7126c73d-cd13-4f6b-90e6-3f6b79afee61.jpg" alt="HTXHS Banner">
     </div>
@@ -733,6 +733,9 @@ export default {
         return isNonOfficialUser()
       }
       return this.currentUser.roles.includes(ROLES.NON_OFFICIAL)
+    },
+    isHomePage() {
+      return this.$route.name === 'Home' || this.$route.path === '/' || this.$route.path === '/trang-chu'
     },
     truncatedDisplayName() {
       if (!this.currentUser) return ''
