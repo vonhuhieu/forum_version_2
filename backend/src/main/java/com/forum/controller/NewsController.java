@@ -24,6 +24,7 @@ public class NewsController {
 
     private final NewsCuratorService newsCuratorService;
     private final ThreadService threadService;
+    private final com.forum.repository.ThreadRepository threadRepository;
     private final LabelRepository labelRepository;
     private final CrawledNewsLogRepository crawledNewsLogRepository;
 
@@ -88,11 +89,28 @@ public class NewsController {
         int maxDaily = newsCuratorService.getMaxDailyPosts();
         boolean enabled = newsCuratorService.isBotEnabled();
 
+        Label newsLabel = labelRepository.findByName("Điểm Tin").orElse(null);
+        Long labelId = newsLabel != null ? newsLabel.getId() : null;
+
+        Map<String, Long> tabCounts = new HashMap<>();
+        if (labelId != null) {
+            tabCounts.put("all", threadRepository.countByLabelId(labelId));
+            tabCounts.put("tech", threadRepository.countByLabelIdAndCategoryId(labelId, 36L));
+            tabCounts.put("finance", threadRepository.countByLabelIdAndCategoryId(labelId, 32L));
+            tabCounts.put("society", threadRepository.countByLabelIdAndCategoryId(labelId, 29L));
+        } else {
+            tabCounts.put("all", 0L);
+            tabCounts.put("tech", 0L);
+            tabCounts.put("finance", 0L);
+            tabCounts.put("society", 0L);
+        }
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalCrawled", totalCrawled);
         stats.put("todayCrawled", todayCrawled);
         stats.put("maxDaily", maxDaily);
         stats.put("enabled", enabled);
+        stats.put("tabCounts", tabCounts);
 
         return ResponseEntity.ok(ResponseDTO.success(stats));
     }

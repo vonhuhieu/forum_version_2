@@ -13,6 +13,12 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
     @Query("SELECT SUM(t.replyCount) FROM Thread t")
     Long countReplies();
 
+    @Query("SELECT COUNT(t) FROM Thread t WHERE t.label.id = :labelId")
+    long countByLabelId(@org.springframework.data.repository.query.Param("labelId") Long labelId);
+
+    @Query("SELECT COUNT(t) FROM Thread t WHERE t.label.id = :labelId AND t.category.id = :categoryId")
+    long countByLabelIdAndCategoryId(@org.springframework.data.repository.query.Param("labelId") Long labelId, @org.springframework.data.repository.query.Param("categoryId") Long categoryId);
+
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Thread t SET t.label = null WHERE t.label.id = :labelId")
     void removeLabelFromThreads(@org.springframework.data.repository.query.Param("labelId") Long labelId);

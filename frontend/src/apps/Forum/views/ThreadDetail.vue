@@ -1237,7 +1237,8 @@ export default {
       } catch (error) {
         this.loading = false
         console.error(error)
-        alertError('Không thể gửi câu trả lời')
+        const errorMsg = error.response?.data?.message || 'Không thể gửi câu trả lời'
+        alertError(errorMsg)
       } finally {
         this.loading = false
         this.submittingPost = false

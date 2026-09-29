@@ -489,7 +489,8 @@ export default {
         
         this.$router.push({ name: 'AdminThreads' })
       } catch (error) {
-        alertError(this.isEditMode ? 'Lỗi khi cập nhật bài viết' : 'Lỗi khi đăng bài')
+        const errorMsg = error.response?.data?.message || (this.isEditMode ? 'Lỗi khi cập nhật bài viết' : 'Lỗi khi đăng bài')
+        alertError(errorMsg)
       } finally {
         this.isSubmitting = false
       }

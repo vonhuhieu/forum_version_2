@@ -48,7 +48,10 @@
           @click="selectTab(t.key)"
         >
           <span class="tab-icon">{{ t.icon }}</span>
-          <span>{{ t.label }}</span>
+          <span>
+            {{ t.label }}
+            <span v-if="getTabCount(t.key) !== null" class="tab-count-badge">({{ getTabCount(t.key) }})</span>
+          </span>
         </button>
       </div>
 
@@ -272,11 +275,17 @@ export default {
         // ignore
       }
     },
+    getTabCount(key) {
+      if (this.stats && this.stats.tabCounts && this.stats.tabCounts[key] !== undefined) {
+        return this.stats.tabCounts[key]
+      }
+      return null
+    },
     selectTab(key) {
       if (this.currentTab === key) return
       this.currentTab = key
       this.currentPage = 1
-      this.$router.push({ query: { ...this.$route.query, tab: key } })
+      this.$router.replace({ query: { ...this.$route.query, tab: key } })
       this.fetchNews()
     },
     handlePageChange(page) {
@@ -453,6 +462,18 @@ export default {
   color: #ffffff;
   border-color: #1a73e8;
   box-shadow: 0 3px 10px rgba(26, 115, 232, 0.25);
+}
+
+.tab-count-badge {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  font-weight: 500;
+  margin-left: 3px;
+}
+
+.news-tab-btn.active .tab-count-badge {
+  opacity: 0.95;
+  font-weight: 700;
 }
 
 .news-cat-badge {

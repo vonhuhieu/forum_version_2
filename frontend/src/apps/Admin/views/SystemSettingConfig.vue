@@ -151,9 +151,230 @@
 
         <hr class="my-4" style="border-top: 1px solid #eee;" />
 
+        <!-- Khu vực quản lý bộ lọc từ cấm & kiểm duyệt tự động -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h4 class="mb-1" style="color: #1a507a; font-size: 1.15rem;">
+              🛡️ Quản lý Bộ Lọc Từ Cấm & Kiểm Duyệt Tự Động (Profanity Filter)
+            </h4>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+              Hệ thống lọc theo thuật toán đa chuỗi Aho-Corasick. Từ khóa cấm mặc định được nạp từ file JSON và Admin có toàn quyền cấu hình bổ sung động.
+            </p>
+          </div>
+          <div class="form-check form-switch fs-5">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="profanity_filter_switch"
+              v-model="moderation.enabled"
+            />
+            <label class="form-check-label fs-6 fw-bold" for="profanity_filter_switch">
+              {{ moderation.enabled ? 'Đang BẬT' : 'Đang TẮT' }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Banner trạng thái bộ lọc -->
+        <div class="card p-3 mb-4" :style="moderation.enabled ? 'background: #f0fdf4; border-color: #bbf7d0;' : 'background: #fef2f2; border-color: #fecaca;'">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span class="badge" :class="moderation.enabled ? 'bg-success' : 'bg-danger'" style="font-size: 0.85rem;">
+                {{ moderation.enabled ? 'Hoạt động bình thường' : 'Đang tạm dừng' }}
+              </span>
+              <span class="ms-2 text-muted" style="font-size: 0.9rem;">
+                Hiện đang nạp tổng cộng <strong>{{ moderation.totalKeywordsLoaded }}</strong> từ khóa cấm trong bộ nhớ đệm Aho-Corasick.
+              </span>
+            </div>
+            <button 
+              type="button" 
+              class="btn btn-sm btn-outline-secondary"
+              @click="showDefaultRules = !showDefaultRules"
+            >
+              {{ showDefaultRules ? 'Ẩn từ khóa mặc định' : 'Xem từ khóa mặc định (JSON)' }}
+            </button>
+          </div>
+
+          <!-- Danh sách từ khóa mặc định từ JSON -->
+          <div v-if="showDefaultRules" class="mt-3 pt-3 border-top">
+            <p class="text-muted mb-2" style="font-size: 0.85rem;">
+              <em>Từ khóa mặc định từ tệp <code>backend/src/main/resources/moderation/profanity-rules.json</code>:</em>
+            </p>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-white">
+                  <div class="fw-bold text-danger mb-1" style="font-size: 0.85rem;">
+                    🛑 Cấp 1: Nghiêm trọng / Pháp luật (CRITICAL - Chặn ngay)
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span v-for="w in moderation.defaultRules.critical" :key="w" class="badge bg-light text-danger border">
+                      {{ w }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-white">
+                  <div class="fw-bold mb-1" style="font-size: 0.85rem; color: #b45309;">
+                    🔞 Cấp 2: Khiêu dâm / Bạo lực (SEVERE - Chặn ngay)
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span v-for="w in moderation.defaultRules.severe" :key="w" class="badge bg-light border" style="color: #b45309;">
+                      {{ w }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-white">
+                  <div class="fw-bold mb-1" style="font-size: 0.85rem; color: #0284c7;">
+                    🎰 Cấp 3: Cờ bạc / Lừa đảo (FRAUD - Chặn ngay)
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span v-for="w in moderation.defaultRules.fraud" :key="w" class="badge bg-light border" style="color: #0284c7;">
+                      {{ w }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-white">
+                  <div class="fw-bold text-secondary mb-1" style="font-size: 0.85rem;">
+                    🤬 Cấp 4: Thô tục / Chửi thề (OFFENSIVE - Tự che ***)
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span v-for="w in moderation.defaultRules.offensive" :key="w" class="badge bg-light text-secondary border">
+                      {{ w }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cấu hình từ khóa cấm tùy biến động của Admin -->
+        <h5 class="mb-2" style="font-size: 1rem; color: #334155;">Cấu hình từ khóa cấm tùy biến bổ sung (Dynamic Blacklist):</h5>
+        <p class="text-muted mb-3" style="font-size: 0.85rem;">
+          Nhập các từ khóa cấm bổ sung (ngăn cách bằng dấu phẩy <code>,</code> hoặc xuống dòng). Khi lưu, bộ lọc sẽ được nạp lại tức thì:
+        </p>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fff; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1 text-danger" style="font-size: 0.9rem;">
+                🛑 Từ khóa Nghiêm trọng / Pháp luật (CRITICAL - Chặn ngay)
+              </label>
+              <textarea 
+                v-model="moderation.customRules.critical" 
+                class="form-control" 
+                rows="2" 
+                placeholder="Ví dụ: bạo động, đảo chính..."
+              ></textarea>
+              <div class="form-text text-muted" style="font-size: 0.78rem;">Bài viết chứa từ khóa này sẽ bị từ chối đăng lập tức.</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fff; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1" style="font-size: 0.9rem; color: #b45309;">
+                🔞 Từ khóa Khiêu dâm / Bạo lực (SEVERE - Chặn ngay)
+              </label>
+              <textarea 
+                v-model="moderation.customRules.severe" 
+                class="form-control" 
+                rows="2" 
+                placeholder="Ví dụ: clip sex, xxx..."
+              ></textarea>
+              <div class="form-text text-muted" style="font-size: 0.78rem;">Bài viết chứa từ khóa này sẽ bị chặn vì vi phạm tiêu chuẩn cộng đồng.</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fff; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1 text-primary" style="font-size: 0.9rem;">
+                🎰 Từ khóa Cờ bạc / Lừa đảo (FRAUD - Chặn ngay)
+              </label>
+              <textarea 
+                v-model="moderation.customRules.fraud" 
+                class="form-control" 
+                rows="2" 
+                placeholder="Ví dụ: tài xỉu online, nhận thưởng tiền triệu..."
+              ></textarea>
+              <div class="form-text text-muted" style="font-size: 0.78rem;">Nội dung chứa từ khóa cờ bạc, lừa đảo sẽ bị từ chối đăng.</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3" style="background-color: #fff; border: 1px solid #e2e8f0;">
+              <label class="form-label fw-bold mb-1 text-secondary" style="font-size: 0.9rem;">
+                🤬 Từ khóa Thô tục / Chửi thề (OFFENSIVE - Tự che ***)
+              </label>
+              <textarea 
+                v-model="moderation.customRules.offensive" 
+                class="form-control" 
+                rows="2" 
+                placeholder="Ví dụ: vcl, dkm, dcm..."
+              ></textarea>
+              <div class="form-text text-muted" style="font-size: 0.78rem;">Bài viết vẫn được đăng nhưng từ ngữ vi phạm sẽ tự động thay bằng <code>***</code>.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khung thử nghiệm bộ lọc -->
+        <div class="card p-3 mb-4" style="background: #f8fafc; border: 1px dashed #94a3b8;">
+          <h5 class="mb-2" style="font-size: 0.95rem; color: #1e293b;">
+            🧪 Công cụ kiểm tra nhanh Bộ lọc Từ cấm (Profanity Tester)
+          </h5>
+          <p class="text-muted mb-2" style="font-size: 0.85rem;">
+            Nhập nội dung bất kỳ để kiểm tra xem hệ thống sẽ chấp thuận, làm sạch bằng <code>***</code> hay từ chối:
+          </p>
+          <div class="input-group mb-2">
+            <input 
+              type="text" 
+              class="form-control" 
+              v-model="testInput" 
+              placeholder="Ví dụ: Kêu gọi lật đổ chính quyền hoặc Xem clip sex tại đây..." 
+              @keyup.enter.prevent="runModerationTest"
+            />
+            <button 
+              type="button" 
+              class="btn btn-outline-primary" 
+              :disabled="testing || !testInput.trim()"
+              @click="runModerationTest"
+            >
+              {{ testing ? 'Đang kiểm tra...' : 'Kiểm tra ngay' }}
+            </button>
+          </div>
+
+          <!-- Kết quả thử nghiệm -->
+          <div v-if="testResult" class="p-3 rounded mt-2 border bg-white">
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+              <span class="fw-bold">Kết quả xử lý:</span>
+              <span v-if="testResult.blocked" class="badge bg-danger">BỊ TỪ CHỐI / CHẶN (BLOCKED)</span>
+              <span v-else-if="testResult.maskedContent !== testInput" class="badge bg-warning text-dark">LÀM SẠCH (MASKED ***)</span>
+              <span v-else class="badge bg-success">HỢP LỆ (PASSED)</span>
+              <span v-if="testResult.highestSeverity" class="badge bg-dark">Mức độ: {{ testResult.highestSeverity }}</span>
+            </div>
+            <div v-if="testResult.detectedWords && testResult.detectedWords.length > 0" class="mb-2">
+              <span class="text-muted" style="font-size: 0.85rem;">Từ khóa vi phạm phát hiện:</span>
+              <span v-for="w in testResult.detectedWords" :key="w" class="badge bg-danger ms-1">
+                {{ w }}
+              </span>
+            </div>
+            <div v-if="testResult.violationMessage" class="alert alert-danger py-2 px-3 mb-2" style="font-size: 0.88rem;">
+              {{ testResult.violationMessage }}
+            </div>
+            <div v-if="testResult.maskedContent" class="p-2 rounded bg-light border" style="font-size: 0.88rem;">
+              <strong>Nội dung sau khi lọc:</strong> <code>{{ testResult.maskedContent }}</code>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" style="border-top: 1px solid #eee;" />
+
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary px-4" :disabled="saving">
-            {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+            {{ saving ? 'Đang lưu...' : 'Lưu tất cả cấu hình' }}
           </button>
         </div>
       </form>
@@ -180,6 +401,27 @@ export default {
         post_button_pinned: 'ADMIN_ONLY',
         post_button_category: 'ALL'
       },
+      moderation: {
+        enabled: true,
+        defaultRules: {
+          critical: [],
+          severe: [],
+          fraud: [],
+          offensive: []
+        },
+        customRules: {
+          critical: '',
+          severe: '',
+          fraud: '',
+          offensive: '',
+          legacy: ''
+        },
+        totalKeywordsLoaded: 0
+      },
+      showDefaultRules: false,
+      testInput: '',
+      testResult: null,
+      testing: false,
       loading: true,
       saving: false,
       noLimitValue: SETTINGS.NO_LIMIT_VALUE
@@ -187,6 +429,7 @@ export default {
   },
   async mounted() {
     await this.loadSettings()
+    await this.loadModerationConfig()
   },
   methods: {
     async loadSettings() {
@@ -222,6 +465,26 @@ export default {
         this.loading = false
       }
     },
+    async loadModerationConfig() {
+      try {
+        const res = await settingService.getModerationConfig()
+        const data = res.data?.data !== undefined ? res.data.data : res.data
+        if (data) {
+          this.moderation.enabled = data.enabled !== false
+          if (data.defaultRules) this.moderation.defaultRules = data.defaultRules
+          if (data.customRules) {
+            this.moderation.customRules.critical = data.customRules.critical || ''
+            this.moderation.customRules.severe = data.customRules.severe || ''
+            this.moderation.customRules.fraud = data.customRules.fraud || ''
+            this.moderation.customRules.offensive = data.customRules.offensive || ''
+            this.moderation.customRules.legacy = data.customRules.legacy || ''
+          }
+          this.moderation.totalKeywordsLoaded = data.totalKeywordsLoaded || 0
+        }
+      } catch (e) {
+        console.error('Không tải được cấu hình kiểm duyệt:', e)
+      }
+    },
     async saveSettings() {
       this.saving = true
       try {
@@ -233,15 +496,34 @@ export default {
           post_button_home: this.settings.post_button_home,
           post_button_latest: this.settings.post_button_latest,
           post_button_pinned: this.settings.post_button_pinned,
-          post_button_category: this.settings.post_button_category
+          post_button_category: this.settings.post_button_category,
+          profanity_filter_enabled: this.moderation.enabled ? 'true' : 'false',
+          profanity_custom_critical: this.moderation.customRules.critical,
+          profanity_custom_severe: this.moderation.customRules.severe,
+          profanity_custom_fraud: this.moderation.customRules.fraud,
+          profanity_custom_offensive: this.moderation.customRules.offensive
         }
         await settingService.updateSettings(payload)
-        alertSuccess('Lưu cấu hình hệ thống thành công')
+        await this.loadModerationConfig()
+        alertSuccess('Lưu cấu hình hệ thống & từ khóa kiểm duyệt thành công')
       } catch (err) {
         console.error('Không lưu được cấu hình hệ thống:', err)
         alertError('Lỗi khi lưu cấu hình hệ thống')
       } finally {
         this.saving = false
+      }
+    },
+    async runModerationTest() {
+      if (!this.testInput.trim()) return
+      this.testing = true
+      try {
+        const res = await settingService.testModeration(this.testInput)
+        const data = res.data?.data !== undefined ? res.data.data : res.data
+        this.testResult = data
+      } catch (e) {
+        alertError('Lỗi khi kiểm tra bộ lọc: ' + (e.response?.data?.message || e.message))
+      } finally {
+        this.testing = false
       }
     }
   }

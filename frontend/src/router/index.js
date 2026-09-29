@@ -275,6 +275,10 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
+    // Không tự động cuộn lên đầu trang nếu chỉ thay đổi query param/tab trên cùng một trang
+    if (to.path === from.path) {
+      return false
+    }
     return { top: 0 }
   }
 })
