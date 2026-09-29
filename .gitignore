@@ -20,6 +20,7 @@ backend/target/
 # Database Dumps and Scraping Files
 *.sql
 *.json
+!backend/src/main/resources/**/*.json
 
 # Root Node scripts and node modules
 /*.js
