@@ -96,3 +96,5 @@ export const NOTIFICATION_TEXTS = {
   NO_UNREAD: 'Không có thông báo chưa đọc nào.',
   NO_NEW: 'Không có thông báo nào mới.'
 };
+
+export const BREADCRUMB_HOME_TITLES = ['Trang chủ', 'Home'];

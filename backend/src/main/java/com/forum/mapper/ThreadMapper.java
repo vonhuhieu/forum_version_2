@@ -29,6 +29,8 @@ public abstract class ThreadMapper {
     
     public abstract List<ThreadDTO> toDTOList(List<Thread> threads);
 
+    @Mapping(target = "categoryGroupId", source = "categoryGroup.id")
+    @Mapping(target = "parentCategoryId", source = "parentCategory.id")
     @Mapping(target = "subCategories", ignore = true)
     public abstract CategoryDTO categoryToCategoryDTO(Category category);
 

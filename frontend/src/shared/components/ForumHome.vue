@@ -539,11 +539,13 @@ export default {
     },
     scrollToHash(hash) {
       this.$nextTick(() => {
-        const id = hash.replace('#', '')
-        const element = document.getElementById(id)
-        if (element) {
-          element.scrollIntoView({ behavior: 'auto' })
-        }
+        setTimeout(() => {
+          const id = hash.replace('#', '')
+          const element = document.getElementById(id)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 120)
       })
     },
     getThreadPages(replyCount) {
@@ -607,6 +609,10 @@ export default {
 
 .header-link:hover {
   text-decoration: underline;
+}
+
+.forum-section {
+  scroll-margin-top: 75px;
 }
 
 .section-header {

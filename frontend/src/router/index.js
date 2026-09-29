@@ -276,6 +276,12 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: 'smooth'
+      }
+    }
     // Không tự động cuộn lên đầu trang nếu chỉ thay đổi query param/tab trên cùng một trang
     if (to.path === from.path) {
       return false
