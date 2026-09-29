@@ -18,6 +18,8 @@
 </template>
 
 <script>
+import { ROLES } from '@/shared/utils/constants'
+
 export default {
   name: 'VerifiedBadge',
   props: {
@@ -44,7 +46,7 @@ export default {
       if (!this.user) return false
       if (this.user.isVerifiedBadge) return true
       if (Array.isArray(this.user.roles)) {
-        if (this.user.roles.includes('ROLE_SUPER_ADMIN') || this.user.roles.includes('ROLE_ADMIN')) {
+        if (this.user.roles.includes(ROLES.SUPER_ADMIN) || this.user.roles.includes(ROLES.ADMIN)) {
           return true
         }
       }

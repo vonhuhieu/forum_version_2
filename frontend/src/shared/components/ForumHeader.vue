@@ -172,10 +172,7 @@
                   <!-- Danh sách Bookmark items với infinite scroll -->
                   <div class="xamvn-bookmarks-list" @scroll="handleBookmarkScroll" ref="headerBookmarkListRef">
                     <!-- Loading state -->
-                    <div v-if="loadingBookmarks && bookmarks.length === 0" class="xamvn-loading-state" style="padding: 30px 15px; text-align: center; color: #1a507a;">
-                      <div class="spinner" style="margin: 0 auto 10px; width: 26px; height: 26px; border: 3px solid #e0e0e0; border-top-color: #1a507a; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                      <span style="font-size: 0.9rem;">Đang tải danh sách dấu trang...</span>
-                    </div>
+                    <Loading v-if="loadingBookmarks && bookmarks.length === 0" :visible="true" inline text="Đang tải danh sách dấu trang..." />
 
                     <div v-else-if="bookmarks.length > 0">
                       <div 
@@ -455,31 +452,31 @@
                             </user-profile-popup>
                             <strong v-else>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
                             &nbsp;
-                           <template v-if="notif.type === 'REACTION'">
+                           <template v-if="notif.type === NOTIFICATION_TYPES.REACTION">
                               đã tương tác <ReactionIcon :code="notif.reactionIcon" :color="notif.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" /> 
-                              <strong :style="{ color: notif.reactionColor || '#2c3e50' }">{{ notif.reactionName }}</strong>
+                              <strong :style="{ color: notif.reactionColor || NOTIFICATION_LABEL_STYLES.DEFAULT_REACTION_COLOR }">{{ notif.reactionName }}</strong>
                               với bài viết của bạn trong chủ đề
                            </template>
-                           <template v-else-if="notif.type === 'QUOTE'">
+                           <template v-else-if="notif.type === NOTIFICATION_TYPES.QUOTE">
                               đã trích bài viết của bạn trong chủ đề
                            </template>
-                           <template v-else-if="notif.type === 'MENTION'">
+                           <template v-else-if="notif.type === NOTIFICATION_TYPES.MENTION">
                               đã tag bạn trong chủ đề
                            </template>
-                           <template v-else-if="notif.type === 'FOLLOWED_USER_THREAD'">
+                           <template v-else-if="notif.type === NOTIFICATION_TYPES.FOLLOWED_USER_THREAD">
                               đã đăng một chủ đề mới là
                            </template>
-                           <template v-else-if="notif.type === 'FOLLOWED_USER_POST'">
+                           <template v-else-if="notif.type === NOTIFICATION_TYPES.FOLLOWED_USER_POST">
                               đã trả lời vào chủ đề
                            </template>
                            <template v-else>
                               đã trả lời vào chủ đề
                            </template>
                            <span class="notif-link-block" @click.stop="handleNotifClick(notif)">
-                              <span v-if="notif.threadLabelName" class="notif-label-tag" :style="{ backgroundColor: notif.type === 'MENTION' ? '#2577b1' : (notif.threadLabelColor || '#95a5a6'), color: notif.type === 'MENTION' ? '#fff' : (notif.threadLabelTextColor || '#fff'), borderColor: notif.type === 'MENTION' ? 'transparent' : (notif.threadLabelBorderColor || 'transparent') }">{{ notif.threadLabelName }}</span>
+                              <span v-if="notif.threadLabelName" class="notif-label-tag" :style="getNotifLabelStyle(notif)">{{ notif.threadLabelName }}</span>
                               <span class="highlight-thread">{{ notif.threadTitle }}</span>
                            </span>.
-                           <span v-if="notif.type !== 'QUOTE' && notif.type !== 'REACTION' && notif.type !== 'MENTION' && notif.type !== 'FOLLOWED_USER_THREAD' && notif.type !== 'FOLLOWED_USER_POST'" class="notif-extra">Có thể có bài viết thêm trong chủ đề</span>
+                           <span v-if="shouldShowExtraThreadPostHint(notif.type)" class="notif-extra">{{ NOTIFICATION_TEXTS.EXTRA_THREAD_POSTS }}</span>
                         </div>
                         <div class="notif-time">{{ formatTime(notif.createdAt) }}</div>
                      </div>
@@ -488,8 +485,8 @@
                 </div>
                 
                 <div class="notif-empty" v-else>
-                   <span v-if="activeNotifTab === 'unread'">Không có thông báo chưa đọc nào.</span>
-                   <span v-else>Không có thông báo nào mới.</span>
+                   <span v-if="activeNotifTab === NOTIFICATION_TAB_KEYS.UNREAD">{{ NOTIFICATION_TEXTS.NO_UNREAD }}</span>
+                   <span v-else>{{ NOTIFICATION_TEXTS.NO_NEW }}</span>
                 </div>
                 
                 <div class="notif-footer">
@@ -632,7 +629,21 @@ import notificationService from '@/apps/Forum/services/notification.service'
 import bookmarkService from '@/apps/Forum/services/bookmark.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { alertSuccess, alertWarning, toastSuccess, toastError, alertConfirm } from '@/shared/utils/swal'
-import { isNonOfficialUser, truncateString, formatAvatarUrl, isAvatarUrl } from '@/shared/utils/utils'
+import { 
+  ROLES, 
+  NOTIFICATION_TYPES, 
+  NOTIFICATION_TAB_KEYS, 
+  NOTIFICATION_LABEL_STYLES, 
+  NOTIFICATION_TEXTS 
+} from '@/shared/utils/constants'
+import { 
+  isNonOfficialUser, 
+  truncateString, 
+  formatAvatarUrl, 
+  isAvatarUrl,
+  getNotifLabelStyle, 
+  shouldShowExtraThreadPostHint 
+} from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
@@ -675,9 +686,13 @@ export default {
       activeMailTab: 'all',
       mailLimitAll: 10,
       mailLimitUnread: 10,
-      activeNotifTab: 'all',
+      activeNotifTab: NOTIFICATION_TAB_KEYS.ALL,
       notifLimitAll: 10,
       notifLimitUnread: 10,
+      NOTIFICATION_TYPES,
+      NOTIFICATION_TAB_KEYS,
+      NOTIFICATION_LABEL_STYLES,
+      NOTIFICATION_TEXTS,
       canScrollLeft: false,
       canScrollRight: false,
       showSearchDropdown: false,
@@ -717,7 +732,7 @@ export default {
       if (!this.isLoggedIn || !this.currentUser || !this.currentUser.roles) {
         return isNonOfficialUser()
       }
-      return this.currentUser.roles.includes('ROLE_NON_OFFICIAL_USER')
+      return this.currentUser.roles.includes(ROLES.NON_OFFICIAL)
     },
     truncatedDisplayName() {
       if (!this.currentUser) return ''
@@ -739,17 +754,17 @@ export default {
       return this.filteredConversations.length > limit
     },
     filteredNotifications() {
-      if (this.activeNotifTab === 'unread') {
+      if (this.activeNotifTab === NOTIFICATION_TAB_KEYS.UNREAD) {
         return this.notifications.filter(n => !n.isRead)
       }
       return this.notifications
     },
     paginatedNotifications() {
-      const limit = this.activeNotifTab === 'all' ? this.notifLimitAll : this.notifLimitUnread
+      const limit = this.activeNotifTab === NOTIFICATION_TAB_KEYS.ALL ? this.notifLimitAll : this.notifLimitUnread
       return this.filteredNotifications.slice(0, limit)
     },
     hasMoreNotif() {
-      const limit = this.activeNotifTab === 'all' ? this.notifLimitAll : this.notifLimitUnread
+      const limit = this.activeNotifTab === NOTIFICATION_TAB_KEYS.ALL ? this.notifLimitAll : this.notifLimitUnread
       return this.filteredNotifications.length > limit
     }
   },
@@ -1463,6 +1478,12 @@ export default {
     },
     formatTime(dateStr) {
       return formatForumDate(dateStr)
+    },
+    getNotifLabelStyle(notif) {
+      return getNotifLabelStyle(notif)
+    },
+    shouldShowExtraThreadPostHint(type) {
+      return shouldShowExtraThreadPostHint(type)
     },
     
     async markAllRead() {

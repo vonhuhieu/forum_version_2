@@ -7,6 +7,7 @@ import com.forum.service.UserTitleService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import com.forum.utils.Constants;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/titles")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+@PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
 public class UserTitleController {
 
     private final UserTitleService userTitleService;

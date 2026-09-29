@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SystemSettingController {
     private final SystemSettingService systemSettingService;
+    private final com.forum.service.moderation.ProfanityFilterService profanityFilterService;
 
     @GetMapping("/public")
     public ResponseEntity<ResponseDTO<Map<String, Object>>> getPublicSettings() {
@@ -91,6 +92,40 @@ public class SystemSettingController {
     @PutMapping
     public ResponseEntity<ResponseDTO<Void>> updateSettings(@RequestBody Map<String, String> payload) {
         payload.forEach(systemSettingService::updateSetting);
+        if (payload.keySet().stream().anyMatch(k -> k.startsWith("profanity_"))) {
+            profanityFilterService.reloadRules();
+        }
         return ResponseEntity.ok(ResponseDTO.success(null));
+    }
+
+    /**
+     * Lấy cấu hình bộ lọc từ cấm (Bao gồm từ khóa mặc định từ JSON và từ khóa tùy biến từ DB)
+     */
+    @GetMapping("/moderation")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<Map<String, Object>>> getModerationConfig() {
+        return ResponseEntity.ok(ResponseDTO.success(profanityFilterService.getModerationConfigSummary()));
+    }
+
+    /**
+     * Cập nhật từ khóa cấm tùy biến và trạng thái bộ lọc
+     */
+    @PutMapping("/moderation")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<Map<String, Object>>> updateModerationConfig(@RequestBody Map<String, String> payload) {
+        payload.forEach(systemSettingService::updateSetting);
+        profanityFilterService.reloadRules();
+        return ResponseEntity.ok(ResponseDTO.success(profanityFilterService.getModerationConfigSummary()));
+    }
+
+    /**
+     * Endpoint kiểm tra thử nghiệm văn bản với bộ lọc hiện hành
+     */
+    @PostMapping("/moderation/test")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    public ResponseEntity<ResponseDTO<com.forum.service.moderation.ProfanityFilterService.ValidationResult>> testModeration(@RequestBody Map<String, String> request) {
+        String text = request.getOrDefault("content", "");
+        var result = profanityFilterService.validateAndClean(text);
+        return ResponseEntity.ok(ResponseDTO.success(result));
     }
 }

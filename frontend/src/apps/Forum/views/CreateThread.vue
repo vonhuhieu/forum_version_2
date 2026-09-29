@@ -381,7 +381,8 @@ export default {
         await alertSuccess('Đăng bài viết thành công')
         this.$router.push({ name: 'ThreadDetail', params: { id: newThread.id } })
       } catch (error) {
-        alertError('Lỗi khi đăng bài')
+        const errorMsg = error.response?.data?.message || 'Lỗi khi đăng bài'
+        alertError(errorMsg)
       } finally {
         this.isSubmitting = false
       }

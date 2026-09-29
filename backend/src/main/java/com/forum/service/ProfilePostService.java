@@ -174,7 +174,9 @@ public class ProfilePostService {
         if (profanityFilterService.isFilterEnabled()) {
             var res = profanityFilterService.validateAndClean(postContent);
             if (res.isBlocked()) {
-                throw new RuntimeException("Nội dung không hợp lệ: " + res.getViolationMessage());
+                String words = res.getDetectedWords() != null && !res.getDetectedWords().isEmpty()
+                        ? " [" + String.join(", ", res.getDetectedWords()) + "]" : "";
+                throw new IllegalArgumentException("Nội dung bài viết chứa từ khóa bị cấm" + words + ". " + res.getViolationMessage());
             }
             postContent = res.getMaskedContent();
         }
@@ -225,7 +227,9 @@ public class ProfilePostService {
         if (profanityFilterService.isFilterEnabled()) {
             var res = profanityFilterService.validateAndClean(postContent);
             if (res.isBlocked()) {
-                throw new RuntimeException("Nội dung không hợp lệ: " + res.getViolationMessage());
+                String words = res.getDetectedWords() != null && !res.getDetectedWords().isEmpty()
+                        ? " [" + String.join(", ", res.getDetectedWords()) + "]" : "";
+                throw new IllegalArgumentException("Nội dung bài viết chứa từ khóa bị cấm" + words + ". " + res.getViolationMessage());
             }
             postContent = res.getMaskedContent();
         }
@@ -296,7 +300,9 @@ public class ProfilePostService {
         if (profanityFilterService.isFilterEnabled()) {
             var res = profanityFilterService.validateAndClean(commentContent);
             if (res.isBlocked()) {
-                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+                String words = res.getDetectedWords() != null && !res.getDetectedWords().isEmpty()
+                        ? " [" + String.join(", ", res.getDetectedWords()) + "]" : "";
+                throw new IllegalArgumentException("Bình luận chứa từ khóa bị cấm" + words + ". " + res.getViolationMessage());
             }
             commentContent = res.getMaskedContent();
         }
@@ -345,7 +351,9 @@ public class ProfilePostService {
         if (profanityFilterService.isFilterEnabled()) {
             var res = profanityFilterService.validateAndClean(commentContent);
             if (res.isBlocked()) {
-                throw new RuntimeException("Bình luận không hợp lệ: " + res.getViolationMessage());
+                String words = res.getDetectedWords() != null && !res.getDetectedWords().isEmpty()
+                        ? " [" + String.join(", ", res.getDetectedWords()) + "]" : "";
+                throw new IllegalArgumentException("Bình luận chứa từ khóa bị cấm" + words + ". " + res.getViolationMessage());
             }
             commentContent = res.getMaskedContent();
         }

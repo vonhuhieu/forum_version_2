@@ -326,9 +326,7 @@
     />
   </div>
 
-  <div v-else-if="loading" class="container" style="padding: 3rem; text-align: center;">
-    Đang tải cuộc đối thoại...
-  </div>
+  <Loading :visible="loading" text="Đang tải cuộc đối thoại..." />
 </template>
 
 <script>
@@ -744,9 +742,9 @@ export default {
     },
     getUserRoleText(roles) {
       if (!roles) return 'Thành viên'
-      if (roles.includes('ROLE_SUPER_ADMIN')) return 'Super Admin'
-      if (roles.includes('ROLE_ADMIN')) return 'Admin'
-      if (roles.includes('ROLE_NON_OFFICIAL_USER')) return 'Chưa chính thức'
+      if (roles.includes(ROLES.SUPER_ADMIN)) return 'Super Admin'
+      if (roles.includes(ROLES.ADMIN)) return 'Admin'
+      if (roles.includes(ROLES.NON_OFFICIAL)) return 'Chưa chính thức'
       return 'Thành viên chính thức'
     },
     formatMessageContent(content) {
