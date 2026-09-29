@@ -48,7 +48,10 @@
           @click="selectTab(t.key)"
         >
           <span class="tab-icon">{{ t.icon }}</span>
-          <span>{{ t.label }}</span>
+          <span>
+            {{ t.label }}
+            <span v-if="getTabCount(t.key) !== null" class="tab-count-badge">({{ getTabCount(t.key) }})</span>
+          </span>
         </button>
       </div>
 
@@ -172,6 +175,7 @@ import Loading from '@/shared/components/Loading.vue'
 import newsService from '@/apps/Forum/services/news.service'
 import { formatForumDate } from '@/shared/utils/date'
 import authService from '@/apps/Auth/services/auth.service'
+import { ROLES, NEWS_TABS } from '@/shared/utils/constants'
 
 export default {
   name: 'NewsFeedView',
@@ -192,17 +196,17 @@ export default {
       loading: false,
       crawling: false,
       crawlMessage: '',
-      currentTab: 'all',
+      currentTab: NEWS_TABS.ALL,
       stats: {
         todayCrawled: 0,
         totalCrawled: 0,
         enabled: true
       },
       tabs: [
-        { key: 'all', label: 'Tất cả bản tin', icon: '🌐' },
-        { key: 'tech', label: 'Công nghệ & AI', icon: '💻' },
-        { key: 'finance', label: 'Kinh tế & Đầu tư', icon: '📈' },
-        { key: 'society', label: 'Đời sống & Xã hội', icon: '☕' }
+        { key: NEWS_TABS.ALL, label: 'Tất cả bản tin', icon: '🌐' },
+        { key: NEWS_TABS.TECH, label: 'Công nghệ & AI', icon: '💻' },
+        { key: NEWS_TABS.FINANCE, label: 'Kinh tế & Đầu tư', icon: '📈' },
+        { key: NEWS_TABS.SOCIETY, label: 'Đời sống & Xã hội', icon: '☕' }
       ]
     }
   },
@@ -220,7 +224,7 @@ export default {
     isAdmin() {
       const user = authService.getCurrentUser()
       if (!user || !user.roles) return false
-      return user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_SUPER_ADMIN')
+      return user.roles.includes(ROLES.ADMIN) || user.roles.includes(ROLES.SUPER_ADMIN)
     }
   },
   watch: {
@@ -272,11 +276,17 @@ export default {
         // ignore
       }
     },
+    getTabCount(key) {
+      if (this.stats && this.stats.tabCounts && this.stats.tabCounts[key] !== undefined) {
+        return this.stats.tabCounts[key]
+      }
+      return null
+    },
     selectTab(key) {
       if (this.currentTab === key) return
       this.currentTab = key
       this.currentPage = 1
-      this.$router.push({ query: { ...this.$route.query, tab: key } })
+      this.$router.replace({ query: { ...this.$route.query, tab: key } })
       this.fetchNews()
     },
     handlePageChange(page) {
@@ -453,6 +463,18 @@ export default {
   color: #ffffff;
   border-color: #1a73e8;
   box-shadow: 0 3px 10px rgba(26, 115, 232, 0.25);
+}
+
+.tab-count-badge {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  font-weight: 500;
+  margin-left: 3px;
+}
+
+.news-tab-btn.active .tab-count-badge {
+  opacity: 0.95;
+  font-weight: 700;
 }
 
 .news-cat-badge {

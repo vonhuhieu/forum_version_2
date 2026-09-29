@@ -42,10 +42,8 @@ export function isAdminOrSuperAdmin() {
   }
 }
 
-export const THREAD_SCOPES = {
-  PUBLIC: 'PUBLIC',
-  INTERNAL: 'INTERNAL'
-};
+import { THREAD_SCOPES } from '@/shared/utils/constants';
+export { THREAD_SCOPES };
 
 import { getBackendBaseUrl } from '@/shared/services/api.service';
 
@@ -130,7 +128,7 @@ export function getVerifiedBadgeSvgHtml(userOrIsVerified, size = '16px') {
     if (userOrIsVerified.isVerifiedBadge) {
       isVerified = true;
     } else if (Array.isArray(userOrIsVerified.roles)) {
-      if (userOrIsVerified.roles.includes('ROLE_SUPER_ADMIN') || userOrIsVerified.roles.includes('ROLE_ADMIN')) {
+      if (userOrIsVerified.roles.includes(ROLES.SUPER_ADMIN) || userOrIsVerified.roles.includes(ROLES.ADMIN)) {
         isVerified = true;
       }
     }
@@ -269,5 +267,58 @@ export function processGofileLinks(html) {
     console.error('Lỗi khi chuyển đổi liên kết Gofile sang Card:', err);
     return html;
   }
+}
+
+import { 
+  ROLE_BADGE_CLASSES, 
+  ROLE_NAMES, 
+  NOTIFICATION_TYPES, 
+  NOTIFICATION_LABEL_STYLES 
+} from '@/shared/utils/constants';
+
+/**
+ * Trả về class badge tương ứng với role người dùng.
+ */
+export function getRoleBadgeClass(role) {
+  return ROLE_BADGE_CLASSES[role] || ROLE_BADGE_CLASSES.DEFAULT;
+}
+
+/**
+ * Trả về tên hiển thị tiếng Việt của role người dùng.
+ */
+export function getRoleName(role) {
+  return ROLE_NAMES[role] || (role ? role.replace('ROLE_', '') : '');
+}
+
+/**
+ * Lấy style badge label cho notification.
+ */
+export function getNotifLabelStyle(notif) {
+  if (!notif) return {};
+  if (notif.type === NOTIFICATION_TYPES.MENTION) {
+    return {
+      backgroundColor: NOTIFICATION_LABEL_STYLES.MENTION.backgroundColor,
+      color: NOTIFICATION_LABEL_STYLES.MENTION.color,
+      borderColor: NOTIFICATION_LABEL_STYLES.MENTION.borderColor
+    };
+  }
+  return {
+    backgroundColor: notif.threadLabelColor || NOTIFICATION_LABEL_STYLES.DEFAULT.backgroundColor,
+    color: notif.threadLabelTextColor || NOTIFICATION_LABEL_STYLES.DEFAULT.color,
+    borderColor: notif.threadLabelBorderColor || NOTIFICATION_LABEL_STYLES.DEFAULT.borderColor
+  };
+}
+
+/**
+ * Kiểm tra xem loại thông báo có hiển thị câu gợi ý bài viết thêm hay không.
+ */
+export function shouldShowExtraThreadPostHint(type) {
+  return ![
+    NOTIFICATION_TYPES.QUOTE,
+    NOTIFICATION_TYPES.REACTION,
+    NOTIFICATION_TYPES.MENTION,
+    NOTIFICATION_TYPES.FOLLOWED_USER_THREAD,
+    NOTIFICATION_TYPES.FOLLOWED_USER_POST
+  ].includes(type);
 }
 

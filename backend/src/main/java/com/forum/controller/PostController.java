@@ -3,6 +3,7 @@ package com.forum.controller;
 import com.forum.dto.PostDTO;
 import com.forum.dto.ResponseDTO;
 import com.forum.service.PostService;
+import com.forum.utils.Constants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -71,7 +72,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
     public ResponseEntity<ResponseDTO<Void>> deletePost(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(postService.deletePost(id));

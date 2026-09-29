@@ -1,9 +1,9 @@
 <template>
   <div>
     <main class="container" style="padding-top: 2rem;">
-      <div v-if="loading" style="text-align: center; padding: 3rem;">Đang tải...</div>
+      <Loading :visible="loading" text="Đang tải chuyên mục..." />
       
-      <div v-else>
+      <div v-if="!loading">
         <!-- Block 1: Breadcrumb -->
         <Breadcrumb :items="breadcrumbItems" />
 
@@ -441,6 +441,7 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import UserSearchInput from '@/shared/components/UserSearchInput.vue'
 import CategoryIcon from '@/shared/components/CategoryIcon.vue'
+import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, getImeValue, isAdminOrSuperAdmin, canShowPostButtonOnScreen, loadPublicSettings } from '@/shared/utils/utils'
 import categoryNavigationMixin from '@/shared/mixins/categoryNavigation.mixin.js'
@@ -454,7 +455,8 @@ export default {
     UserProfilePopup,
     UserSearchInput,
     VerifiedBadge,
-    CategoryIcon
+    CategoryIcon,
+    Loading
   },
   data() {
     return {

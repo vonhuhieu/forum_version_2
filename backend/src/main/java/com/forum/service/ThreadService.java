@@ -519,14 +519,18 @@ public class ThreadService {
             if (thread.getTitle() != null) {
                 var titleRes = profanityFilterService.validateAndClean(thread.getTitle());
                 if (titleRes.isBlocked()) {
-                    throw new RuntimeException("Tiêu đề bài viết không hợp lệ: " + titleRes.getViolationMessage());
+                    String words = titleRes.getDetectedWords() != null && !titleRes.getDetectedWords().isEmpty()
+                            ? " [" + String.join(", ", titleRes.getDetectedWords()) + "]" : "";
+                    throw new IllegalArgumentException("Tiêu đề bài viết chứa từ khóa bị cấm" + words + ". " + titleRes.getViolationMessage());
                 }
                 thread.setTitle(titleRes.getMaskedContent());
             }
             if (thread.getContent() != null) {
                 var contentRes = profanityFilterService.validateAndClean(thread.getContent());
                 if (contentRes.isBlocked()) {
-                    throw new RuntimeException("Nội dung bài viết không hợp lệ: " + contentRes.getViolationMessage());
+                    String words = contentRes.getDetectedWords() != null && !contentRes.getDetectedWords().isEmpty()
+                            ? " [" + String.join(", ", contentRes.getDetectedWords()) + "]" : "";
+                    throw new IllegalArgumentException("Nội dung bài viết chứa từ khóa bị cấm" + words + ". " + contentRes.getViolationMessage());
                 }
                 thread.setContent(contentRes.getMaskedContent());
             }
@@ -611,7 +615,9 @@ public class ThreadService {
                 if (threadDTO.getTitle() != null) {
                     var titleRes = profanityFilterService.validateAndClean(threadDTO.getTitle());
                     if (titleRes.isBlocked()) {
-                        throw new RuntimeException("Tiêu đề bài viết không hợp lệ: " + titleRes.getViolationMessage());
+                        String words = titleRes.getDetectedWords() != null && !titleRes.getDetectedWords().isEmpty()
+                                ? " [" + String.join(", ", titleRes.getDetectedWords()) + "]" : "";
+                        throw new IllegalArgumentException("Tiêu đề bài viết chứa từ khóa bị cấm" + words + ". " + titleRes.getViolationMessage());
                     }
                     thread.setTitle(titleRes.getMaskedContent());
                 } else {
@@ -621,7 +627,9 @@ public class ThreadService {
                 if (threadDTO.getContent() != null) {
                     var contentRes = profanityFilterService.validateAndClean(threadDTO.getContent());
                     if (contentRes.isBlocked()) {
-                        throw new RuntimeException("Nội dung bài viết không hợp lệ: " + contentRes.getViolationMessage());
+                        String words = contentRes.getDetectedWords() != null && !contentRes.getDetectedWords().isEmpty()
+                                ? " [" + String.join(", ", contentRes.getDetectedWords()) + "]" : "";
+                        throw new IllegalArgumentException("Nội dung bài viết chứa từ khóa bị cấm" + words + ". " + contentRes.getViolationMessage());
                     }
                     thread.setContent(contentRes.getMaskedContent());
                 } else {

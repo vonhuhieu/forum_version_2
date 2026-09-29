@@ -13,13 +13,10 @@
           <div class="following-card card">
 
             <!-- Trạng thái đang tải -->
-            <div v-if="isLoading" class="state-container loading-state">
-              <div class="spinner"></div>
-              <span>Đang tải danh sách...</span>
-            </div>
+            <Loading :visible="isLoading" text="Đang tải danh sách đang theo dõi..." />
 
             <!-- Trạng thái trống -->
-            <div v-else-if="users.length === 0" class="state-container empty-state">
+            <div v-if="!isLoading && users.length === 0" class="state-container empty-state">
               <div class="empty-icon">
                 <i class="fa fa-users-slash"></i>
               </div>
@@ -30,7 +27,7 @@
             </div>
 
             <!-- Danh sách thành viên đang theo dõi -->
-            <div v-else class="following-list">
+            <div v-else-if="!isLoading" class="following-list">
               <div 
                 v-for="user in users" 
                 :key="user.id" 
@@ -110,6 +107,7 @@ import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import Loading from '@/shared/components/Loading.vue'
 import userFollowService from '@/apps/Forum/services/user-follow.service'
 import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
@@ -121,7 +119,8 @@ export default {
     AccountSidebar,
     ForumPagination,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   computed: {
     breadcrumbItems() {

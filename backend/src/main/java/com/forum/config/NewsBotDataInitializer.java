@@ -51,27 +51,27 @@ public class NewsBotDataInitializer implements CommandLineRunner {
 
     private void initMenu() {
         // Kiểm tra menu /diem-tin hoặc /leu-bao
-        Menu menu = menuRepository.findByUrl("/diem-tin")
-                .or(() -> menuRepository.findByUrl("/leu-bao"))
-                .or(() -> menuRepository.findById(2L))
+        Menu menu = menuRepository.findByUrl(Constants.MENU_NEWS_URL)
+                .or(() -> menuRepository.findByUrl(Constants.MENU_NEWS_OLD_URL))
+                .or(() -> menuRepository.findById(Constants.MENU_NEWS_ID))
                 .orElse(null);
 
         if (menu != null) {
-            menu.setTitle("Điểm tin");
-            menu.setUrl("/diem-tin");
+            menu.setTitle(Constants.MENU_NEWS_TITLE);
+            menu.setUrl(Constants.MENU_NEWS_URL);
             menu.setActive(true);
             menuRepository.save(menu);
             log.info("Đã cập nhật Menu Điểm tin (id: {}) thành công.", menu.getId());
         } else {
-            Menu newMenu = new Menu(null, "Điểm tin", "/diem-tin", 2, true);
+            Menu newMenu = new Menu(null, Constants.MENU_NEWS_TITLE, Constants.MENU_NEWS_URL, Constants.MENU_NEWS_ORDER, true);
             menuRepository.save(newMenu);
             log.info("Đã tạo mới Menu Điểm tin.");
         }
     }
 
     private Label initLabel() {
-        return labelRepository.findByName("Điểm Tin").orElseGet(() -> {
-            Label label = new Label(null, "Điểm Tin", "#1a73e8", "#ffffff", "transparent", false);
+        return labelRepository.findByName(Constants.NEWS_LABEL_NAME).orElseGet(() -> {
+            Label label = new Label(null, Constants.NEWS_LABEL_NAME, Constants.NEWS_LABEL_COLOR, Constants.NEWS_LABEL_TEXT_COLOR, Constants.NEWS_LABEL_BORDER_COLOR, false);
             Label saved = labelRepository.save(label);
             log.info("Đã tạo Label Điểm Tin (id: {}).", saved.getId());
             return saved;
@@ -79,8 +79,8 @@ public class NewsBotDataInitializer implements CommandLineRunner {
     }
 
     private UserTitle initUserTitle() {
-        return userTitleRepository.findByName("Biên Tập Viên Tin Tức").orElseGet(() -> {
-            UserTitle title = new UserTitle(null, "Biên Tập Viên Tin Tức", TitleType.CUSTOM_ASSIGNABLE, 0, "Biên tập viên tổng hợp tin tức chính thống", true);
+        return userTitleRepository.findByName(Constants.NEWS_BOT_TITLE_NAME).orElseGet(() -> {
+            UserTitle title = new UserTitle(null, Constants.NEWS_BOT_TITLE_NAME, TitleType.CUSTOM_ASSIGNABLE, 0, Constants.NEWS_BOT_TITLE_DESCRIPTION, true);
             UserTitle saved = userTitleRepository.save(title);
             log.info("Đã tạo UserTitle Biên Tập Viên Tin Tức (id: {}).", saved.getId());
             return saved;
@@ -88,13 +88,13 @@ public class NewsBotDataInitializer implements CommandLineRunner {
     }
 
     private void initBotUser(UserTitle title) {
-        if (userRepository.findByUsername("diemtinbot").isEmpty()) {
+        if (userRepository.findByUsername(Constants.NEWS_BOT_USERNAME).isEmpty()) {
             User bot = new User();
-            bot.setUsername("diemtinbot");
+            bot.setUsername(Constants.NEWS_BOT_USERNAME);
             bot.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-            bot.setDisplayName("Điểm Tin Bot 🤖");
-            bot.setEmail("diemtinbot@hoptacxavuive.com");
-            bot.setAvatar("https://api.dicebear.com/7.x/bottts/svg?seed=diemtinbot");
+            bot.setDisplayName(Constants.NEWS_BOT_DISPLAY_NAME);
+            bot.setEmail(Constants.NEWS_BOT_EMAIL);
+            bot.setAvatar(Constants.NEWS_BOT_AVATAR_BASE_URL + Constants.NEWS_BOT_USERNAME);
             bot.setRoles(Set.of(Constants.ROLE_USER));
             bot.setAssignedTitle(title);
             bot.setCreatedAt(LocalDateTime.now());
@@ -105,11 +105,11 @@ public class NewsBotDataInitializer implements CommandLineRunner {
     }
 
     private void initSystemSettings() {
-        initSettingIfAbsent("news_bot_enabled", "true");
-        initSettingIfAbsent("news_bot_cron", "0 0 7,12,18 * * *");
-        initSettingIfAbsent("news_bot_max_daily_posts", "8");
-        initSettingIfAbsent("profanity_filter_enabled", "true");
-        initSettingIfAbsent("profanity_custom_keywords", "");
+        initSettingIfAbsent(Constants.SETTING_NEWS_BOT_ENABLED, Constants.DEFAULT_NEWS_BOT_ENABLED);
+        initSettingIfAbsent(Constants.SETTING_NEWS_BOT_CRON, Constants.DEFAULT_NEWS_BOT_CRON);
+        initSettingIfAbsent(Constants.SETTING_NEWS_BOT_MAX_DAILY_POSTS, Constants.DEFAULT_NEWS_BOT_MAX_DAILY_POSTS);
+        initSettingIfAbsent(Constants.SETTING_PROFANITY_FILTER_ENABLED, Constants.DEFAULT_PROFANITY_FILTER_ENABLED);
+        initSettingIfAbsent(Constants.SETTING_PROFANITY_CUSTOM_KEYWORDS, Constants.DEFAULT_PROFANITY_CUSTOM_KEYWORDS);
     }
 
     private void initSettingIfAbsent(String key, String defaultValue) {

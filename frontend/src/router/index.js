@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ROLES } from '@/shared/utils/constants'
 import ForumLayout from '@/shared/components/ForumLayout.vue'
 import HomeView from '@/apps/Forum/views/HomeView.vue'
 import AdminLayout from '@/apps/Admin/views/AdminLayout.vue'
@@ -275,6 +276,10 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
+    // Không tự động cuộn lên đầu trang nếu chỉ thay đổi query param/tab trên cùng một trang
+    if (to.path === from.path) {
+      return false
+    }
     return { top: 0 }
   }
 })
@@ -303,7 +308,7 @@ router.beforeEach((to, from, next) => {
     }
     
     // Kiểm tra quyền Admin hoặc Super Admin
-    if (isAdminRequired && !userRoles.includes('ROLE_ADMIN') && !userRoles.includes('ROLE_SUPER_ADMIN')) {
+    if (isAdminRequired && !userRoles.includes(ROLES.ADMIN) && !userRoles.includes(ROLES.SUPER_ADMIN)) {
       return next({ name: 'Home' }) // Không có quyền Admin hoặc Super Admin đẩy về Trang chủ
     }
     

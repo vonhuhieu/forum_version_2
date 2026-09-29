@@ -72,6 +72,7 @@ public class ProfanityFilterService {
 
     private final AtomicReference<Trie> trieHolder = new AtomicReference<>();
     private final AtomicReference<Map<String, SeverityLevel>> keywordMapHolder = new AtomicReference<>(new HashMap<>());
+    private volatile Map<String, List<String>> defaultFileRules = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -88,6 +89,7 @@ public class ProfanityFilterService {
                 try (InputStream is = resource.getInputStream()) {
                     Map<String, List<String>> fileRules = objectMapper.readValue(is, new TypeReference<>() {});
                     if (fileRules != null) {
+                        this.defaultFileRules = new HashMap<>(fileRules);
                         registerKeywords(keywordMap, fileRules.get("critical"), SeverityLevel.CRITICAL);
                         registerKeywords(keywordMap, fileRules.get("severe"), SeverityLevel.SEVERE);
                         registerKeywords(keywordMap, fileRules.get("offensive"), SeverityLevel.OFFENSIVE);
@@ -98,17 +100,12 @@ public class ProfanityFilterService {
                 log.warn("Không tìm thấy tệp classpath: moderation/profanity-rules.json");
             }
 
-            // 2. Tải thêm từ khóa cấm tùy biến từ system_settings
-            String customKeywords = systemSettingService.getSetting("profanity_custom_keywords", "");
-            if (customKeywords != null && !customKeywords.trim().isEmpty()) {
-                String[] parts = customKeywords.split("[,;\\n]");
-                for (String part : parts) {
-                    String kw = part.trim().toLowerCase();
-                    if (!kw.isEmpty()) {
-                        keywordMap.put(kw, SeverityLevel.OFFENSIVE);
-                    }
-                }
-            }
+            // 2. Tải thêm từ khóa cấm tùy biến từ system_settings theo từng cấp độ
+            parseAndRegisterCustom(keywordMap, systemSettingService.getSetting("profanity_custom_critical", ""), SeverityLevel.CRITICAL);
+            parseAndRegisterCustom(keywordMap, systemSettingService.getSetting("profanity_custom_severe", ""), SeverityLevel.SEVERE);
+            parseAndRegisterCustom(keywordMap, systemSettingService.getSetting("profanity_custom_fraud", ""), SeverityLevel.FRAUD);
+            parseAndRegisterCustom(keywordMap, systemSettingService.getSetting("profanity_custom_offensive", ""), SeverityLevel.OFFENSIVE);
+            parseAndRegisterCustom(keywordMap, systemSettingService.getSetting("profanity_custom_keywords", ""), SeverityLevel.OFFENSIVE);
 
             // 3. Xây dựng Trie Aho-Corasick với cấu hình case-insensitive & match whole words if possible
             Trie.TrieBuilder builder = Trie.builder()
@@ -127,6 +124,17 @@ public class ProfanityFilterService {
         }
     }
 
+    private void parseAndRegisterCustom(Map<String, SeverityLevel> map, String customStr, SeverityLevel level) {
+        if (customStr == null || customStr.trim().isEmpty()) return;
+        String[] parts = customStr.split("[,;\\n]");
+        for (String part : parts) {
+            String kw = part.trim().toLowerCase();
+            if (!kw.isEmpty()) {
+                map.put(kw, level);
+            }
+        }
+    }
+
     private void registerKeywords(Map<String, SeverityLevel> map, List<String> list, SeverityLevel level) {
         if (list == null) return;
         for (String item : list) {
@@ -141,6 +149,23 @@ public class ProfanityFilterService {
 
     public boolean isFilterEnabled() {
         return "true".equalsIgnoreCase(systemSettingService.getSetting("profanity_filter_enabled", "true"));
+    }
+
+    public Map<String, Object> getModerationConfigSummary() {
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("enabled", isFilterEnabled());
+        summary.put("defaultRules", defaultFileRules);
+
+        Map<String, String> customRules = new HashMap<>();
+        customRules.put("critical", systemSettingService.getSetting("profanity_custom_critical", ""));
+        customRules.put("severe", systemSettingService.getSetting("profanity_custom_severe", ""));
+        customRules.put("fraud", systemSettingService.getSetting("profanity_custom_fraud", ""));
+        customRules.put("offensive", systemSettingService.getSetting("profanity_custom_offensive", ""));
+        customRules.put("legacy", systemSettingService.getSetting("profanity_custom_keywords", ""));
+        summary.put("customRules", customRules);
+
+        summary.put("totalKeywordsLoaded", keywordMapHolder.get() != null ? keywordMapHolder.get().size() : 0);
+        return summary;
     }
 
     /**

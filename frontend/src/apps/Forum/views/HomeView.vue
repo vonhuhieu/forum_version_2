@@ -88,10 +88,8 @@
               <a @click="$router.push({ name: 'LatestThreads' })" class="header-link text-transform-uppercase color-1a507a">Bài viết mới nhất</a>
             </div>
             <div class="card-body" style="padding: 0;">
-              <div v-if="loadingLatest" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
-                Đang tải...
-              </div>
-              <div v-else class="latest-threads-list">
+              <Loading :visible="loadingLatest" inline text="Đang tải bài viết mới nhất..." />
+              <div v-if="!loadingLatest" class="latest-threads-list">
                 <div v-for="thread in latestThreads" :key="thread.id" class="latest-thread-item" @click="goToThread($event, thread, true)">
                   <user-profile-popup :user="thread.lastPostAuthor || thread.author" v-if="thread.lastPostAuthor || thread.author">
                     <div class="lt-avatar" :style="!isAvatarUrl((thread.lastPostAuthor || thread.author)?.avatar) ? { backgroundColor: (thread.lastPostAuthor || thread.author)?.avatar || '#e0e0e0', color: '#fff' } : {}">

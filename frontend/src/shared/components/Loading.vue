@@ -1,7 +1,7 @@
 <template>
   <Transition name="loading-fade">
-    <div v-if="visible" class="loading-overlay" aria-live="polite" aria-label="Đang tải dữ liệu...">
-      <div class="loading-backdrop"></div>
+    <div v-if="visible" :class="['loading-overlay', { 'is-inline': inline }]" aria-live="polite" aria-label="Đang tải dữ liệu...">
+      <div class="loading-backdrop" v-if="!inline"></div>
       <div class="loading-spinner-wrapper">
         <div class="loading-ring">
           <div></div>
@@ -26,6 +26,10 @@ export default {
     text: {
       type: String,
       default: 'Đang tải...'
+    },
+    inline: {
+      type: Boolean,
+      default: false
     }
   }
 }
@@ -39,6 +43,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.loading-overlay.is-inline {
+  position: relative;
+  inset: auto;
+  min-height: 140px;
+  background: transparent;
+  padding: 1.5rem;
+  z-index: 10;
 }
 
 /* Backdrop mờ */

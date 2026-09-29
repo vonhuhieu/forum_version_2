@@ -75,7 +75,11 @@ public class ThreadController {
 
     @PostMapping
     public ResponseEntity<ResponseDTO<ThreadDTO>> createThread(@RequestBody ThreadDTO threadDTO) {
-        return ResponseEntity.ok(threadService.createThread(threadDTO));
+        try {
+            return ResponseEntity.ok(threadService.createThread(threadDTO));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
