@@ -213,7 +213,6 @@ export default {
   computed: {
     breadcrumbItems() {
       return [
-        { title: 'Trang chủ', to: { name: 'Home' } },
         { title: 'Điểm tin' }
       ]
     },
