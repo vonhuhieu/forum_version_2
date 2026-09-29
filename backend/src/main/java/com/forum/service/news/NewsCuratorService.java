@@ -43,19 +43,19 @@ public class NewsCuratorService {
 
     private static final List<NewsSource> DEFAULT_SOURCES = List.of(
             // 1. Công nghệ & Lập trình & AI (Category 36: AI & Lập Trình, 35: Thiết Bị Số)
-            new NewsSource("VnExpress Số Hóa", "https://vnexpress.net/rss/so-hoa.rss", 36L),
-            new NewsSource("Dân Trí Sức Mạnh Số", "https://dantri.com.vn/rss/suc-manh-so.rss", 35L),
-            new NewsSource("VietNamNet Công Nghệ", "https://vietnamnet.vn/rss/cong-nghe.rss", 36L),
-            new NewsSource("Tinh Tế", "https://tinhte.vn/rss", 35L),
-            new NewsSource("GenK", "https://genk.vn/rss/tin-ict.rss", 36L),
+            new NewsSource("VnExpress Số Hóa", "https://vnexpress.net/rss/so-hoa.rss", Constants.CATEGORY_AI_PROGRAMMING_ID),
+            new NewsSource("Dân Trí Sức Mạnh Số", "https://dantri.com.vn/rss/suc-manh-so.rss", Constants.CATEGORY_DIGITAL_DEVICES_ID),
+            new NewsSource("VietNamNet Công Nghệ", "https://vietnamnet.vn/rss/cong-nghe.rss", Constants.CATEGORY_AI_PROGRAMMING_ID),
+            new NewsSource("Tinh Tế", "https://tinhte.vn/rss", Constants.CATEGORY_DIGITAL_DEVICES_ID),
+            new NewsSource("GenK", "https://genk.vn/rss/tin-ict.rss", Constants.CATEGORY_AI_PROGRAMMING_ID),
 
             // 2. Kinh tế & Tài chính & Đầu tư (Category 32: Đầu Tư & Dòng Tiền)
-            new NewsSource("VnExpress Kinh Doanh", "https://vnexpress.net/rss/kinh-doanh.rss", 32L),
-            new NewsSource("Tuổi Trẻ Kinh Doanh", "https://tuoitre.vn/rss/kinh-doanh.rss", 32L),
+            new NewsSource("VnExpress Kinh Doanh", "https://vnexpress.net/rss/kinh-doanh.rss", Constants.CATEGORY_INVESTMENT_FINANCE_ID),
+            new NewsSource("Tuổi Trẻ Kinh Doanh", "https://tuoitre.vn/rss/kinh-doanh.rss", Constants.CATEGORY_INVESTMENT_FINANCE_ID),
 
             // 3. Đời sống & Xã hội văn minh (Category 29: Trà Đá Vỉa Hè)
-            new NewsSource("Tuổi Trẻ Nhịp Sống Trẻ", "https://tuoitre.vn/rss/nhip-song-tre.rss", 29L),
-            new NewsSource("VnExpress Đời Sống", "https://vnexpress.net/rss/doi-song.rss", 29L)
+            new NewsSource("Tuổi Trẻ Nhịp Sống Trẻ", "https://tuoitre.vn/rss/nhip-song-tre.rss", Constants.CATEGORY_SIDEWALK_TEA_ID),
+            new NewsSource("VnExpress Đời Sống", "https://vnexpress.net/rss/doi-song.rss", Constants.CATEGORY_SIDEWALK_TEA_ID)
     );
 
     public boolean isBotEnabled() {
@@ -88,13 +88,13 @@ public class NewsCuratorService {
             return 0;
         }
 
-        User botUser = userRepository.findByUsername("diemtinbot").orElse(null);
+        User botUser = userRepository.findByUsername(Constants.NEWS_BOT_USERNAME).orElse(null);
         if (botUser == null) {
-            log.warn("Không tìm thấy user bot 'diemtinbot'. Hủy lượt cào tin.");
+            log.warn("Không tìm thấy user bot '{}'. Hủy lượt cào tin.", Constants.NEWS_BOT_USERNAME);
             return 0;
         }
 
-        Label newsLabel = labelRepository.findByName("Điểm Tin").orElse(null);
+        Label newsLabel = labelRepository.findByName(Constants.NEWS_LABEL_NAME).orElse(null);
 
         int publishedCount = 0;
         // Xáo trộn thứ tự nguồn để tin tức phong phú, không bị dồn một báo

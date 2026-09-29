@@ -175,6 +175,7 @@ import Loading from '@/shared/components/Loading.vue'
 import newsService from '@/apps/Forum/services/news.service'
 import { formatForumDate } from '@/shared/utils/date'
 import authService from '@/apps/Auth/services/auth.service'
+import { ROLES, NEWS_TABS } from '@/shared/utils/constants'
 
 export default {
   name: 'NewsFeedView',
@@ -195,17 +196,17 @@ export default {
       loading: false,
       crawling: false,
       crawlMessage: '',
-      currentTab: 'all',
+      currentTab: NEWS_TABS.ALL,
       stats: {
         todayCrawled: 0,
         totalCrawled: 0,
         enabled: true
       },
       tabs: [
-        { key: 'all', label: 'Tất cả bản tin', icon: '🌐' },
-        { key: 'tech', label: 'Công nghệ & AI', icon: '💻' },
-        { key: 'finance', label: 'Kinh tế & Đầu tư', icon: '📈' },
-        { key: 'society', label: 'Đời sống & Xã hội', icon: '☕' }
+        { key: NEWS_TABS.ALL, label: 'Tất cả bản tin', icon: '🌐' },
+        { key: NEWS_TABS.TECH, label: 'Công nghệ & AI', icon: '💻' },
+        { key: NEWS_TABS.FINANCE, label: 'Kinh tế & Đầu tư', icon: '📈' },
+        { key: NEWS_TABS.SOCIETY, label: 'Đời sống & Xã hội', icon: '☕' }
       ]
     }
   },
@@ -223,7 +224,7 @@ export default {
     isAdmin() {
       const user = authService.getCurrentUser()
       if (!user || !user.roles) return false
-      return user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_SUPER_ADMIN')
+      return user.roles.includes(ROLES.ADMIN) || user.roles.includes(ROLES.SUPER_ADMIN)
     }
   },
   watch: {

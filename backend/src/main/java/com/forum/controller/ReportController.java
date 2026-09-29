@@ -6,6 +6,7 @@ import com.forum.dto.ReportGroupDTO;
 import com.forum.dto.ResponseDTO;
 import com.forum.service.ReportService;
 import lombok.RequiredArgsConstructor;
+import com.forum.utils.Constants;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,7 +31,7 @@ public class ReportController {
     }
 
     @GetMapping("/api/admin/reports")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
     public ResponseEntity<ResponseDTO<PageResponseDTO<ReportGroupDTO>>> getReports(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
@@ -43,7 +44,7 @@ public class ReportController {
     }
 
     @GetMapping("/api/admin/reports/detail")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
     public ResponseEntity<ResponseDTO<PageResponseDTO<ReportDTO>>> getReportDetails(
             @RequestParam String targetType,
             @RequestParam Long targetId,
@@ -58,7 +59,7 @@ public class ReportController {
     }
 
     @PutMapping("/api/admin/reports/{id}/resolve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
     public ResponseEntity<ResponseDTO<Void>> resolveReport(
             @PathVariable Long id,
             @RequestBody Map<String, Object> payload) {
@@ -73,7 +74,7 @@ public class ReportController {
     }
 
     @PutMapping("/api/admin/reports/resolve-group")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize(Constants.PRE_AUTH_ADMIN_OR_SUPER_ADMIN)
     public ResponseEntity<ResponseDTO<Void>> resolveReportGroup(
             @RequestBody Map<String, Object> payload) {
         try {

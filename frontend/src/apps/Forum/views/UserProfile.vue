@@ -220,10 +220,8 @@
               </div>
 
               <!-- Danh sách bài đăng Lưu bút -->
-              <div v-if="profilePostsLoading" class="list-loading-state">
-                Đang tải bài viết lưu bút...
-              </div>
-              <div v-else-if="profilePosts.length === 0" class="list-empty-state">
+              <Loading :visible="profilePostsLoading" inline text="Đang tải bài viết lưu bút..." />
+              <div v-if="!profilePostsLoading && profilePosts.length === 0" class="list-empty-state">
                 Chưa có bài viết lưu bút nào trên hồ sơ này. Hãy là người đầu tiên để lại lời nhắn!
               </div>
               <div v-else class="profile-posts-list">
@@ -258,10 +256,8 @@
 
               <!-- Tab: Chủ đề & Bình luận/Phản hồi -->
               <div v-else class="list-tab-panel">
-                <div v-if="listLoading" class="list-loading-state">
-                  Đang tải dữ liệu...
-                </div>
-                <div v-else-if="items.length === 0" class="list-empty-state">
+                <Loading :visible="listLoading" inline text="Đang tải dữ liệu..." />
+                <div v-if="!listLoading && items.length === 0" class="list-empty-state">
                   Không có nội dung nào được tìm thấy.
                 </div>
                 <template v-else>
@@ -397,6 +393,7 @@ import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
 import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
 import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
+import { ROLES } from '@/shared/utils/constants'
 
 export default {
   name: 'UserProfile',
@@ -533,8 +530,8 @@ export default {
     formatRoles(roles) {
       if (!roles) return 'Thành viên'
       const list = Array.from(roles)
-      if (list.includes('ROLE_SUPER_ADMIN')) return 'Super Admin'
-      if (list.includes('ROLE_ADMIN')) return 'Admin'
+      if (list.includes(ROLES.SUPER_ADMIN)) return 'Super Admin'
+      if (list.includes(ROLES.ADMIN)) return 'Admin'
       return 'Thành viên chính thức'
     },
     getLabelStyle(label) {

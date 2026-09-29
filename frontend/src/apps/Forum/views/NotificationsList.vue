@@ -18,9 +18,9 @@
           </div>
 
           <div class="notifications-list-card card">
-            <div v-if="loading" class="notifications-loading">Đang tải...</div>
-            <div v-else-if="notifications.length === 0" class="notifications-empty">Không có thông báo nào.</div>
-            <template v-else>
+            <Loading :visible="loading" text="Đang tải danh sách thông báo..." />
+            <div v-if="!loading && notifications.length === 0" class="notifications-empty">Không có thông báo nào.</div>
+            <template v-else-if="!loading">
               <div 
                 v-for="notif in notifications" 
                 :key="notif.id" 
@@ -46,32 +46,32 @@
                   <div class="notif-text">
                     <strong>{{ notif.actorDisplayName || notif.actorUsername }}</strong>
                     <VerifiedBadge :user="getNotifUser(notif)" size="16px" />
-                    <template v-if="notif.type === 'REACTION'">
+                    <template v-if="notif.type === NOTIFICATION_TYPES.REACTION">
                       đã tương tác <ReactionIcon :code="notif.reactionIcon" :color="notif.reactionColor" size="18px" style="display:inline-flex;vertical-align:middle;" /> 
-                      <strong :style="{ color: notif.reactionColor || '#2c3e50' }">{{ notif.reactionName }}</strong>
+                      <strong :style="{ color: notif.reactionColor || NOTIFICATION_LABEL_STYLES.DEFAULT_REACTION_COLOR }">{{ notif.reactionName }}</strong>
                       với bài viết của bạn trong chủ đề
                     </template>
-                    <template v-else-if="notif.type === 'QUOTE'">
+                    <template v-else-if="notif.type === NOTIFICATION_TYPES.QUOTE">
                       đã trích bài viết của bạn trong chủ đề
                     </template>
-                    <template v-else-if="notif.type === 'MENTION'">
+                    <template v-else-if="notif.type === NOTIFICATION_TYPES.MENTION">
                       đã tag bạn trong chủ đề
                     </template>
-                    <template v-else-if="notif.type === 'FOLLOWED_USER_THREAD'">
+                    <template v-else-if="notif.type === NOTIFICATION_TYPES.FOLLOWED_USER_THREAD">
                       đã đăng một chủ đề mới là
                     </template>
-                    <template v-else-if="notif.type === 'FOLLOWED_USER_POST'">
+                    <template v-else-if="notif.type === NOTIFICATION_TYPES.FOLLOWED_USER_POST">
                       đã trả lời vào chủ đề
                     </template>
                     <template v-else>
                       đã trả lời vào chủ đề
                     </template>
                     <span class="notif-link-block" @click.stop="handleNotifClick(notif)">
-                      <span v-if="notif.threadLabelName" class="notif-label-tag" :style="{ backgroundColor: notif.type === 'MENTION' ? '#2577b1' : (notif.threadLabelColor || '#95a5a6'), color: notif.type === 'MENTION' ? '#fff' : (notif.threadLabelTextColor || '#fff'), borderColor: notif.type === 'MENTION' ? 'transparent' : (notif.threadLabelBorderColor || 'transparent') }">{{ notif.threadLabelName }}</span>
+                      <span v-if="notif.threadLabelName" class="notif-label-tag" :style="getNotifLabelStyle(notif)">{{ notif.threadLabelName }}</span>
                       <span class="highlight-thread">{{ notif.threadTitle }}</span>
                       <span v-if="!notif.isRead" class="unread-dot"></span>
                     </span>.
-                    <span v-if="notif.type !== 'QUOTE' && notif.type !== 'REACTION' && notif.type !== 'MENTION' && notif.type !== 'FOLLOWED_USER_THREAD' && notif.type !== 'FOLLOWED_USER_POST'" class="notif-extra">Có thể có bài viết thêm trong chủ đề</span>
+                    <span v-if="shouldShowExtraThreadPostHint(notif.type)" class="notif-extra">{{ NOTIFICATION_TEXTS.EXTRA_THREAD_POSTS }}</span>
                   </div>
                   <div class="notif-time">{{ formatDate(notif.createdAt) }}</div>
                 </div>
@@ -100,9 +100,11 @@ import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import ReactionIcon from '@/shared/components/ReactionIcon.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import Loading from '@/shared/components/Loading.vue'
 import notificationService from '@/apps/Forum/services/notification.service'
 import { formatForumDate } from '@/shared/utils/date'
-import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
+import { isAvatarUrl, formatAvatarUrl, getNotifLabelStyle, shouldShowExtraThreadPostHint } from '@/shared/utils/utils'
+import { NOTIFICATION_TYPES, NOTIFICATION_LABEL_STYLES, NOTIFICATION_TEXTS } from '@/shared/utils/constants'
 import userMixin from '@/shared/mixins/user.mixin.js'
 import { alertSuccess } from '@/shared/utils/swal'
 
@@ -115,7 +117,8 @@ export default {
     AccountSidebar,
     ReactionIcon,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   data() {
     return {
@@ -123,7 +126,10 @@ export default {
       loading: true,
       currentPage: 1,
       totalPages: 1,
-      itemsPerPage: 10
+      itemsPerPage: 10,
+      NOTIFICATION_TYPES,
+      NOTIFICATION_LABEL_STYLES,
+      NOTIFICATION_TEXTS
     }
   },
   computed: {
@@ -142,6 +148,12 @@ export default {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
   },
   methods: {
+    getNotifLabelStyle(notif) {
+      return getNotifLabelStyle(notif)
+    },
+    shouldShowExtraThreadPostHint(type) {
+      return shouldShowExtraThreadPostHint(type)
+    },
     formatAvatarUrl(avatar) {
       return formatAvatarUrl(avatar)
     },

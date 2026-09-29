@@ -1,9 +1,9 @@
 <template>
   <div>
     <main class="container" style="padding-top: 2rem;">
-      <div v-if="loading" style="text-align: center; padding: 3rem;">Đang tải...</div>
+      <Loading :visible="loading" text="Đang tải danh sách bài viết..." />
       
-      <div v-else>
+      <div v-if="!loading">
         <!-- Block 1: Breadcrumb -->
         <Breadcrumb :items="breadcrumbItems" />
 
@@ -193,6 +193,7 @@ import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import Loading from '@/shared/components/Loading.vue'
 import { formatForumDate } from '@/shared/utils/date'
 import { isNonOfficialUser, isAvatarUrl, formatAvatarUrl, isAdminOrSuperAdmin, canShowPostButtonOnScreen, loadPublicSettings } from '@/shared/utils/utils'
 
@@ -202,7 +203,8 @@ export default {
     Breadcrumb,
     ForumPagination,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   data() {
     return {

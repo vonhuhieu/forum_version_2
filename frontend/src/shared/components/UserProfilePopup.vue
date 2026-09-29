@@ -16,7 +16,7 @@
         @mouseenter="clearTimer"
         @mouseleave="handleMouseLeave"
       >
-      <div class="popup-loading" v-if="loading">Đang tải...</div>
+      <Loading v-if="loading" :visible="loading" inline text="Đang tải..." />
       <div class="popup-content" v-else-if="userData">
         <!-- Real HTML elements for arrows to support dynamic positioning -->
         <div class="popup-arrow-border" :style="arrowStyle"></div>
@@ -85,6 +85,7 @@ import userService from '@/apps/Forum/services/user.service'
 import userFollowService from '@/apps/Forum/services/user-follow.service'
 import { alertSuccess, alertError, alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import Loading from '@/shared/components/Loading.vue'
 import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
 import { formatForumDate } from '@/shared/utils/date'
 import userMixin from '@/shared/mixins/user.mixin.js'
@@ -92,7 +93,8 @@ import userMixin from '@/shared/mixins/user.mixin.js'
 export default {
   name: 'UserProfilePopup',
   components: {
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   mixins: [userMixin],
   props: {

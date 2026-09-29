@@ -67,13 +67,10 @@
             </div>
 
             <!-- Loading state -->
-            <div v-if="loading" class="state-container loading-state">
-              <div class="spinner"></div>
-              <span>Đang tải danh sách dấu trang...</span>
-            </div>
+            <Loading :visible="loading" text="Đang tải danh sách dấu trang..." />
 
             <!-- Empty state -->
-            <div v-else-if="bookmarks.length === 0" class="state-container empty-state">
+            <div v-if="!loading && bookmarks.length === 0" class="state-container empty-state">
               <div class="empty-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
               </div>
@@ -83,7 +80,7 @@
             </div>
 
             <!-- Bookmark list -->
-            <div v-else class="bookmark-list">
+            <div v-else-if="!loading" class="bookmark-list">
               <div
                 v-for="b in bookmarks"
                 :key="b.id"
@@ -215,6 +212,7 @@ import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
 import ForumPagination from '@/shared/components/ForumPagination.vue'
 import BookmarkPopup from '@/shared/components/BookmarkPopup.vue'
+import Loading from '@/shared/components/Loading.vue'
 import bookmarkService from '@/apps/Forum/services/bookmark.service'
 import { toastSuccess, toastError, alertConfirm } from '@/shared/utils/swal'
 import { formatForumDate } from '@/shared/utils/date'
@@ -228,7 +226,8 @@ export default {
     UserProfilePopup,
     VerifiedBadge,
     ForumPagination,
-    BookmarkPopup
+    BookmarkPopup,
+    Loading
   },
   data() {
     return {

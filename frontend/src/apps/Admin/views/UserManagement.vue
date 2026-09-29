@@ -185,7 +185,8 @@ import Loading from '@/shared/components/Loading.vue'
 import AdminService from '@/apps/Admin/services/admin.service'
 import TitleService from '@/apps/Admin/services/title.service'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
-import { TITLE_TYPES } from '@/shared/utils/constants'
+import { TITLE_TYPES, ROLES } from '@/shared/utils/constants'
+import { getRoleBadgeClass, getRoleName } from '@/shared/utils/utils'
 
 export default {
   name: 'UserManagement',
@@ -228,43 +229,43 @@ export default {
         displayName: '',
         email: '',
         password: '',
-        role: 'ROLE_USER'
+        role: ROLES.USER
       }
     }
   },
   computed: {
     isSuperAdmin() {
-      return this.currentUserRoles.includes('ROLE_SUPER_ADMIN')
+      return this.currentUserRoles.includes(ROLES.SUPER_ADMIN)
     },
     isAdmin() {
-      return this.currentUserRoles.includes('ROLE_ADMIN')
+      return this.currentUserRoles.includes(ROLES.ADMIN)
     },
     availableRoles() {
       if (this.isSuperAdmin) {
         return [
-          { value: 'ROLE_SUPER_ADMIN', text: 'Super Admin' },
-          { value: 'ROLE_ADMIN', text: 'Admin' },
-          { value: 'ROLE_USER', text: 'Thành viên chính thức' },
-          { value: 'ROLE_NON_OFFICIAL_USER', text: 'Chưa chính thức' }
+          { value: ROLES.SUPER_ADMIN, text: 'Super Admin' },
+          { value: ROLES.ADMIN, text: 'Admin' },
+          { value: ROLES.USER, text: 'Thành viên chính thức' },
+          { value: ROLES.NON_OFFICIAL, text: 'Chưa chính thức' }
         ]
       } else {
         return [
-          { value: 'ROLE_USER', text: 'Thành viên chính thức' },
-          { value: 'ROLE_NON_OFFICIAL_USER', text: 'Chưa chính thức' }
+          { value: ROLES.USER, text: 'Thành viên chính thức' },
+          { value: ROLES.NON_OFFICIAL, text: 'Chưa chính thức' }
         ]
       }
     },
     filterRoleOptions() {
       if (this.isSuperAdmin) {
         return [
-          { value: 'ROLE_ADMIN', text: 'Admin' },
-          { value: 'ROLE_USER', text: 'Thành viên chính thức' },
-          { value: 'ROLE_NON_OFFICIAL_USER', text: 'Chưa chính thức' }
+          { value: ROLES.ADMIN, text: 'Admin' },
+          { value: ROLES.USER, text: 'Thành viên chính thức' },
+          { value: ROLES.NON_OFFICIAL, text: 'Chưa chính thức' }
         ]
       } else {
         return [
-          { value: 'ROLE_USER', text: 'Thành viên chính thức' },
-          { value: 'ROLE_NON_OFFICIAL_USER', text: 'Chưa chính thức' }
+          { value: ROLES.USER, text: 'Thành viên chính thức' },
+          { value: ROLES.NON_OFFICIAL, text: 'Chưa chính thức' }
         ]
       }
     },
@@ -346,20 +347,20 @@ export default {
         displayName: '', 
         email: '', 
         password: '', 
-        role: this.isSuperAdmin ? 'ROLE_SUPER_ADMIN' : 'ROLE_USER' 
+        role: this.isSuperAdmin ? ROLES.SUPER_ADMIN : ROLES.USER 
       }
       this.showModal = true
     },
     openEditModal(user) {
       this.isEdit = true
-      let selectedRole = 'ROLE_USER'
+      let selectedRole = ROLES.USER
       if (user.roles && user.roles.length > 0) {
-        if (user.roles.includes('ROLE_SUPER_ADMIN')) {
-          selectedRole = 'ROLE_SUPER_ADMIN'
-        } else if (user.roles.includes('ROLE_ADMIN')) {
-          selectedRole = 'ROLE_ADMIN'
-        } else if (user.roles.includes('ROLE_NON_OFFICIAL_USER')) {
-          selectedRole = 'ROLE_NON_OFFICIAL_USER'
+        if (user.roles.includes(ROLES.SUPER_ADMIN)) {
+          selectedRole = ROLES.SUPER_ADMIN
+        } else if (user.roles.includes(ROLES.ADMIN)) {
+          selectedRole = ROLES.ADMIN
+        } else if (user.roles.includes(ROLES.NON_OFFICIAL)) {
+          selectedRole = ROLES.NON_OFFICIAL
         } else {
           selectedRole = user.roles[0]
         }
@@ -448,32 +449,10 @@ export default {
       return new Date(dateStr).toLocaleString('vi-VN')
     },
     getRoleBadgeClass(role) {
-      switch (role) {
-        case 'ROLE_SUPER_ADMIN':
-          return 'badge-danger'
-        case 'ROLE_ADMIN':
-          return 'badge-warning'
-        case 'ROLE_USER':
-          return 'badge-success'
-        case 'ROLE_NON_OFFICIAL_USER':
-          return 'badge-secondary'
-        default:
-          return 'badge-light'
-      }
+      return getRoleBadgeClass(role)
     },
     getRoleName(role) {
-      switch (role) {
-        case 'ROLE_SUPER_ADMIN':
-          return 'Super Admin'
-        case 'ROLE_ADMIN':
-          return 'Admin'
-        case 'ROLE_USER':
-          return 'Thành viên'
-        case 'ROLE_NON_OFFICIAL_USER':
-          return 'Chưa chính thức'
-        default:
-          return role.replace('ROLE_', '')
-      }
+      return getRoleName(role)
     },
     async openAssignTitleModal(user) {
       this.assignTargetUser = user

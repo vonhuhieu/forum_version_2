@@ -39,9 +39,9 @@
 
       <!-- List -->
       <div class="reaction-list-content">
-        <div v-if="loading" class="reaction-loading">Đang tải...</div>
-        <div v-else-if="participants.length === 0" class="reaction-empty">Không có dữ liệu.</div>
-        <template v-else>
+        <Loading :visible="loading" inline text="Đang tải..." />
+        <div v-if="!loading && participants.length === 0" class="reaction-empty">Không có dữ liệu.</div>
+        <template v-else-if="!loading">
           <div v-for="participant in participants" :key="participant.user.id" class="reaction-item">
             <div class="reactor-info">
               <user-profile-popup :user="participant.user" v-if="participant.user">
@@ -97,6 +97,7 @@ import ReactionIcon from './ReactionIcon.vue'
 import ForumPagination from './ForumPagination.vue'
 import UserProfilePopup from './UserProfilePopup.vue'
 import VerifiedBadge from './VerifiedBadge.vue'
+import Loading from './Loading.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import { formatForumDate } from '@/shared/utils/date'
 import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
@@ -108,7 +109,8 @@ export default {
     ReactionIcon,
     ForumPagination,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   props: {
     show: {

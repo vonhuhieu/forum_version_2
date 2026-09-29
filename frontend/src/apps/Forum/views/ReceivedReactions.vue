@@ -42,9 +42,9 @@
 
             <!-- List chi tiết -->
             <div class="received-reactions-list">
-              <div v-if="loading" class="reactions-loading">Đang tải...</div>
-              <div v-else-if="reactions.length === 0" class="reactions-empty">Không có lượt tương tác nào.</div>
-              <template v-else>
+              <Loading :visible="loading" text="Đang tải danh sách tương tác..." />
+              <div v-if="!loading && reactions.length === 0" class="reactions-empty">Không có lượt tương tác nào.</div>
+              <template v-else-if="!loading">
                 <div v-for="item in reactions" :key="item.id" class="reaction-row-item" @click="handleRowClick($event, item)">
                   <!-- Cột bên trái: avatar người tương tác -->
                   <div class="reactor-avatar-col">
@@ -118,6 +118,7 @@ import ForumPagination from '@/shared/components/ForumPagination.vue'
 import AccountSidebar from '@/shared/components/AccountSidebar.vue'
 import UserProfilePopup from '@/shared/components/UserProfilePopup.vue'
 import VerifiedBadge from '@/shared/components/VerifiedBadge.vue'
+import Loading from '@/shared/components/Loading.vue'
 import reactionService from '@/apps/Forum/services/reaction.service'
 import api from '@/shared/services/api.service'
 import { formatForumDate } from '@/shared/utils/date'
@@ -133,7 +134,8 @@ export default {
     ForumPagination,
     AccountSidebar,
     UserProfilePopup,
-    VerifiedBadge
+    VerifiedBadge,
+    Loading
   },
   data() {
     return {

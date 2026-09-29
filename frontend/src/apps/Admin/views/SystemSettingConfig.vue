@@ -3,11 +3,9 @@
     <div class="card p-4">
       <h2 class="mb-4">Cấu hình Hệ thống</h2>
       
-      <div v-if="loading" class="loading-state my-5 text-center">
-        <span>Đang tải cấu hình...</span>
-      </div>
+      <Loading :visible="loading" text="Đang tải cấu hình hệ thống..." />
 
-      <form v-else @submit.prevent="saveSettings">
+      <form v-if="!loading" @submit.prevent="saveSettings">
         <div class="form-group mb-4">
           <label for="thread_edit_limit" class="form-label fw-bold mb-2" style="font-size: 1.05rem;">
             Giới hạn thời gian sửa bài đăng gốc (phút)
@@ -386,9 +384,13 @@
 import settingService from '@/shared/services/setting.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import { SETTINGS } from '@/shared/utils/constants'
+import Loading from '@/shared/components/Loading.vue'
 
 export default {
   name: 'SystemSettingConfig',
+  components: {
+    Loading
+  },
   data() {
     return {
       settings: {
