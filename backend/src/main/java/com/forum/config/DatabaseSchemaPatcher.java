@@ -56,7 +56,8 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             "ALTER TABLE threads ADD COLUMN IF NOT EXISTS attached_images TEXT NULL",
             "ALTER TABLE threads ADD COLUMN IF NOT EXISTS reaction_count INT DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN IF NOT EXISTS locked BOOLEAN DEFAULT FALSE",
-            "ALTER TABLE posts ADD COLUMN IF NOT EXISTS attached_images TEXT NULL"
+            "ALTER TABLE posts ADD COLUMN IF NOT EXISTS attached_images TEXT NULL",
+            "ALTER TABLE categories ADD COLUMN IF NOT EXISTS label_mode VARCHAR(20) DEFAULT '" + com.forum.utils.Constants.CATEGORY_LABEL_MODE_ALL + "'"
         };
         for (String sql : threadPostAlterColumns) {
             try {
@@ -64,6 +65,19 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             } catch (Exception e) {
                 System.err.println(">>> Notice on thread/post column patch: " + e.getMessage());
             }
+        }
+
+        // 3.1. Bảng category_labels liên kết Many-to-Many giữa categories và labels
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS category_labels (
+                    category_id BIGINT NOT NULL,
+                    label_id BIGINT NOT NULL,
+                    PRIMARY KEY (category_id, label_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """);
+        } catch (Exception e) {
+            System.err.println(">>> Notice on category_labels table patch: " + e.getMessage());
         }
 
         // 4. Tạo các bảng hỗ trợ nếu chưa có

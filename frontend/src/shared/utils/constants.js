@@ -100,3 +100,9 @@ export const NOTIFICATION_TEXTS = {
 export const BREADCRUMB_HOME_TITLES = ['Trang chủ', 'Home'];
 
 export const DISPLAY_NAME_MAX_LENGTH = 25;
+
+export const CATEGORY_LABEL_MODES = {
+  ALL: 'ALL',
+  CUSTOM: 'CUSTOM',
+  NONE: 'NONE'
+};
