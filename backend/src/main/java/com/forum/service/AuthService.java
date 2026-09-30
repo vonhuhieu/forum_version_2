@@ -157,7 +157,11 @@ public class AuthService {
         user.setEmail(normalizedEmail);
         
         if (org.springframework.util.StringUtils.hasText(displayName)) {
-            user.setDisplayName(displayName.trim());
+            String cleanDisplayName = displayName.trim();
+            if (cleanDisplayName.length() < Constants.DISPLAY_NAME_MIN_LENGTH || cleanDisplayName.length() > Constants.DISPLAY_NAME_MAX_LENGTH) {
+                throw new IllegalArgumentException("Tên hiển thị phải từ " + Constants.DISPLAY_NAME_MIN_LENGTH + " đến " + Constants.DISPLAY_NAME_MAX_LENGTH + " ký tự.");
+            }
+            user.setDisplayName(cleanDisplayName);
         } else {
             String emailPrefix = normalizedEmail.split("@")[0];
             user.setDisplayName(emailPrefix);
@@ -489,8 +493,8 @@ public class AuthService {
             throw new IllegalArgumentException("Vui lòng nhập tên hiển thị.");
         }
         String cleanDisplayName = displayName.trim();
-        if (cleanDisplayName.length() < 2 || cleanDisplayName.length() > 30) {
-            throw new IllegalArgumentException("Tên hiển thị phải từ 2 đến 30 ký tự.");
+        if (cleanDisplayName.length() < Constants.DISPLAY_NAME_MIN_LENGTH || cleanDisplayName.length() > Constants.DISPLAY_NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("Tên hiển thị phải từ " + Constants.DISPLAY_NAME_MIN_LENGTH + " đến " + Constants.DISPLAY_NAME_MAX_LENGTH + " ký tự.");
         }
 
         Map<String, Object> googlePayload = verifyGoogleToken(idToken);

@@ -93,10 +93,13 @@ public class NewsService {
 
         Map<String, Long> tabCounts = new HashMap<>();
         if (labelId != null) {
-            tabCounts.put(Constants.NEWS_TAB_ALL, threadRepository.countByLabelId(labelId));
-            tabCounts.put(Constants.NEWS_TAB_TECH, threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_AI_PROGRAMMING_ID));
-            tabCounts.put(Constants.NEWS_TAB_FINANCE, threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_INVESTMENT_FINANCE_ID));
-            tabCounts.put(Constants.NEWS_TAB_SOCIETY, threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_SIDEWALK_TEA_ID));
+            long techCount = threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_AI_PROGRAMMING_ID);
+            long financeCount = threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_INVESTMENT_FINANCE_ID);
+            long societyCount = threadRepository.countByLabelIdAndCategoryId(labelId, Constants.CATEGORY_SIDEWALK_TEA_ID);
+            tabCounts.put(Constants.NEWS_TAB_TECH, techCount);
+            tabCounts.put(Constants.NEWS_TAB_FINANCE, financeCount);
+            tabCounts.put(Constants.NEWS_TAB_SOCIETY, societyCount);
+            tabCounts.put(Constants.NEWS_TAB_ALL, techCount + financeCount + societyCount);
         } else {
             tabCounts.put(Constants.NEWS_TAB_ALL, 0L);
             tabCounts.put(Constants.NEWS_TAB_TECH, 0L);
