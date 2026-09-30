@@ -4,7 +4,7 @@
       <div class="avatar-modal">
         <!-- Header -->
         <div class="avatar-modal-header">
-          <h3>{{ mode === 'banner' ? 'Cập nhật ảnh bìa' : 'Cập nhật ảnh đại diện' }}</h3>
+          <h3>{{ mode === UPLOAD_MODES.BANNER ? 'Cập nhật ảnh bìa' : 'Cập nhật ảnh đại diện' }}</h3>
           <button class="btn-close-modal" @click="close">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -18,20 +18,33 @@
         <div class="avatar-modal-body">
           <!-- Vùng hiển thị avatar/banner hiện tại hoặc preview mới -->
           <div class="avatar-preview-header">
-            <div :class="mode === 'banner' ? 'banner-preview-rect' : 'avatar-preview-circle-large'" :style="mode === 'banner' ? { borderRadius: '6px', width: '240px', height: '60px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' } : {}">
-              <img v-if="previewDataUrl" :src="previewDataUrl" :style="mode === 'banner' ? { width: '240px', height: '60px', objectFit: 'cover' } : {}" class="avatar-img-large" />
-              <img v-else-if="mode !== 'banner' && isAvatarUrl(currentAvatar)" :src="formatAvatarUrl(currentAvatar)" class="avatar-img-large" />
-              <img v-else-if="mode === 'banner' && currentUser && currentUser.profileBanner" :src="formatAvatarUrl(currentUser.profileBanner)" :style="{ width: '240px', height: '60px', objectFit: 'cover' }" />
-              <div v-else-if="mode === 'banner'" class="avatar-color-large" :style="{ backgroundColor: '#edf6fd', color: '#1a507a', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }">
+            <div 
+              :class="[mode === UPLOAD_MODES.BANNER ? 'banner-preview-rect' : 'avatar-preview-circle-large', { 'clickable-preview': !!currentOrPreviewImageUrl }]" 
+              :style="mode === UPLOAD_MODES.BANNER ? { borderRadius: '6px', width: '240px', height: '60px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' } : {}"
+              @click="handlePreviewClick"
+              :title="currentOrPreviewImageUrl ? 'Bấm để phóng to xem ảnh' : ''"
+            >
+              <img v-if="previewDataUrl" :src="previewDataUrl" :style="mode === UPLOAD_MODES.BANNER ? { width: '240px', height: '60px', objectFit: 'cover' } : {}" class="avatar-img-large" />
+              <img v-else-if="mode !== UPLOAD_MODES.BANNER && isAvatarUrl(currentAvatar)" :src="formatAvatarUrl(currentAvatar)" class="avatar-img-large" />
+              <img v-else-if="mode === UPLOAD_MODES.BANNER && currentUser && currentUser.profileBanner" :src="formatAvatarUrl(currentUser.profileBanner)" :style="{ width: '240px', height: '60px', objectFit: 'cover' }" />
+              <div v-else-if="mode === UPLOAD_MODES.BANNER" class="avatar-color-large" :style="{ backgroundColor: '#edf6fd', color: '#1a507a', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }">
                 Chưa có banner
               </div>
               <div v-else class="avatar-color-large" :style="{ backgroundColor: currentAvatar || '#fff', color: currentAvatar ? '#fff' : '#1a507a' }">
                 {{ userInitial }}
               </div>
+              <div v-if="currentOrPreviewImageUrl" class="preview-zoom-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </div>
             </div>
             <div class="avatar-preview-info">
               <span class="avatar-preview-label">
-                {{ previewDataUrl ? 'Ảnh mới (Xem trước)' : (mode === 'banner' ? 'Ảnh bìa hiện tại' : 'Ảnh đại diện hiện tại') }}
+                {{ previewDataUrl ? 'Ảnh mới (Xem trước)' : (mode === UPLOAD_MODES.BANNER ? 'Ảnh bìa hiện tại' : 'Ảnh đại diện hiện tại') }}
               </span>
               <span class="avatar-preview-sub" v-if="currentUser">
                 {{ currentUser.displayName || currentUser.username }}
@@ -121,10 +134,10 @@
         <!-- Footer -->
         <div class="avatar-modal-footer">
           <button class="btn-save" @click="saveAvatar" :disabled="!imageSrc || isUploading">
-            {{ mode === 'banner' ? 'Lưu ảnh bìa' : 'Lưu ảnh đại diện' }}
+            {{ mode === UPLOAD_MODES.BANNER ? 'Lưu ảnh bìa' : 'Lưu ảnh đại diện' }}
           </button>
           <button 
-            v-if="mode === 'banner' && currentUser && currentUser.profileBanner"
+            v-if="mode === UPLOAD_MODES.BANNER && currentUser && currentUser.profileBanner"
             class="btn-delete-banner" 
             @click="deleteBanner" 
             :disabled="isUploading"
@@ -137,6 +150,13 @@
         <input id="avatar-file-input" ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
       </div>
       <Loading :visible="isUploading" />
+
+      <!-- Modal Xem ảnh phóng to -->
+      <ImageLightboxModal 
+        :visible="showLightbox" 
+        :src="lightboxImageUrl" 
+        @close="closeLightbox" 
+      />
     </div>
   </teleport>
 </template>
@@ -144,23 +164,29 @@
 <script>
 import api from '@/shared/services/api.service'
 import Loading from '@/shared/components/Loading.vue'
+import ImageLightboxModal from '@/shared/components/ImageLightboxModal.vue'
+import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
 import { alertConfirm, toastSuccess, toastError } from '@/shared/utils/swal'
 import { convertHeicToJpegIfNeeded } from '@/shared/utils/heicUtils'
 import { isAvatarUrl, formatAvatarUrl } from '@/shared/utils/utils'
+import { UPLOAD_MODES } from '@/shared/utils/constants'
 
 export default {
   name: 'AvatarUploadModal',
+  mixins: [imageLightboxMixin],
   components: {
-    Loading
+    Loading,
+    ImageLightboxModal
   },
   props: {
     show: { type: Boolean, default: false },
     currentUser: { type: Object, default: null },
-    mode: { type: String, default: 'avatar' }
+    mode: { type: String, default: () => UPLOAD_MODES.AVATAR }
   },
   emits: ['close', 'avatar-updated', 'banner-updated'],
   data() {
     return {
+      UPLOAD_MODES,
       imageSrc: null,
       image: null,
       scale: 1,
@@ -177,16 +203,29 @@ export default {
   },
   computed: {
     canvasWidth() {
-      return this.mode === 'banner' ? 440 : 320
+      return this.mode === UPLOAD_MODES.BANNER ? 440 : 320
     },
     canvasHeight() {
-      return this.mode === 'banner' ? 110 : 320
+      return this.mode === UPLOAD_MODES.BANNER ? 110 : 320
     },
     outputWidth() {
-      return this.mode === 'banner' ? 2400 : 400
+      return this.mode === UPLOAD_MODES.BANNER ? 2400 : 400
     },
     outputHeight() {
-      return this.mode === 'banner' ? 600 : 400
+      return this.mode === UPLOAD_MODES.BANNER ? 600 : 400
+    },
+    currentOrPreviewImageUrl() {
+      if (this.previewDataUrl) return this.previewDataUrl
+      if (this.mode === UPLOAD_MODES.BANNER) {
+        if (this.currentUser && this.currentUser.profileBanner) {
+          return this.formatAvatarUrl(this.currentUser.profileBanner)
+        }
+      } else {
+        if (this.isAvatarUrl(this.currentAvatar)) {
+          return this.formatAvatarUrl(this.currentAvatar)
+        }
+      }
+      return null
     },
     previewStyle() {
       return {
@@ -277,7 +316,7 @@ export default {
       const h = this.image.height * this.scale
       ctx.drawImage(this.image, this.offsetX, this.offsetY, w, h)
 
-      if (this.mode === 'avatar') {
+      if (this.mode === UPLOAD_MODES.AVATAR) {
         // Lớp tối CHỈ bên ngoài vòng tròn (dùng even-odd fill rule)
         ctx.save()
         ctx.beginPath()
@@ -309,7 +348,7 @@ export default {
       offscreen.height = this.outputHeight
       const ctx = offscreen.getContext('2d')
       const sf = this.outputWidth / this.canvasWidth
-      if (this.mode === 'avatar') {
+      if (this.mode === UPLOAD_MODES.AVATAR) {
         ctx.beginPath()
         ctx.arc(this.outputWidth / 2, this.outputHeight / 2, this.outputWidth / 2, 0, Math.PI * 2)
         ctx.clip()
@@ -326,7 +365,7 @@ export default {
         offscreen.height = this.outputHeight
         const ctx = offscreen.getContext('2d')
         const sf = this.outputWidth / this.canvasWidth
-        if (this.mode === 'avatar') {
+        if (this.mode === UPLOAD_MODES.AVATAR) {
           ctx.beginPath()
           ctx.arc(this.outputWidth / 2, this.outputHeight / 2, this.outputWidth / 2, 0, Math.PI * 2)
           ctx.clip()
@@ -445,7 +484,7 @@ export default {
       try {
         // 1. Crop canvas to blob
         const blob = await this.getCroppedBlob()
-        const filename = this.mode === 'banner' ? 'banner.jpg' : 'avatar.jpg'
+        const filename = this.mode === UPLOAD_MODES.BANNER ? 'banner.jpg' : 'avatar.jpg'
         const formData = new FormData()
         formData.append('file', blob, filename)
 
@@ -457,7 +496,7 @@ export default {
         if (!fileUrl) throw new Error('Upload failed')
 
         // 3. Update user avatar or banner
-        if (this.mode === 'banner') {
+        if (this.mode === UPLOAD_MODES.BANNER) {
           await api.put('/users/me/banner', { banner: fileUrl })
           this.$emit('banner-updated', fileUrl)
         } else {
@@ -468,7 +507,7 @@ export default {
         this.close()
       } catch (err) {
         console.error('File upload error:', err)
-        alert(this.mode === 'banner' ? 'Có lỗi khi lưu ảnh bìa. Vui lòng thử lại.' : 'Có lỗi khi lưu ảnh đại diện. Vui lòng thử lại.')
+        alert(this.mode === UPLOAD_MODES.BANNER ? 'Có lỗi khi lưu ảnh bìa. Vui lòng thử lại.' : 'Có lỗi khi lưu ảnh đại diện. Vui lòng thử lại.')
       } finally {
         this.isUploading = false
       }
@@ -540,6 +579,39 @@ export default {
   align-items: center;
   justify-content: center;
   background-color: #f8f9fa;
+  position: relative;
+}
+
+.clickable-preview {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-preview:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 16px rgba(26, 80, 122, 0.25);
+}
+
+.preview-zoom-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.clickable-preview:hover .preview-zoom-badge {
+  opacity: 1;
 }
 .avatar-img-large {
   width: 96px;
