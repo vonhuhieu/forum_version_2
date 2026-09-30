@@ -475,7 +475,7 @@ export default {
       try {
         const response = await threadService.getLatest()
         if (response.data && Array.isArray(response.data)) {
-          this.latestThreads = response.data.slice(0, 10)
+          this.latestThreads = response.data.slice(0, 20)
         } else {
           this.latestThreads = []
         }

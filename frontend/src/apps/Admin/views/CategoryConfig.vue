@@ -43,6 +43,7 @@
       </template>
 
       <template #extra-actions="{ item }">
+        <button class="action-btn label-btn" @click="openLabelConfigModal(item)" title="Cấu hình nhãn bài viết (Labels)">🏷️</button>
         <button class="action-btn sub-cat-btn" @click="openSubModal(item)" title="Quản lý chuyên mục con">📁</button>
       </template>
 
@@ -159,6 +160,9 @@
           {{ item.onlyAdminCanPost ? 'Chỉ BQT' : 'Công khai' }}
         </span>
       </template>
+      <template #extra-actions="{ item }">
+        <button class="action-btn label-btn" @click="openLabelConfigModal(item)" title="Cấu hình nhãn bài viết (Labels)">🏷️</button>
+      </template>
     </TableModal>
 
     <!-- Modal Form Chuyên mục con (CRUD Sub-cat) -->
@@ -195,11 +199,85 @@
         </div>
       </form>
     </BaseModal>
+
+    <!-- Modal Cấu hình Nhãn (Label Configuration Modal) -->
+    <BaseModal
+      v-model:show="showLabelModal"
+      :title="`CẤU HÌNH NHÃN CHO CHUYÊN MỤC: ${selectedCategoryForLabels?.name}`"
+    >
+      <div class="admin-form label-config-form">
+        <div class="form-group">
+          <label style="font-weight: 600; margin-bottom: 8px; display: block;">Chế độ áp dụng nhãn:</label>
+          <div class="label-mode-options">
+            <label class="radio-label">
+              <input type="radio" :value="CATEGORY_LABEL_MODES.ALL" v-model="labelConfigData.labelMode">
+              <span><strong>Tất cả nhãn</strong> (Mặc định - Hiển thị mọi nhãn có trong hệ thống khi đăng bài & lọc)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" :value="CATEGORY_LABEL_MODES.CUSTOM" v-model="labelConfigData.labelMode">
+              <span><strong>Tùy chọn danh sách nhãn</strong> (Chỉ hiển thị các nhãn được chọn dưới đây)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" :value="CATEGORY_LABEL_MODES.NONE" v-model="labelConfigData.labelMode">
+              <span><strong>Không sử dụng nhãn</strong> (Ẩn nhãn khi đăng bài và trên bộ lọc của chuyên mục này)</span>
+            </label>
+          </div>
+        </div>
+
+        <div v-if="labelConfigData.labelMode === CATEGORY_LABEL_MODES.CUSTOM" class="custom-labels-selection">
+          <div class="selection-toolbar">
+            <div class="selection-actions">
+              <button type="button" class="btn-tool-sm" @click="selectAllLabels">Chọn tất cả</button>
+              <button type="button" class="btn-tool-sm" @click="unselectAllLabels">Bỏ chọn tất cả</button>
+            </div>
+            <div class="selection-count">
+              Đã chọn: <strong>{{ labelConfigData.selectedLabelIds.length }}</strong> / {{ allAvailableLabels.length }} nhãn
+            </div>
+          </div>
+
+          <div class="labels-checklist-grid">
+            <div 
+              v-for="l in allAvailableLabels" 
+              :key="l.id" 
+              class="label-check-item"
+              :class="{ 'is-checked': labelConfigData.selectedLabelIds.includes(l.id) }"
+              @click="toggleLabelSelection(l.id)"
+            >
+              <input 
+                type="checkbox" 
+                :value="l.id" 
+                v-model="labelConfigData.selectedLabelIds" 
+                @click.stop
+              >
+              <span 
+                class="label-preview-badge" 
+                :style="{ backgroundColor: l.colorCode, color: l.textColor, borderColor: l.borderColor || 'transparent' }"
+              >
+                {{ l.name }}
+              </span>
+              <span v-if="l.adminOnly" class="admin-badge-mini" title="Nhãn chỉ dành cho Admin">Admin</span>
+            </div>
+          </div>
+          <div v-if="allAvailableLabels.length === 0" class="no-labels-notice" style="color: #888; padding: 12px; text-align: center;">
+            Hệ thống chưa có nhãn nào. Vui lòng vào mục "Quản lý Nhãn" để tạo nhãn trước.
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 20px;">
+          <button type="button" @click="showLabelModal = false" class="btn-cancel">Đóng</button>
+          <button type="button" @click="saveLabelConfig" class="btn-save" :disabled="savingLabelConfig">
+            {{ savingLabelConfig ? 'Đang lưu...' : 'Lưu cấu hình nhãn' }}
+          </button>
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
 <script>
 import AdminService from '@/apps/Admin/services/admin.service'
+import labelService from '@/apps/Forum/services/label.service'
+import { CATEGORY_LABEL_MODES } from '@/shared/utils/constants'
 import DataTable from '@/shared/components/DataTable.vue'
 import BaseModal from '@/shared/components/BaseModal.vue'
 import TableModal from '@/shared/components/TableModal.vue'
@@ -211,11 +289,22 @@ export default {
   components: { DataTable, BaseModal, TableModal, CategoryIcon },
   data() {
     return {
+      CATEGORY_LABEL_MODES,
       categories: [],
       loading: false,
       keyword: '',
       pageSize: 10,
       currentPage: 1,
+
+      // Label Config Modal
+      showLabelModal: false,
+      selectedCategoryForLabels: null,
+      savingLabelConfig: false,
+      allAvailableLabels: [],
+      labelConfigData: {
+        labelMode: CATEGORY_LABEL_MODES.ALL,
+        selectedLabelIds: []
+      },
       
       // Main Category Modal
       showModal: false,
@@ -530,6 +619,54 @@ export default {
           toastError('Lỗi khi xóa chuyên mục con')
         }
       }
+    },
+    async openLabelConfigModal(category) {
+      this.selectedCategoryForLabels = category
+      this.showLabelModal = true
+      try {
+        if (this.allAvailableLabels.length === 0) {
+          const res = await labelService.getAll()
+          this.allAvailableLabels = res.data || []
+        }
+        const configRes = await AdminService.getCategoryLabelConfig(category.id)
+        if (configRes.data) {
+          this.labelConfigData = {
+            labelMode: configRes.data.labelMode || this.CATEGORY_LABEL_MODES.ALL,
+            selectedLabelIds: configRes.data.selectedLabelIds || []
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching category label config:', error)
+        toastError('Lỗi khi tải cấu hình nhãn')
+      }
+    },
+    toggleLabelSelection(labelId) {
+      const idx = this.labelConfigData.selectedLabelIds.indexOf(labelId)
+      if (idx > -1) {
+        this.labelConfigData.selectedLabelIds.splice(idx, 1)
+      } else {
+        this.labelConfigData.selectedLabelIds.push(labelId)
+      }
+    },
+    selectAllLabels() {
+      this.labelConfigData.selectedLabelIds = this.allAvailableLabels.map(l => l.id)
+    },
+    unselectAllLabels() {
+      this.labelConfigData.selectedLabelIds = []
+    },
+    async saveLabelConfig() {
+      if (!this.selectedCategoryForLabels) return
+      this.savingLabelConfig = true
+      try {
+        await AdminService.updateCategoryLabelConfig(this.selectedCategoryForLabels.id, this.labelConfigData)
+        toastSuccess('Cập nhật cấu hình nhãn thành công')
+        this.showLabelModal = false
+      } catch (error) {
+        console.error('Error saving label config:', error)
+        toastError('Lỗi khi lưu cấu hình nhãn')
+      } finally {
+        this.savingLabelConfig = false
+      }
     }
   }
 }
@@ -636,5 +773,113 @@ export default {
   background-color: #3498db;
   color: #fff;
   border-color: #2980b9;
+}
+
+.label-btn {
+  background-color: #f39c12;
+  color: white;
+}
+.label-btn:hover {
+  background-color: #d68910;
+}
+.label-config-form {
+  padding: 1.5rem;
+}
+.label-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #f8fafc;
+  padding: 14px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #334155;
+  user-select: none;
+}
+.custom-labels-selection {
+  margin-top: 15px;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 15px;
+}
+.selection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.btn-tool-sm {
+  background-color: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: all 0.2s;
+}
+.btn-tool-sm:hover {
+  background-color: #cbd5e1;
+}
+.selection-count {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.labels-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+.label-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.label-check-item:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.label-check-item.is-checked {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+.label-preview-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-width: 1px;
+  border-style: solid;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-badge-mini {
+  font-size: 0.65rem;
+  background-color: #ef4444;
+  color: white;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
 }
 </style>

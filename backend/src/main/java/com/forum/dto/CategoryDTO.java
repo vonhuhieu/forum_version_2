@@ -11,6 +11,7 @@ public class CategoryDTO {
     private Integer positionOrder;
     private boolean active;
     private boolean onlyAdminCanPost;
+    private String labelMode;
     private Long categoryGroupId;
     private Long parentCategoryId;
     private Long threadCount;
