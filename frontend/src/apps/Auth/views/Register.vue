@@ -25,8 +25,8 @@
       <form @submit.prevent="handleRegister" class="login-form">
         <div class="form-group">
           <label>Tên hiển thị <span class="required">*</span></label>
-          <input v-model="displayName" required>
-          <small class="hint">Đây là tên hiển thị ở mỗi bài viết của bạn. Bạn có thể dùng bất cứ tên nào mình muốn. Một khi đã đặt thì không thể đổi.</small>
+          <input v-model="displayName" required :maxlength="DISPLAY_NAME_MAX_LENGTH">
+          <small class="hint">Đây là tên hiển thị ở mỗi bài viết của bạn. Bạn có thể dùng bất cứ tên nào mình muốn (tối đa {{ DISPLAY_NAME_MAX_LENGTH }} ký tự). Một khi đã đặt thì không thể đổi.</small>
         </div>
         <div class="form-group">
           <label>Email <span class="required">*</span></label>
@@ -88,6 +88,7 @@ import Loading from '@/shared/components/Loading.vue'
 import PasswordStrengthMeter from '@/shared/components/PasswordStrengthMeter.vue'
 import GoogleConfirmModal from '@/apps/Auth/components/GoogleConfirmModal.vue'
 import { redirectToGoogleOAuth } from '@/shared/utils/googleAuth'
+import { DISPLAY_NAME_MAX_LENGTH } from '@/shared/utils/constants'
 
 export default {
   name: 'Register',
@@ -107,7 +108,8 @@ export default {
       loading: false,
       turnstileWidgetId: null,
       turnstileToken: '',
-      showGoogleModal: false
+      showGoogleModal: false,
+      DISPLAY_NAME_MAX_LENGTH
     }
   },
   mounted() {

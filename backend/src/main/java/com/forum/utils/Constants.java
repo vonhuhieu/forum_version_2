@@ -83,4 +83,8 @@ public class Constants {
     public static final String DEFAULT_PROFANITY_FILTER_ENABLED = "true";
     public static final String SETTING_PROFANITY_CUSTOM_KEYWORDS = "profanity_custom_keywords";
     public static final String DEFAULT_PROFANITY_CUSTOM_KEYWORDS = "";
+
+    // Display Name Constraints
+    public static final int DISPLAY_NAME_MIN_LENGTH = 2;
+    public static final int DISPLAY_NAME_MAX_LENGTH = 25;
 }
