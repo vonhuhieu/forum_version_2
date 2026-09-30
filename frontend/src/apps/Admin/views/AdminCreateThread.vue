@@ -209,6 +209,7 @@
 import AdminService from '@/apps/Admin/services/admin.service'
 import { alertSuccess, alertError } from '@/shared/utils/swal'
 import labelService from '@/apps/Forum/services/label.service'
+import categoryService from '@/apps/Forum/services/category.service'
 import threadService from '@/apps/Forum/services/thread.service'
 import { THREAD_SCOPES } from '@/shared/utils/utils'
 import CustomEditor from '@/shared/components/CustomEditor.vue'
@@ -260,6 +261,26 @@ export default {
       if (!this.selectedGroupId) return [];
       const rawCategories = this.categories.filter(c => c.categoryGroupId == this.selectedGroupId);
       return this.formatCategoriesHierarchy(rawCategories);
+    }
+  },
+  watch: {
+    'form.categoryId': {
+      async handler(newVal) {
+        if (newVal) {
+          try {
+            const res = await categoryService.getLabels(newVal)
+            this.labels = res.data || []
+            if (this.form.labelId && !this.labels.some(l => l.id === this.form.labelId)) {
+              this.form.labelId = null
+              this.selectedLabel = null
+            }
+          } catch (e) {
+            console.error('Error fetching labels for category:', e)
+          }
+        } else {
+          this.fetchLabels()
+        }
+      }
     }
   },
   async mounted() {

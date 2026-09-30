@@ -32,6 +32,18 @@ public class Category {
     @Column(name = "only_admin_can_post", nullable = false)
     private boolean onlyAdminCanPost = false;
 
+    @Column(name = "label_mode", length = 20)
+    private String labelMode = com.forum.utils.Constants.CATEGORY_LABEL_MODE_ALL;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "category_labels",
+        joinColumns = @JoinColumn(name = "category_id"),
+        inverseJoinColumns = @JoinColumn(name = "label_id")
+    )
+    @OrderBy("id ASC")
+    private java.util.Set<Label> labels = new java.util.HashSet<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_group_id")
     private CategoryGroup categoryGroup;

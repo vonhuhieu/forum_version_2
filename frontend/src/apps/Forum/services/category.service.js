@@ -12,6 +12,10 @@ class CategoryService {
   getGroups() {
     return api.get('/category-groups')
   }
+
+  getLabels(categoryId) {
+    return api.get(`/categories/${categoryId}/labels`)
+  }
 }
 
 export default new CategoryService()

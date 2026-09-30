@@ -9,7 +9,7 @@
         <div class="card-header">ĐĂNG BÀI</div>
         <div class="post-form">
           <div class="title-row">
-            <div class="custom-select label-select">
+            <div class="custom-select label-select" v-if="filteredLabels && filteredLabels.length > 0">
               <div 
                 class="select-selected" 
                 @click="labelDropdownOpen = !labelDropdownOpen"
@@ -284,10 +284,16 @@ export default {
     },
     async fetchLabels() {
       try {
-        const response = await labelService.getAll()
-        this.labels = response.data
+        let response
+        if (this.catId) {
+          response = await categoryService.getLabels(this.catId)
+        } else {
+          response = await labelService.getAll()
+        }
+        this.labels = response.data || []
       } catch (error) {
         console.error('Error fetching labels:', error)
+        this.labels = []
       }
     },
     selectLabel(label) {
