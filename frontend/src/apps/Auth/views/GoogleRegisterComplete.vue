@@ -25,12 +25,12 @@
                 type="text" 
                 v-model="displayName" 
                 required 
-                maxlength="30"
+                :maxlength="DISPLAY_NAME_MAX_LENGTH"
                 placeholder="Nhập tên hiển thị bạn mong muốn..."
                 class="form-control"
               />
               <p class="field-hint">
-                Đây là tên sẽ hiển thị cùng các bài viết của bạn. Bạn có thể dùng bất cứ tên nào tùy thích.
+                Đây là tên sẽ hiển thị cùng các bài viết của bạn. Bạn có thể dùng bất cứ tên nào tùy thích (tối đa {{ DISPLAY_NAME_MAX_LENGTH }} ký tự).
               </p>
             </div>
           </div>
@@ -95,6 +95,7 @@ import AuthService from '@/apps/Auth/services/auth.service'
 import Loading from '@/shared/components/Loading.vue'
 import Breadcrumb from '@/shared/components/Breadcrumb.vue'
 import { toastSuccess } from '@/shared/utils/swal'
+import { DISPLAY_NAME_MAX_LENGTH } from '@/shared/utils/constants'
 
 export default {
   name: 'GoogleRegisterComplete',
@@ -110,7 +111,8 @@ export default {
       avatar: '',
       agreeTerms: true,
       error: '',
-      loading: false
+      loading: false,
+      DISPLAY_NAME_MAX_LENGTH
     }
   },
   computed: {
@@ -143,8 +145,8 @@ export default {
         return
       }
 
-      if (this.displayName.trim().length < 2 || this.displayName.trim().length > 30) {
-        this.error = 'Tên thành viên phải có từ 2 đến 30 ký tự.'
+      if (this.displayName.trim().length < 2 || this.displayName.trim().length > DISPLAY_NAME_MAX_LENGTH) {
+        this.error = `Tên thành viên phải có từ 2 đến ${DISPLAY_NAME_MAX_LENGTH} ký tự.`
         return
       }
 

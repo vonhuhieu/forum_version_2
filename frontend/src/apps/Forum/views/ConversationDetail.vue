@@ -1180,12 +1180,23 @@ export default {
   font-size: 1rem;
   text-align: center;
   margin-bottom: 5px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+.author-name-large :deep(.verified-badge-wrapper) {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 2px;
+  margin-right: 2px;
 }
 
 .author-title {
   font-size: 0.8rem;
   color: #7f8c8d;
   text-align: center;
+  word-break: break-word;
 }
 
 .post-main {
