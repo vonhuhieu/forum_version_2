@@ -26,27 +26,61 @@ echo " Thời gian:           $(date)"
 echo "======================================================"
 
 # Tự động nhận diện từ .env nếu không truyền tham số dòng lệnh
-if [ -z "$NEW_FRONTEND_DOMAIN" ] && [ -f "$ENV_FILE" ]; then
-    CURRENT_FE_URL=$(grep "^APP_FRONTEND_URL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
-    if [ -n "$CURRENT_FE_URL" ]; then
-        NEW_FRONTEND_DOMAIN=$(echo "$CURRENT_FE_URL" | sed -e 's|^https\?://||' -e 's|/.*$||')
-        echo "  [Tự động] Nhận diện Frontend Domain từ .env: $NEW_FRONTEND_DOMAIN"
+if [ -f "$ENV_FILE" ]; then
+    # 1. Nhận diện Frontend Domain nếu chưa có
+    if [ -z "$NEW_FRONTEND_DOMAIN" ]; then
+        # Thử lấy từ APP_FRONTEND_URL hoặc FRONTEND_URL
+        CURRENT_FE_URL=$(grep -E "^\s*(APP_)?FRONTEND_URL\s*=" "$ENV_FILE" 2>/dev/null | head -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
+        
+        # Nếu chưa có, thử lấy từ CORS_ALLOWED_ORIGINS
+        if [ -z "$CURRENT_FE_URL" ]; then
+            CURRENT_FE_URL=$(grep -E "^\s*(APP_)?CORS_ALLOWED_ORIGINS\s*=" "$ENV_FILE" 2>/dev/null | head -n 1 | cut -d'=' -f2- | cut -d',' -f1 | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
+        fi
+
+        # Nếu vẫn chưa có, thử lấy từ LAB_CORS_ALLOWED_ORIGINS
+        if [ -z "$CURRENT_FE_URL" ]; then
+            CURRENT_FE_URL=$(grep -E "^\s*LAB_CORS_ALLOWED_ORIGINS\s*=" "$ENV_FILE" 2>/dev/null | head -n 1 | cut -d'=' -f2- | cut -d',' -f1 | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
+        fi
+
+        # Nếu vẫn chưa có, trích xuất domain từ RESEND_FROM_EMAIL (VD: admin@hoptacxavuive.com -> hoptacxavuive.com)
+        if [ -z "$CURRENT_FE_URL" ]; then
+            MAIL_DOMAIN=$(grep -E "^\s*RESEND_FROM_EMAIL\s*=" "$ENV_FILE" 2>/dev/null | head -n 1 | cut -d'=' -f2- | cut -d'@' -f2 | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
+            if [ -n "$MAIL_DOMAIN" ]; then
+                CURRENT_FE_URL="https://$MAIL_DOMAIN"
+            fi
+        fi
+
+        if [ -n "$CURRENT_FE_URL" ]; then
+            NEW_FRONTEND_DOMAIN=$(echo "$CURRENT_FE_URL" | sed -e 's|^https\?://||' -e 's|/.*$||')
+            echo "  [Tự động] Nhận diện Frontend Domain từ .env: $NEW_FRONTEND_DOMAIN"
+        fi
+    fi
+
+    # 2. Nhận diện API Domain nếu chưa có
+    if [ -z "$NEW_API_DOMAIN" ] && [ -n "$NEW_FRONTEND_DOMAIN" ]; then
+        ROOT_DOMAIN=$(echo "$NEW_FRONTEND_DOMAIN" | sed -e 's/^www\.//')
+        NEW_API_DOMAIN="api.${ROOT_DOMAIN}"
+        echo "  [Tự động] Nhận diện API Domain: $NEW_API_DOMAIN"
+    fi
+
+    # 3. Nhận diện Email Certbot nếu chưa có
+    if [ -z "$CERTBOT_EMAIL" ]; then
+        CURRENT_EMAIL=$(grep -E "^\s*RESEND_FROM_EMAIL\s*=" "$ENV_FILE" 2>/dev/null | head -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
+        if [ -n "$CURRENT_EMAIL" ]; then
+            CERTBOT_EMAIL="$CURRENT_EMAIL"
+            echo "  [Tự động] Nhận diện Email Certbot từ .env: $CERTBOT_EMAIL"
+        fi
     fi
 fi
 
-if [ -z "$NEW_API_DOMAIN" ] && [ -n "$NEW_FRONTEND_DOMAIN" ]; then
-    ROOT_DOMAIN=$(echo "$NEW_FRONTEND_DOMAIN" | sed -e 's/^www\.//')
-    NEW_API_DOMAIN="api.${ROOT_DOMAIN}"
-    echo "  [Tự động] Nhận diện API Domain: $NEW_API_DOMAIN"
-fi
-
-if [ -z "$CERTBOT_EMAIL" ] && [ -f "$ENV_FILE" ]; then
-    CURRENT_EMAIL=$(grep "^RESEND_FROM_EMAIL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
-    if [ -n "$CURRENT_EMAIL" ]; then
-        CERTBOT_EMAIL="$CURRENT_EMAIL"
-        echo "  [Tự động] Nhận diện Email Certbot từ .env: $CERTBOT_EMAIL"
-    fi
-fi
+# In thông tin cấu hình sau khi nhận diện
+echo "------------------------------------------------------"
+echo " Cấu hình áp dụng:"
+echo "   - API Domain:          $NEW_API_DOMAIN"
+echo "   - Frontend Domain:     $NEW_FRONTEND_DOMAIN"
+echo "   - Lab API Domain:      ${NEW_LAB_API_DOMAIN:-lab-api.$(echo "$NEW_FRONTEND_DOMAIN" | sed -e 's/^www\.//')}"
+echo "   - Email Certbot:       ${CERTBOT_EMAIL:-chưa có (dùng register-unsafely-without-email)}"
+echo "------------------------------------------------------"
 
 # Kiểm tra tham số bắt buộc
 if [ -z "$NEW_API_DOMAIN" ] || [ -z "$NEW_FRONTEND_DOMAIN" ]; then
