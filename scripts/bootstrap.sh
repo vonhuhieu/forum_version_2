@@ -174,10 +174,20 @@ for i in $(seq 1 12); do
 done
 
 # ------------------------------------------------------------------------------
-# BƯỚC 7: Cấu hình Nginx làm Reverse Proxy
+# BƯỚC 7: Cấu hình Nginx làm Reverse Proxy cho API & Lab API
 # ------------------------------------------------------------------------------
 echo ""
-echo "[7/9] Cấu hình Nginx..."
+echo "[7/9] Cấu hình Nginx cho $DOMAIN và Lab Subdomain..."
+
+if [[ "$DOMAIN" == api.* ]]; then
+    ROOT_DOMAIN="${DOMAIN#api.}"
+else
+    ROOT_DOMAIN="$DOMAIN"
+fi
+ROOT_DOMAIN="${ROOT_DOMAIN#.}"
+LAB_DOMAIN="lab-api.${ROOT_DOMAIN}"
+
+# Vhost 1: Backend chính (port 8080)
 cat > /etc/nginx/sites-available/forum << EOF
 server {
     listen 80;
@@ -205,27 +215,53 @@ server {
 }
 EOF
 
+# Vhost 2: Lab microservice (port 8081, tắt buffering cho SSE)
+cat > /etc/nginx/sites-available/forum-lab << EOF
+server {
+    listen 80;
+    server_name $LAB_DOMAIN;
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Hỗ trợ SSE (Server-Sent Events) cho Chat AI
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+        proxy_set_header Connection '';
+    }
+}
+EOF
+
 # Kích hoạt cấu hình và tắt default
 ln -sf /etc/nginx/sites-available/forum /etc/nginx/sites-enabled/forum
+ln -sf /etc/nginx/sites-available/forum-lab /etc/nginx/sites-enabled/forum-lab
 rm -f /etc/nginx/sites-enabled/default
 
 # Kiểm tra cấu hình Nginx trước khi reload
 nginx -t
 systemctl restart nginx
-echo "OK: Nginx đã được cấu hình và khởi động."
+echo "OK: Nginx đã được cấu hình và khởi động cho cả $DOMAIN và $LAB_DOMAIN."
 
 # ------------------------------------------------------------------------------
 # BƯỚC 8: Cấp SSL bằng Certbot
 # ------------------------------------------------------------------------------
 echo ""
-echo "[8/10] Cấp chứng chỉ SSL cho $DOMAIN..."
+echo "[8/10] Cấp chứng chỉ SSL cho $DOMAIN và $LAB_DOMAIN..."
 if [ -z "$CERTBOT_EMAIL" ]; then
     echo "CẢNH BÁO: Biến môi trường CERTBOT_EMAIL chưa được cung cấp!"
-    echo "Bỏ qua bước cấp SSL. Con cần chạy thủ công: certbot --nginx -d $DOMAIN"
+    echo "Bỏ qua bước cấp SSL. Con cần chạy thủ công: certbot --nginx -d $DOMAIN -d $LAB_DOMAIN"
 else
     # Thử cấp SSL, nếu Cloudflare proxy đang bật có thể cần chờ DNS propagate
     certbot --nginx \
         -d "$DOMAIN" \
+        -d "$LAB_DOMAIN" \
         --non-interactive \
         --agree-tos \
         -m "$CERTBOT_EMAIL" \

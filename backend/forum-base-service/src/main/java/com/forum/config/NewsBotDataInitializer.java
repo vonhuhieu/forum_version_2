@@ -39,6 +39,7 @@ public class NewsBotDataInitializer implements CommandLineRunner {
     public void run(String... args) {
         try {
             initMenu();
+            initLabMenu();
             initLabel();
             UserTitle newsTitle = initUserTitle();
             initBotUser(newsTitle);
@@ -66,6 +67,21 @@ public class NewsBotDataInitializer implements CommandLineRunner {
             Menu newMenu = new Menu(null, Constants.MENU_NEWS_TITLE, Constants.MENU_NEWS_URL, Constants.MENU_NEWS_ORDER, true);
             menuRepository.save(newMenu);
             log.info("Đã tạo mới Menu Điểm tin.");
+        }
+    }
+
+    private void initLabMenu() {
+        Menu menu = menuRepository.findByUrl(Constants.MENU_LAB_URL).orElse(null);
+        if (menu != null) {
+            menu.setTitle(Constants.MENU_LAB_TITLE);
+            menu.setUrl(Constants.MENU_LAB_URL);
+            menu.setActive(true);
+            menuRepository.save(menu);
+            log.info("Đã cập nhật Menu Phòng thí nghiệm (id: {}) thành công.", menu.getId());
+        } else {
+            Menu newMenu = new Menu(null, Constants.MENU_LAB_TITLE, Constants.MENU_LAB_URL, Constants.MENU_LAB_ORDER, true);
+            menuRepository.save(newMenu);
+            log.info("Đã tạo mới Menu Phòng thí nghiệm.");
         }
     }
 

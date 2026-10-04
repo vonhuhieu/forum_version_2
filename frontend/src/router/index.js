@@ -78,6 +78,25 @@ const routes = [
         meta: { title: 'Điểm Tin Thời Sự & Đàm Đạo | HỢP TÁC XÃ VUI VẺ' }
       },
       {
+        path: 'phong-thi-nghiem',
+        name: 'LabChat',
+        component: () => import('@/apps/Lab/views/LabChatView.vue'),
+        alias: ['lab'],
+        meta: { title: 'Phòng Thí Nghiệm AI | HỢP TÁC XÃ VUI VẺ' }
+      },
+      {
+        path: 'lab/san-pham',
+        name: 'MyProducts',
+        component: () => import('@/apps/Lab/views/MyProductsView.vue'),
+        meta: { requiresAuth: true, title: 'Sản Phẩm Của Tôi | Phòng Thí Nghiệm' }
+      },
+      {
+        path: 'lab/san-pham/:publicId/du-lieu',
+        name: 'ProductDatasetConfig',
+        component: () => import('@/apps/Lab/views/ProductDatasetConfigView.vue'),
+        meta: { requiresAuth: true, title: 'Cấu Hình Dữ Liệu | Phòng Thí Nghiệm' }
+      },
+      {
         path: 'category/:id',
         name: 'CategoryDetail',
         component: CategoryView
@@ -171,6 +190,12 @@ const routes = [
         meta: { guestOnly: true }
       }
     ]
+  },
+  {
+    path: '/lab/p/:publicId',
+    name: 'ProductPlayer',
+    component: () => import('@/apps/Lab/views/ProductPlayerView.vue'),
+    meta: { title: 'Trải Nghiệm Sản Phẩm | Phòng Thí Nghiệm' }
   },
   {
     path: '/login',
