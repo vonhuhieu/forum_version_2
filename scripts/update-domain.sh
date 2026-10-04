@@ -25,9 +25,32 @@ echo " Frontend Domain Mới: $NEW_FRONTEND_DOMAIN"
 echo " Thời gian:           $(date)"
 echo "======================================================"
 
+# Tự động nhận diện từ .env nếu không truyền tham số dòng lệnh
+if [ -z "$NEW_FRONTEND_DOMAIN" ] && [ -f "$ENV_FILE" ]; then
+    CURRENT_FE_URL=$(grep "^APP_FRONTEND_URL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+    if [ -n "$CURRENT_FE_URL" ]; then
+        NEW_FRONTEND_DOMAIN=$(echo "$CURRENT_FE_URL" | sed -e 's|^https\?://||' -e 's|/.*$||')
+        echo "  [Tự động] Nhận diện Frontend Domain từ .env: $NEW_FRONTEND_DOMAIN"
+    fi
+fi
+
+if [ -z "$NEW_API_DOMAIN" ] && [ -n "$NEW_FRONTEND_DOMAIN" ]; then
+    ROOT_DOMAIN=$(echo "$NEW_FRONTEND_DOMAIN" | sed -e 's/^www\.//')
+    NEW_API_DOMAIN="api.${ROOT_DOMAIN}"
+    echo "  [Tự động] Nhận diện API Domain: $NEW_API_DOMAIN"
+fi
+
+if [ -z "$CERTBOT_EMAIL" ] && [ -f "$ENV_FILE" ]; then
+    CURRENT_EMAIL=$(grep "^RESEND_FROM_EMAIL=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+    if [ -n "$CURRENT_EMAIL" ]; then
+        CERTBOT_EMAIL="$CURRENT_EMAIL"
+        echo "  [Tự động] Nhận diện Email Certbot từ .env: $CERTBOT_EMAIL"
+    fi
+fi
+
 # Kiểm tra tham số bắt buộc
 if [ -z "$NEW_API_DOMAIN" ] || [ -z "$NEW_FRONTEND_DOMAIN" ]; then
-    echo "LỖI: Thiếu tham số tên miền mới!"
+    echo "LỖI: Không tìm thấy thông tin tên miền trong file .env hoặc tham số dòng lệnh!"
     echo "Sử dụng: NEW_API_DOMAIN=api.example.com NEW_FRONTEND_DOMAIN=example.com [CERTBOT_EMAIL=email] $0"
     exit 1
 fi
