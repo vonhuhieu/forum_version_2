@@ -13,6 +13,7 @@ Hệ thống forum gồm 2 thành phần chính:
 |:---|:---|:---|:---|
 | **Frontend** | Vercel Global Edge CDN | `hoptacxavuive.com` & `www.hoptacxavuive.com` | Giao diện Vue.js SPA |
 | **Backend API** | VPS Ubuntu Docker | `api.hoptacxavuive.com` | Spring Boot REST API, WebSocket, File Uploads `/uploads/` |
+| **Lab AI API** | VPS Ubuntu Docker | `lab-api.hoptacxavuive.com` | AI Lab Service, LLM Streaming, Code Runner, MongoDB |
 
 ---
 
@@ -25,12 +26,13 @@ Vào trang quản trị Cloudflare của tên miền mới (VD: `hoptacxavuive.c
 
 | Type | Name | Target / IPv4 | Proxy status | Mục đích |
 |:---|:---|:---|:---|:---|
-| **A** | `api` | `<IP_VPS>` (VD: `180.93.111.191`) | **DNS only** (Xám) ⚠️ | Trỏ Subdomain API về VPS. *Bắt buộc tắt proxy cam lúc đầu để Certbot cấp SSL*. |
+| **A** | `api` | `<IP_VPS>` (VD: `180.93.111.191`) | **DNS only** (Xám) ⚠️ | Trỏ Subdomain API diễn đàn về VPS. *Bắt buộc tắt proxy cam lúc đầu để Certbot cấp SSL*. |
+| **A** | `lab-api` | `<IP_VPS>` (VD: `180.93.111.191`) | **DNS only** (Xám) ⚠️ | Trỏ Subdomain AI Lab Service về VPS. *Bắt buộc tắt proxy cam lúc đầu để Certbot cấp SSL*. |
 | **CNAME** | `@` | `cname.vercel-dns.com` | **DNS only** (Xám) | Trỏ domain chính về Vercel |
 | **CNAME** | `www` | `cname.vercel-dns.com` | **DNS only** (Xám) | Trỏ subdomain www về Vercel |
 
 > [!WARNING]
-> Bản ghi `A` của `api` **bắt buộc phải để DNS only (đám mây xám)** trong lần chạy đầu tiên để Certbot Let's Encrypt trên VPS có thể xác thực domain qua HTTP-01 challenge cổng 80 thành công.
+> Bản ghi `A` của `api` và `lab-api` **bắt buộc phải để DNS only (đám mây xám)** trong lần chạy đầu tiên để Certbot Let's Encrypt trên VPS có thể xác thực domain qua HTTP-01 challenge cổng 80 thành công. Sau khi Certbot cấp xong SSL, con có thể bật lại Proxy cam (Proxied) trên Cloudflare.
 
 ---
 
@@ -137,10 +139,16 @@ Sau khi GitHub Actions báo xanh lá (Success):
 - [ ] Truy cập `https://api.hoptacxavuive.com/api/settings/public` trên trình duyệt:
   - Có ổ khóa bảo mật màu xanh (SSL Let's Encrypt).
   - Trả về dữ liệu JSON cấu hình diễn đàn không báo lỗi.
+- [ ] Truy cập `https://lab-api.hoptacxavuive.com/api/lab/products` trên trình duyệt:
+  - Có ổ khóa bảo mật màu xanh (SSL Let's Encrypt).
+  - Trả về danh sách sản phẩm Lab mẫu hoặc rỗng (HTTP 200).
 - [ ] Truy cập `https://hoptacxavuive.com`:
   - Diễn đàn tải nhanh, favicon và giao diện hiển thị đúng.
   - Mở DevTools (F12) > Tab Network: Các request API đều gọi về `https://api.hoptacxavuive.com/api/...` với mã HTTP 200.
   - Tab Console: Không có lỗi CORS hoặc lỗi kết nối WebSocket.
+- [ ] Truy cập mục **Phòng Thí Nghiệm** (`https://hoptacxavuive.com/phong-thi-nghiem`):
+  - Danh sách AI Playground, Lab cards tải đầy đủ từ `lab-api`.
+  - Thử tương tác tính năng AI Prompt Stream / Runner kiểm tra kết nối LLM Provider.
 - [ ] Thử đăng nhập tài khoản và tạo một bài viết mới có đính kèm ảnh:
   - Ảnh upload thành công và hiển thị rõ ràng.
 - [ ] **Cloudflare Turnstile:**

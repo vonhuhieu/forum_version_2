@@ -9,13 +9,15 @@ Tài liệu này tổng hợp toàn bộ kiến trúc, quy trình vận hành v�
 | Thành phần | Công nghệ / Nền tảng | Vai trò & Đặc điểm |
 | :--- | :--- | :--- |
 | **Frontend** | Vue.js SPA trên **Vercel** | CDN toàn cầu, chứng chỉ SSL tự động, domain chính `htxslvn.com`. |
-| **Backend** | Spring Boot Java 17 trong **Docker** | Chạy độc lập trên VPS Ubuntu 24.04 (service `backend`), kết nối qua domain `api.htxslvn.com`. |
-| **Database** | **Docker MySQL 8.0** | Lưu trữ dữ liệu nội bộ trong mạng ảo Docker, dữ liệu lưu bền vững qua Volume `mysql_data`. |
+| **Backend Chính** | Spring Boot Java 17 trong **Docker** | Chạy độc lập trên VPS Ubuntu 24.04 (service `backend` :8080), kết nối qua domain `api.htxslvn.com`. |
+| **Lab Microservice** | Spring Boot Java 17 trong **Docker** | Service xử lý AI Chatbot & tương tác game (service `lab-service` :8081), kết nối qua `lab-api.htxslvn.com`. |
+| **Database Quan Hệ** | **Docker MySQL 8.0** | Lưu trữ dữ liệu diễn đàn chính trong mạng ảo Docker, dữ liệu lưu bền vững qua Volume `mysql_data`. |
+| **Database Tài Liệu** | **Docker MongoDB 7.0** | Lưu trữ dữ liệu động (chat sessions, messages, products, datasets) cho Lab qua Volume `mongo_data`. |
 | **Search Engine** | **Docker OpenSearch 2.19.0** | Tìm kiếm full-text tiếng Việt tốc độ cao, lưu qua Volume `opensearch_data`. |
-| **Reverse Proxy** | **Nginx + Let's Encrypt SSL** | Cổng vào duy nhất của VPS, định tuyến API `/` tới Spring Boot (8080) và cấp phát trực tiếp file tĩnh `/uploads/`. |
-| **DNS & Anti-DDoS** | **Cloudflare** | Quản lý bản ghi DNS, ẩn IP gốc máy chủ (Proxied / Đám mây cam), lọc DDoS / WAF. |
-| **Sao Lưu Tự Động** | **Cron Job + Rclone + Google Drive** | Nén Database + thư mục Uploads lúc 02:00 sáng hàng ngày và đẩy lên Google Drive. |
-| **CI/CD Tự Động Hóa**| **GitHub Actions** | 2 Workflows: Deploy code hàng ngày (`deploy-vps.yml`) và Khởi tạo VPS tự động (`vps-bootstrap.yml`). |
+| **Reverse Proxy** | **Nginx + Let's Encrypt SSL** | Cổng vào duy nhất của VPS, định tuyến `api.*` tới Spring Boot (8080), `lab-api.*` tới Lab (:8081 SSE stream) và cấp phát tĩnh `/uploads/`. |
+| **DNS & Anti-DDoS** | **Cloudflare** | Quản lý bản ghi DNS (`api`, `lab-api`), ẩn IP gốc máy chủ (Proxied / Đám mây cam), lọc DDoS / WAF. |
+| **Sao Lưu Tự Động** | **Cron Job + Rclone + Google Drive** | Nén MySQL + MongoDB (`mongo.archive.gz`) + thư mục Uploads lúc 02:00 sáng hàng ngày và đẩy lên Google Drive. |
+| **CI/CD Tự Động Hóa**| **GitHub Actions** | 3 Workflows: Deploy backend (`deploy-vps.yml`), Deploy Lab (`deploy-lab.yml`) và Khởi tạo VPS tự động (`vps-bootstrap.yml`). |
 
 ---
 
@@ -31,7 +33,7 @@ Tài liệu này tổng hợp toàn bộ kiến trúc, quy trình vận hành v�
 | `DOMAIN_NAME` | Subdomain API trỏ về VPS | `${APP_API_DOMAIN}` | Cố định (1 lần) |
 | `GDRIVE_BACKUP_FOLDER` | Tên thư mục chứa backup trên Google Drive | `${GDRIVE_BACKUP_FOLDER}` | Cố định (1 lần) |
 | `CERTBOT_EMAIL` | Email đăng ký chứng chỉ SSL Let's Encrypt | `${YOUR_EMAIL_FOR_SSL}` | Cố định (1 lần) |
-| `VPS_ENV_FILE` | Toàn bộ nội dung file `.env` (chứa `JWT_SECRET`, `RESEND_API_KEY`...) đã mã hóa **base64** | Chuỗi base64 (xem mục 3.1) | Cố định (1 lần) |
+| `VPS_ENV_FILE` | Toàn bộ nội dung file `.env` (chứa `JWT_SECRET`, các API key AI...) đã mã hóa **base64** | Chuỗi base64 (xem mục 3.1) | Cố định (1 lần) |
 | `RCLONE_CONF` | Toàn bộ nội dung file `~/.config/rclone/rclone.conf` kết nối Google Drive đã mã hóa **base64** | Chuỗi base64 (xem mục 3.2) | Cố định (1 lần) |
 
 ---
@@ -52,9 +54,17 @@ APP_FRONTEND_URL=https://hoptacxavuive.com
 APP_CORS_ALLOWED_ORIGINS=https://hoptacxavuive.com,https://www.hoptacxavuive.com
 RESEND_FROM_EMAIL=admin@hoptacxavuive.com
 
+# --- AI Lab Microservice Configuration ---
+LAB_CORS_ALLOWED_ORIGINS=https://hoptacxavuive.com,https://www.hoptacxavuive.com
+# Chuỗi Fallback 3 nhà cung cấp LLM miễn phí (Gemini -> Groq -> OpenRouter -> Mock):
+LAB_GEMINI_API_KEY=AIzaSy...              # Lấy miễn phí tại Google AI Studio (aistudio.google.com)
+LAB_GROQ_API_KEY=gsk_...                  # Lấy miễn phí tại Groq Console (console.groq.com)
+LAB_OPENROUTER_API_KEY=sk-or-v1-...       # Lấy miễn phí tại OpenRouter (openrouter.ai/settings/keys)
+
 "@
 
 [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($envText))
+```
 ```
 👉 Copy toàn bộ output dán vào GitHub Secret `VPS_ENV_FILE`.
 
@@ -78,7 +88,8 @@ Khi VPS cũ bị chết hoặc con đổi sang nhà cung cấp VPS mới, toàn 
 
 ```
 Bước 1: Trỏ DNS trên Cloudflare
-  └─ Vào Cloudflare > DNS > Sửa bản ghi A "api" -> IP VPS mới (Bật đám mây cam Proxied)
+  ├─ Sửa bản ghi A "api" -> IP VPS mới (Bật đám mây cam Proxied)
+  └─ Sửa/Thêm bản ghi A "lab-api" -> IP VPS mới (Bật đám mây cam Proxied)
 
 Bước 2: Cập nhật GitHub Secrets
   └─ Cập nhật VPS_HOST (IP mới) và VPS_PASSWORD (mật khẩu mới)
@@ -95,24 +106,25 @@ Bước 3: Kích hoạt Workflow Bootstrap
   │     ├─ Cài Docker, Nginx, Certbot, Rclone
   │     ├─ Cấu hình vm.max_map_count=262144 (OpenSearch)
   │     ├─ Giải mã VPS_ENV_FILE thành /var/www/forum/.env
-  │     ├─ Khởi động MySQL 8.0 & OpenSearch 2.19.0 qua Docker Compose
-  │     ├─ Cấu hình Nginx Reverse Proxy (/api -> 8080, /uploads -> thư mục tĩnh)
-  │     ├─ Cấp phát chứng chỉ SSL Let's Encrypt qua Certbot
+  │     ├─ Khởi động MySQL 8.0, OpenSearch 2.19.0, MongoDB 7.0 qua Docker Compose
+  │     ├─ Cấu hình Nginx Reverse Proxy (api -> 8080, lab-api -> 8081 SSE, /uploads -> tĩnh)
+  │     ├─ Cấp phát chứng chỉ SSL Let's Encrypt kép (api & lab-api) qua Certbot
   │     └─ Tự động đăng ký Cron Job backup hàng ngày (02:00 AM)
   │
   ├── 2. Job Restore (Khôi phục dữ liệu)
   │     ├─ Giải mã RCLONE_CONF kết nối Google Drive
   │     ├─ Tự động tìm file backup .tar.gz mới nhất trong thư mục Google Drive
-  │     ├─ Tải về và giải nén (tự động nhận diện cấu trúc file .sql và folder uploads/)
+  │     ├─ Tải về và giải nén (nhận diện db.sql, mongo.archive.gz và folder uploads/)
   │     ├─ Nạp toàn bộ dữ liệu vào MySQL container forum-mysql
+  │     ├─ Khôi phục toàn bộ dữ liệu vào MongoDB container forum-mongo (mongorestore)
   │     ├─ Phục hồi toàn bộ ảnh vào thư mục /var/www/forum/uploads/
   │     └─ Dọn dẹp các file nén tạm thời
   │
   └── 3. Job Deploy (Khởi chạy ứng dụng)
-        ├─ Biên dịch mã nguồn Spring Boot bằng Maven (JDK 17)
-        ├─ Đẩy app.jar lên VPS và khởi động container forum-backend
-        ├─ Kiểm tra Healthcheck (/api/settings/public)
-        ├─ Tự động chạy DatabaseSchemaPatcher vá các bảng/cột còn thiếu
+        ├─ Biên dịch mã nguồn Spring Boot Forum Base & Lab Service (JDK 17)
+        ├─ Đẩy app.jar & lab-service.jar lên VPS, khởi động container forum-backend & lab-service
+        ├─ Kiểm tra Healthcheck (/api/settings/public và /api/lab/public/...)
+        ├─ Tự động chạy DatabaseSchemaPatcher vá các bảng/cột MySQL còn thiếu
         └─ Kích hoạt tiến trình đồng bộ và tái lập chỉ mục (Reindex) OpenSearch
 ```
 
