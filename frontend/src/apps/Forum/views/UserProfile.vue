@@ -14,10 +14,21 @@
             <!-- Vùng ảnh bìa (banner) - Chỉ hiển thị nếu có ảnh bìa -->
             <div 
               v-if="userStats.profileBanner"
-              class="profile-banner-area" 
+              class="profile-banner-area clickable-banner" 
               :style="{ backgroundImage: `url(${formatAvatarUrl(userStats.profileBanner)})` }"
+              @click="handleBannerClick"
+              title="Bấm để xem ảnh bìa kích thước đầy đủ"
             >
               <div class="banner-overlay-gradient"></div>
+              <div class="banner-zoom-hint">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+                <span>Xem ảnh bìa</span>
+              </div>
             </div>
             
             <!-- Thông tin tài khoản phía trên (nằm ngoài banner) -->
@@ -25,14 +36,48 @@
               class="profile-info-upper no-pt-mobile" 
               :class="{ 'text-white': !!userStats.profileBanner, 'positioned-absolute': !!userStats.profileBanner }"
             >
-              <div class="profile-avatar-wrapper" :class="{ 'clickable': isCurrentUser }" @click="isCurrentUser && openUploadModal('avatar')">
-                <img v-if="isAvatarUrl(userStats.avatar)" :src="formatAvatarUrl(userStats.avatar)" class="profile-avatar-img" />
-                <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
-                  {{ userInitial }}
+              <div class="avatar-container-relative" ref="avatarContainerRef">
+                <div 
+                  class="profile-avatar-wrapper clickable" 
+                  @click="handleAvatarClick"
+                  :title="isCurrentUser ? 'Tùy chọn ảnh đại diện' : 'Bấm để xem ảnh đại diện'"
+                >
+                  <img v-if="isAvatarUrl(userStats.avatar)" :src="formatAvatarUrl(userStats.avatar)" class="profile-avatar-img" />
+                  <div v-else class="profile-avatar-placeholder" :style="{ backgroundColor: userStats.avatar || '#1a507a' }">
+                    {{ userInitial }}
+                  </div>
+                  <div v-if="isCurrentUser" class="avatar-edit-overlay">
+                    <span>Tùy chọn</span>
+                  </div>
                 </div>
-                <div v-if="isCurrentUser" class="avatar-edit-overlay">
-                  <span>Sửa</span>
+
+                <!-- Icon camera ở góc avatar cho chính mình -->
+                <div v-if="isCurrentUser" class="avatar-camera-badge" @click="handleAvatarClick" title="Tùy chọn ảnh đại diện">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
                 </div>
+
+                <!-- Action Popover tùy chọn cho chính mình -->
+                <transition name="popover-fade">
+                  <div v-if="isCurrentUser && showAvatarMenu" class="avatar-action-popover" @click.stop>
+                    <button class="popover-item" @click="viewOwnAvatar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <span>Xem ảnh đại diện</span>
+                    </button>
+                    <button class="popover-item" @click="editOwnAvatar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      <span>Cập nhật ảnh đại diện</span>
+                    </button>
+                  </div>
+                </transition>
               </div>
 
               <div class="profile-meta-details">
@@ -54,7 +99,7 @@
                     <button class="btn-banner-action fs-9" @click="handleBlock">Chặn</button>
                     <button class="btn-banner-action fs-9" @click="startConversation">Bắt đầu đối thoại</button>
                   </template>
-                  <button v-else class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal('banner')">
+                  <button v-else class="btn-banner-action btn-banner-edit fs-9" @click="openUploadModal(UPLOAD_MODES.BANNER)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                       <circle cx="12" cy="13" r="4"></circle>
@@ -92,7 +137,7 @@
             <!-- Khối nút hành động dàn ngang trên Mobile khi xem trang cá nhân của chính mình -->
             <div class="profile-mobile-actions" v-else>
               <button class="btn-mobile-action" @click="triggerReport">Báo cáo</button>
-              <button class="btn-mobile-action btn-banner-edit" @click="openUploadModal('banner')">
+              <button class="btn-mobile-action btn-banner-edit" @click="openUploadModal(UPLOAD_MODES.BANNER)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                   <circle cx="12" cy="13" r="4"></circle>
@@ -393,7 +438,7 @@ import api from '@/shared/services/api.service'
 import userMixin from '@/shared/mixins/user.mixin.js'
 import editorAttachmentMixin from '@/shared/mixins/editorAttachment.mixin.js'
 import imageLightboxMixin from '@/shared/mixins/imageLightbox.mixin.js'
-import { ROLES } from '@/shared/utils/constants'
+import { ROLES, UPLOAD_MODES } from '@/shared/utils/constants'
 
 export default {
   name: 'UserProfile',
@@ -421,7 +466,9 @@ export default {
       totalPages: 1,
       itemsPerPage: 10,
       showUploadModal: false,
-      uploadMode: 'avatar', // 'avatar' | 'banner'
+      uploadMode: UPLOAD_MODES.AVATAR,
+      showAvatarMenu: false,
+      UPLOAD_MODES,
       isFollowing: false,
       loadingFollow: false,
 
@@ -507,9 +554,11 @@ export default {
   },
   mounted() {
     window.addEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    document.addEventListener('click', this.handleDocumentClick)
   },
   beforeUnmount() {
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated)
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
     formatAvatarUrl(avatar) {
@@ -658,6 +707,39 @@ export default {
     openUploadModal(mode) {
       this.uploadMode = mode
       this.showUploadModal = true
+    },
+    handleBannerClick() {
+      if (this.userStats && this.userStats.profileBanner) {
+        this.openLightbox(this.formatAvatarUrl(this.userStats.profileBanner))
+      }
+    },
+    handleAvatarClick() {
+      if (!this.isCurrentUser) {
+        if (this.isAvatarUrl(this.userStats?.avatar)) {
+          this.openLightbox(this.formatAvatarUrl(this.userStats.avatar))
+        }
+      } else {
+        if (!this.isAvatarUrl(this.userStats?.avatar)) {
+          this.openUploadModal(this.UPLOAD_MODES.AVATAR)
+        } else {
+          this.showAvatarMenu = !this.showAvatarMenu
+        }
+      }
+    },
+    viewOwnAvatar() {
+      this.showAvatarMenu = false
+      if (this.isAvatarUrl(this.userStats?.avatar)) {
+        this.openLightbox(this.formatAvatarUrl(this.userStats.avatar))
+      }
+    },
+    editOwnAvatar() {
+      this.showAvatarMenu = false
+      this.openUploadModal(this.UPLOAD_MODES.AVATAR)
+    },
+    handleDocumentClick(e) {
+      if (this.showAvatarMenu && this.$refs.avatarContainerRef && !this.$refs.avatarContainerRef.contains(e.target)) {
+        this.showAvatarMenu = false
+      }
     },
     async loadProfileData() {
       this.loading = true
@@ -1017,6 +1099,34 @@ export default {
   padding: 1.5rem;
 }
 
+.clickable-banner {
+  cursor: pointer;
+}
+.clickable-banner:hover .banner-zoom-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+.banner-zoom-hint {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+
 @media (max-width: 767px) {
   .profile-banner-area {
     height: 160px;
@@ -1091,6 +1201,13 @@ export default {
   }
 }
 
+.avatar-container-relative {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  z-index: 12;
+}
+
 .profile-avatar-wrapper {
   position: relative;
   left: auto;
@@ -1110,6 +1227,98 @@ export default {
 
 .profile-avatar-wrapper.clickable {
   cursor: pointer;
+}
+
+.avatar-camera-badge {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  width: 36px;
+  height: 36px;
+  background: #1a507a;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  cursor: pointer;
+  z-index: 15;
+  transition: all 0.2s ease;
+}
+
+.avatar-camera-badge:hover {
+  background: #143d5d;
+  transform: scale(1.08);
+}
+
+.avatar-action-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #dce2e6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 210px;
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.avatar-action-popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-left: 1px solid #dce2e6;
+  border-top: 1px solid #dce2e6;
+}
+
+.popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #2c3e50;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.popover-item:hover {
+  background: #edf6fd;
+  color: #1a507a;
+}
+
+.popover-item svg {
+  color: #1a507a;
+  flex-shrink: 0;
+}
+
+.popover-fade-enter-active,
+.popover-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.popover-fade-enter-from,
+.popover-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
 }
 
 .profile-avatar-wrapper:hover .avatar-edit-overlay {
@@ -1277,6 +1486,32 @@ export default {
 
   .profile-avatar-placeholder {
     font-size: 2.2rem;
+  }
+
+  .avatar-camera-badge {
+    right: 2px;
+    bottom: 2px;
+    width: 28px;
+    height: 28px;
+    border-width: 2px;
+  }
+  .avatar-camera-badge svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .avatar-action-popover {
+    left: 0;
+    transform: none;
+  }
+  .avatar-action-popover::before {
+    left: 45px;
+    transform: rotate(45deg);
+  }
+  .popover-fade-enter-from,
+  .popover-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
   }
 
   .profile-meta-details {

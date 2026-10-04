@@ -150,7 +150,7 @@
               <div class="filter-dropdown" v-if="filterDropdownOpen" @click.stop>
                 <div class="filter-dropdown-header">Chỉ hiện:</div>
                 <div class="filter-dropdown-body">
-                  <div class="filter-field-group">
+                  <div class="filter-field-group" v-if="allLabels && allLabels.length > 0">
                     <label class="filter-field-label">Nhãn:</label>
                     <div class="custom-select filter-label-select">
                       <div 
@@ -743,11 +743,11 @@ export default {
       this.loading = true
       const categoryId = this.$route.params.id
       try {
-        // Fetch tất cả chuyên mục, nhóm và nhãn
+        // Fetch tất cả chuyên mục, nhóm và nhãn theo chuyên mục
         const [catRes, groupRes, labelRes] = await Promise.all([
           categoryService.getAll(),
           categoryService.getGroups(),
-          labelService.getAll()
+          categoryService.getLabels(categoryId)
         ])
         
         const categories = catRes.data

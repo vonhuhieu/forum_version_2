@@ -91,4 +91,9 @@ public class Constants {
     // Display Name Constraints
     public static final int DISPLAY_NAME_MIN_LENGTH = 2;
     public static final int DISPLAY_NAME_MAX_LENGTH = 25;
+
+    // Category Label Modes
+    public static final String CATEGORY_LABEL_MODE_ALL = "ALL";
+    public static final String CATEGORY_LABEL_MODE_CUSTOM = "CUSTOM";
+    public static final String CATEGORY_LABEL_MODE_NONE = "NONE";
 }

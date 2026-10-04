@@ -52,4 +52,19 @@ public class CategoryController {
             return ResponseEntity.badRequest().body(ResponseDTO.fail(null, e.getMessage()));
         }
     }
+
+    @GetMapping("/{id}/labels")
+    public ResponseEntity<ResponseDTO<List<com.forum.dto.LabelDTO>>> getCategoryLabels(@PathVariable Long id) {
+        return ResponseEntity.ok(categoryService.getCategoryLabels(id));
+    }
+
+    @GetMapping("/{id}/label-config")
+    public ResponseEntity<ResponseDTO<com.forum.dto.CategoryLabelConfigDTO>> getCategoryLabelConfig(@PathVariable Long id) {
+        return ResponseEntity.ok(categoryService.getCategoryLabelConfig(id));
+    }
+
+    @PutMapping("/{id}/label-config")
+    public ResponseEntity<ResponseDTO<Void>> updateCategoryLabelConfig(@PathVariable Long id, @RequestBody com.forum.dto.CategoryLabelConfigDTO dto) {
+        return ResponseEntity.ok(categoryService.updateCategoryLabelConfig(id, dto));
+    }
 }

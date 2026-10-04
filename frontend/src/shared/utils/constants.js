@@ -162,3 +162,29 @@ export const LAB_TEXTS = {
   INPUT_PLACEHOLDER: 'Nhập yêu cầu của bạn, ví dụ: tạo vòng quay chọn người trả bài...'
 };
 
+export const CATEGORY_LABEL_MODES = {
+  ALL: 'ALL',
+  CUSTOM: 'CUSTOM',
+  NONE: 'NONE'
+};
+
+export const UPLOAD_MODES = {
+  AVATAR: 'avatar',
+  BANNER: 'banner'
+};
+
+export const LIGHTBOX_ZOOM = {
+  MIN: 0.5,
+  MAX: 4.0,
+  DEFAULT: 1.0,
+  STEP: 0.15,
+  PRESETS: [
+    { label: '50%', value: 0.5 },
+    { label: '100% (Gốc)', value: 1.0 },
+    { label: '150%', value: 1.5 },
+    { label: '200%', value: 2.0 },
+    { label: '300%', value: 3.0 },
+    { label: '400%', value: 4.0 }
+  ]
+};
+

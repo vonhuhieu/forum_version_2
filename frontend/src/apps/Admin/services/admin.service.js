@@ -17,6 +17,12 @@ class AdminService {
   deleteCategoriesByGroupId(groupId) {
     return api.delete(`/categories/by-group/${groupId}`)
   }
+  getCategoryLabelConfig(categoryId) {
+    return api.get(`/categories/${categoryId}/label-config`)
+  }
+  updateCategoryLabelConfig(categoryId, data) {
+    return api.put(`/categories/${categoryId}/label-config`, data)
+  }
 
   // Category Groups
   getCategoryGroups() {
