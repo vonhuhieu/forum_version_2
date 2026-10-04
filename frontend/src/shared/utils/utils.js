@@ -322,3 +322,100 @@ export function shouldShowExtraThreadPostHint(type) {
   ].includes(type);
 }
 
+/**
+ * Escape HTML để chống XSS trước khi chèn vào v-html.
+ */
+export function escapeHtml(text) {
+  return String(text == null ? '' : text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Render Markdown rút gọn (in đậm, nghiêng, danh sách gạch đầu dòng) một cách an toàn.
+ * Luôn escape HTML trước nên không bao giờ sinh thẻ nguy hiểm.
+ */
+export function renderSafeMarkdown(text) {
+  const lines = escapeHtml(text).split('\n');
+  const out = [];
+  let inList = false;
+  lines.forEach((line) => {
+    const formatted = line
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g, '$1<em>$2</em>');
+    const listMatch = formatted.match(/^\s*[-•]\s+(.*)$/);
+    if (listMatch) {
+      if (!inList) {
+        out.push('<ul>');
+        inList = true;
+      }
+      out.push(`<li>${listMatch[1]}</li>`);
+      return;
+    }
+    if (inList) {
+      out.push('</ul>');
+      inList = false;
+    }
+    out.push(formatted.trim() === '' ? '<br>' : `<p>${formatted}</p>`);
+  });
+  if (inList) out.push('</ul>');
+  return out.join('');
+}
+
+/**
+ * Lấy đường dẫn mở sản phẩm Lab theo publicId.
+ */
+export function getLabProductPath(publicId) {
+  return `${LAB_ROUTES.PLAYER_PREFIX}${publicId}`;
+}
+
+/**
+ * Chọn ngẫu nhiên một phần tử theo trọng số (weight) - dùng cho Vòng quay may mắn.
+ * @returns {number} chỉ số phần tử được chọn
+ */
+export function pickWeightedIndex(weights) {
+  const safe = weights.map((w) => (Number(w) > 0 ? Number(w) : 1));
+  const total = safe.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < safe.length; i++) {
+    r -= safe[i];
+    if (r <= 0) return i;
+  }
+  return safe.length - 1;
+}
+
+/**
+ * Trộn ngẫu nhiên mảng (Fisher-Yates), không làm thay đổi mảng gốc.
+ */
+export function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+import { LAB_ROUTES } from './constants';
+
+/**
+ * Kiểm tra xem một đối tượng menu có thuộc về phân hệ Lab (Phòng thí nghiệm) hay không.
+ * @param {object} menu
+ * @returns {boolean}
+ */
+export function isLabMenu(menu) {
+  if (!menu || !menu.url || typeof menu.url !== 'string') return false;
+  return menu.url === LAB_ROUTES.HOME || menu.url.startsWith(LAB_ROUTES.LAB_PREFIX);
+}
+
+/**
+ * Kiểm tra xem một đường dẫn path có thuộc về phân hệ Lab hay không.
+ * @param {string} path
+ * @returns {boolean}
+ */
+export function isLabPath(path) {
+  if (!path || typeof path !== 'string') return false;
+  return path === LAB_ROUTES.HOME || path.startsWith(LAB_ROUTES.LAB_PREFIX);
+}

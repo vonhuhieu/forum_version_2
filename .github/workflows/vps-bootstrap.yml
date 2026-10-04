@@ -141,7 +141,7 @@ jobs:
 
       - name: Build JAR với Maven
         run: |
-          cd backend
+          cd backend/forum-base-service
           mvn clean package -DskipTests
 
       - name: Copy JAR lên VPS
@@ -151,9 +151,9 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
-          source: "backend/target/backend-0.0.1-SNAPSHOT.jar"
+          source: "backend/forum-base-service/target/backend-0.0.1-SNAPSHOT.jar"
           target: "/var/www/forum/"
-          strip_components: 2
+          strip_components: 3
 
       - name: Đổi tên JAR và khởi động backend
         uses: appleboy/ssh-action@master

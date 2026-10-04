@@ -57,6 +57,37 @@ services:
       - opensearch
     restart: always
 
+  mongo:
+    image: mongo:7.0
+    container_name: forum-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=lab_db
+    volumes:
+      - mongo_data:/data/db
+    command: mongod --wiredTigerCacheSizeGB 0.25
+    restart: always
+
+  lab-service:
+    image: eclipse-temurin:17-jre-alpine
+    container_name: forum-lab-service
+    working_dir: /app
+    volumes:
+      - ./lab-service.jar:/app/lab-service.jar
+      - .env:/app/.env
+    env_file:
+      - .env
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/lab_db
+    command: java -Dspring.profiles.active=prod -Duser.timezone=Asia/Ho_Chi_Minh -Xmx320m -jar lab-service.jar
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      - mongo
+    restart: always
+
 volumes:
   mysql_data:
   opensearch_data:
+  mongo_data:

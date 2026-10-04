@@ -50,17 +50,25 @@ update_env_var() {
 }
 
 # ------------------------------------------------------------------------------
-# BƯỚC 1: Cấu hình Nginx Virtual Host cho Domain API mới
+# BƯỚC 1: Cấu hình Nginx Virtual Host cho Domain API mới & Lab API mới
 # ------------------------------------------------------------------------------
 echo ""
 echo "[1/5] Cập nhật cấu hình Nginx cho $NEW_API_DOMAIN..."
+
+# Tự động xác định subdomain Lab API
+ROOT_DOMAIN=$(echo "$NEW_FRONTEND_DOMAIN" | sed -e 's/^www\.//')
+NEW_LAB_API_DOMAIN="lab-api.${ROOT_DOMAIN}"
+NGINX_LAB_CONF="/etc/nginx/sites-available/forum-lab"
 
 # Sao lưu cấu hình cũ nếu có
 if [ -f "$NGINX_CONF" ]; then
     cp "$NGINX_CONF" "${NGINX_CONF}.bak.$(date +%s)"
 fi
+if [ -f "$NGINX_LAB_CONF" ]; then
+    cp "$NGINX_LAB_CONF" "${NGINX_LAB_CONF}.bak.$(date +%s)"
+fi
 
-# Tạo cấu hình Nginx mới (Port 80 ban đầu để Certbot xác thực SSL)
+# Tạo cấu hình Nginx mới cho API chính (Port 80 ban đầu để Certbot xác thực SSL)
 cat > "$NGINX_CONF" << EOF
 server {
     listen 80;
@@ -88,25 +96,51 @@ server {
 }
 EOF
 
-# Đảm bảo symlink kích hoạt
+# Tạo cấu hình Nginx cho Lab API (Microservice Lab port 8081, tắt buffering cho SSE)
+cat > "$NGINX_LAB_CONF" << EOF
+server {
+    listen 80;
+    server_name $NEW_LAB_API_DOMAIN;
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Hỗ trợ SSE (Server-Sent Events) cho Chat AI
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+        proxy_set_header Connection '';
+    }
+}
+EOF
+
+# Đảm bảo symlink kích hoạt cho cả 2 vhost
 ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/forum
+ln -sf "$NGINX_LAB_CONF" /etc/nginx/sites-enabled/forum-lab
 rm -f /etc/nginx/sites-enabled/default
 
 # Kiểm tra cú pháp Nginx
 nginx -t
 systemctl restart nginx
-echo "OK: Nginx đã nạp cấu hình vhost cho $NEW_API_DOMAIN."
+echo "OK: Nginx đã nạp cấu hình vhost cho $NEW_API_DOMAIN và $NEW_LAB_API_DOMAIN."
 
 # ------------------------------------------------------------------------------
 # BƯỚC 2: Cấp chứng chỉ SSL Let's Encrypt bằng Certbot
 # ------------------------------------------------------------------------------
 echo ""
-echo "[2/5] Cấp chứng chỉ SSL cho $NEW_API_DOMAIN..."
+echo "[2/5] Cấp chứng chỉ SSL cho $NEW_API_DOMAIN và $NEW_LAB_API_DOMAIN..."
 
 if [ -z "$CERTBOT_EMAIL" ]; then
     echo "CẢNH BÁO: CERTBOT_EMAIL chưa được cung cấp, sử dụng cờ --register-unsafely-without-email"
     certbot --nginx \
         -d "$NEW_API_DOMAIN" \
+        -d "$NEW_LAB_API_DOMAIN" \
         --non-interactive \
         --agree-tos \
         --register-unsafely-without-email \
@@ -115,6 +149,7 @@ if [ -z "$CERTBOT_EMAIL" ]; then
 else
     certbot --nginx \
         -d "$NEW_API_DOMAIN" \
+        -d "$NEW_LAB_API_DOMAIN" \
         --non-interactive \
         --agree-tos \
         -m "$CERTBOT_EMAIL" \
@@ -143,19 +178,21 @@ sed -i -e '$a\' "$ENV_FILE"
 # Cập nhật các biến tên miền
 update_env_var "APP_FRONTEND_URL" "https://${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
 update_env_var "APP_CORS_ALLOWED_ORIGINS" "https://${NEW_FRONTEND_DOMAIN},https://www.${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
+update_env_var "LAB_CORS_ALLOWED_ORIGINS" "https://${NEW_FRONTEND_DOMAIN},https://www.${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
 update_env_var "RESEND_FROM_EMAIL" "admin@${NEW_FRONTEND_DOMAIN}" "$ENV_FILE"
 
 echo "OK: File .env đã được cập nhật với tên miền mới."
 
 # ------------------------------------------------------------------------------
-# BƯỚC 4: Khởi động lại container Backend
+# BƯỚC 4: Khởi động lại container Backend & Lab Service
 # ------------------------------------------------------------------------------
 echo ""
-echo "[4/5] Khởi động lại Backend container để nạp biến môi trường mới..."
+echo "[4/5] Khởi động lại Backend & Lab-service container để nạp biến môi trường mới..."
 
 cd "$FORUM_DIR"
 # Dùng --force-recreate để Docker bắt buộc nạp lại các biến môi trường mới từ .env
 docker compose up -d --force-recreate --no-deps backend
+docker compose up -d --force-recreate --no-deps lab-service || true
 
 echo "Đang chờ Backend sẵn sàng..."
 for i in $(seq 1 24); do

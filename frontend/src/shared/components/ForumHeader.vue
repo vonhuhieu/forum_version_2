@@ -36,15 +36,41 @@
           </button>
 
           <nav class="nav-links" ref="navLinks">
-            <router-link class="fs-18"
-              v-for="menu in activeMenus"
-              :key="menu.id"
-              :to="menu.url"
-              :class="{ 'active': isMenuActive(menu) }"
-              @click="handleMenuClick($event, menu.url)"
-            >
-              {{ menu.title }}
-            </router-link>
+            <template v-for="menu in activeMenus" :key="menu.id">
+              <div
+                v-if="isLabMenu(menu) && isLoggedIn"
+                class="nav-lab-wrapper"
+                @mouseenter="showLabSubmenu = true"
+                @mouseleave="showLabSubmenu = false"
+              >
+                <router-link
+                  class="fs-18 nav-lab-trigger"
+                  :to="menu.url"
+                  :class="{ 'active': isMenuActive(menu) }"
+                  @click="handleMenuClick($event, menu.url)"
+                >
+                  {{ menu.title }}
+                  <span class="nav-lab-chevron">▾</span>
+                </router-link>
+                <div class="nav-lab-dropdown" v-show="showLabSubmenu">
+                  <router-link :to="LAB_ROUTES.HOME" class="nav-lab-item" @click="showLabSubmenu = false">
+                    <span class="me-2">💬</span> Trò chuyện AI
+                  </router-link>
+                  <router-link :to="LAB_ROUTES.MY_PRODUCTS" class="nav-lab-item" @click="showLabSubmenu = false">
+                    <span class="me-2">📦</span> Sản phẩm của tôi
+                  </router-link>
+                </div>
+              </div>
+              <router-link
+                v-else
+                class="fs-18"
+                :to="menu.url"
+                :class="{ 'active': isMenuActive(menu) }"
+                @click="handleMenuClick($event, menu.url)"
+              >
+                {{ menu.title }}
+              </router-link>
+            </template>
           </nav>
 
           <button 
@@ -125,6 +151,7 @@
                   <!-- Double Column Links -->
                   <div class="xamvn-links-grid" @click="showUserDropdown = false">
                     <router-link :to="{ name: 'UserProfile' }" class="xamvn-link-item">Trang cá nhân</router-link>
+                    <router-link :to="LAB_ROUTES.MY_PRODUCTS" class="xamvn-link-item text-primary fw-bold">📦 Sản phẩm của tôi</router-link>
                     <a href="#" class="xamvn-link-item" @click.prevent="goToReceivedReactions">Điểm tương tác nhận được</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Chi tiết tài khoản</a>
                     <a href="#" class="xamvn-link-item" @click.prevent>Tùy chọn</a>
@@ -582,15 +609,23 @@
           </button>
         </div>
         <nav class="sidebar-nav">
-          <router-link
-            v-for="menu in activeMenus"
-            :key="menu.id"
-            :to="menu.url"
-            :class="{ 'active': isMenuActive(menu) }"
-            @click="handleMenuClick($event, menu.url, true)"
-          >
-            {{ menu.title }}
-          </router-link>
+          <template v-for="menu in activeMenus" :key="menu.id">
+            <router-link
+              :to="menu.url"
+              :class="{ 'active': isMenuActive(menu) }"
+              @click="handleMenuClick($event, menu.url, true)"
+            >
+              {{ menu.title }}
+            </router-link>
+            <div v-if="isLabMenu(menu) && isLoggedIn" class="sidebar-lab-subnav">
+              <router-link :to="LAB_ROUTES.HOME" class="sidebar-lab-item" @click="isSidebarOpen = false">
+                <span class="me-2">💬</span> Trò chuyện AI
+              </router-link>
+              <router-link :to="LAB_ROUTES.MY_PRODUCTS" class="sidebar-lab-item" @click="isSidebarOpen = false">
+                <span class="me-2">📦</span> Sản phẩm của tôi
+              </router-link>
+            </div>
+          </template>
         </nav>
       </div>
     </div>
@@ -634,7 +669,8 @@ import {
   NOTIFICATION_TYPES, 
   NOTIFICATION_TAB_KEYS, 
   NOTIFICATION_LABEL_STYLES, 
-  NOTIFICATION_TEXTS 
+  NOTIFICATION_TEXTS,
+  LAB_ROUTES
 } from '@/shared/utils/constants'
 import { 
   isNonOfficialUser, 
@@ -642,7 +678,9 @@ import {
   formatAvatarUrl, 
   isAvatarUrl,
   getNotifLabelStyle, 
-  shouldShowExtraThreadPostHint 
+  shouldShowExtraThreadPostHint,
+  isLabMenu,
+  isLabPath
 } from '@/shared/utils/utils'
 import PendingApprovalBanner from '@/shared/components/PendingApprovalBanner.vue'
 import SearchModal from '@/shared/components/SearchModal.vue'
@@ -669,6 +707,7 @@ export default {
   },
   data() {
     return {
+      LAB_ROUTES,
       windowWidth: window.innerWidth,
       menus: [],
       isLoggedIn: false,
@@ -676,6 +715,7 @@ export default {
       showNotifDropdown: false,
       showUserDropdown: false,
       showMailDropdown: false,
+      showLabSubmenu: false,
       isSidebarOpen: false,
       notifications: [],
       unreadCount: 0,
@@ -846,6 +886,9 @@ export default {
     isAvatarUrl(avatar) {
       return isAvatarUrl(avatar)
     },
+    isLabMenu(menu) {
+      return isLabMenu(menu)
+    },
     isMenuActive(menu) {
       if (!menu || !menu.url) return false
       const path = this.$route.path
@@ -854,6 +897,9 @@ export default {
       }
       if (menu.url === '/thanh-vien' || menu.url === '/members') {
         return path === '/thanh-vien' || path === '/members' || path === '/account/profile'
+      }
+      if (menu.url === LAB_ROUTES.HOME) {
+        return isLabPath(path)
       }
       return path === menu.url || path.startsWith(menu.url + '/')
     },
@@ -2779,6 +2825,82 @@ export default {
 
 .header-bookmark-item:hover {
   background-color: #f6f8fa !important;
+}
+
+/* Lab Header Dropdown & Submenu */
+.nav-lab-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-lab-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-lab-chevron {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  transition: transform 0.2s ease;
+}
+
+.nav-lab-wrapper:hover .nav-lab-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-lab-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  z-index: 1050;
+}
+
+.nav-lab-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  color: #2c3e50;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-lab-item:hover {
+  background: #f1f5f9;
+  color: #1a507a;
+}
+
+/* Mobile Sidebar Lab Subnav */
+.sidebar-lab-subnav {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.03);
+  border-left: 3px solid #1a507a;
+  margin: 4px 0 8px 16px;
+  border-radius: 0 4px 4px 0;
+}
+
+.sidebar-lab-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #4a5568;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.sidebar-lab-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a507a;
 }
 
 </style>

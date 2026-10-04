@@ -174,6 +174,21 @@ else
     echo "THÔNG BÁO: Không tìm thấy thư mục uploads/ trong file backup (bỏ qua)."
 fi
 
+# 6d. Restore MongoDB (nếu có file mongo.archive.gz trong backup)
+MONGO_ARCHIVE=$(find "$BACKUP_DIR" -type f -name "mongo.archive.gz" | head -1)
+if [ -n "$MONGO_ARCHIVE" ] && [ -f "$MONGO_ARCHIVE" ]; then
+    echo "Phát hiện file backup MongoDB ($MONGO_ARCHIVE), đang kiểm tra container forum-mongo..."
+    if docker ps --format '{{.Names}}' | grep -q "forum-mongo"; then
+        echo "Đang restore MongoDB từ $MONGO_ARCHIVE..."
+        docker exec -i forum-mongo mongorestore --archive --gzip --drop < "$MONGO_ARCHIVE"
+        echo "OK: Dữ liệu MongoDB đã được khôi phục thành công."
+    else
+        echo "CẢNH BÁO: Container forum-mongo chưa chạy, bỏ qua restore MongoDB."
+    fi
+else
+    echo "THÔNG BÁO: Không có backup MongoDB trong gói lưu trữ (bỏ qua)."
+fi
+
 # 6d. Dọn dẹp tệp tin tạm giải nén
 echo "Dọn dẹp file tạm..."
 find "$BACKUP_DIR" -mindepth 1 -not -name "$LATEST_BACKUP" -delete
