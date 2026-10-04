@@ -143,6 +143,19 @@ DB_SIZE=$(du -sh "$TMP_DIR/db.sql" | cut -f1)
 echo "OK: Database đã dump thành công (size: $DB_SIZE)"
 
 # ------------------------------------------------------------------------------
+# BƯỚC 2.2: Dump database MongoDB (Phòng thí nghiệm AI) nếu container đang chạy
+# ------------------------------------------------------------------------------
+if docker ps --format '{{.Names}}' | grep -q "forum-mongo"; then
+    echo ""
+    echo "Dump database MongoDB (lab_db) từ container 'forum-mongo'..."
+    docker exec forum-mongo mongodump --archive --gzip --db=lab_db > "$TMP_DIR/mongo.archive.gz" || true
+    if [ -s "$TMP_DIR/mongo.archive.gz" ]; then
+        MONGO_SIZE=$(du -sh "$TMP_DIR/mongo.archive.gz" | cut -f1)
+        echo "OK: MongoDB lab_db đã dump thành công (size: $MONGO_SIZE)"
+    fi
+fi
+
+# ------------------------------------------------------------------------------
 # BƯỚC 3: Copy thư mục uploads
 # ------------------------------------------------------------------------------
 echo ""

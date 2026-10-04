@@ -59,6 +59,10 @@ public class Constants {
     public static final Long MENU_NEWS_ID = 2L;
     public static final int MENU_NEWS_ORDER = 2;
 
+    public static final String MENU_LAB_TITLE = "Phòng thí nghiệm";
+    public static final String MENU_LAB_URL = "/phong-thi-nghiem";
+    public static final int MENU_LAB_ORDER = 3;
+
     // News Tab Keys
     public static final String NEWS_TAB_ALL = "all";
     public static final String NEWS_TAB_TECH = "tech";

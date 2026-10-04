@@ -1,5 +1,5 @@
 # Uploads directory (user uploaded files - not to be versioned)
-backend/uploads/
+backend/forum-base-service/uploads/
 
 # Sensitive files and notes
 note
@@ -12,6 +12,7 @@ frontend/node_modules/
 
 # Backend build output
 backend/target/
+backend/*/target/
 
 # IDE files
 .idea/
@@ -20,7 +21,7 @@ backend/target/
 # Database Dumps and Scraping Files
 *.sql
 *.json
-!backend/src/main/resources/**/*.json
+!backend/*/src/main/resources/**/*.json
 
 # Root Node scripts and node modules
 /*.js

@@ -100,3 +100,65 @@ export const NOTIFICATION_TEXTS = {
 export const BREADCRUMB_HOME_TITLES = ['Trang chủ', 'Home'];
 
 export const DISPLAY_NAME_MAX_LENGTH = 25;
+
+export const LAB_ROUTES = {
+  HOME: '/phong-thi-nghiem',
+  MY_PRODUCTS: '/lab/san-pham',
+  PLAYER_PREFIX: '/lab/p/',
+  LAB_PREFIX: '/lab'
+};
+
+export const LAB_TEMPLATES = {
+  LUCKY_WHEEL: 'LUCKY_WHEEL',
+  FLASHCARD: 'FLASHCARD',
+  MILLIONAIRE: 'MILLIONAIRE'
+};
+
+export const LAB_MESSAGE_ROLES = {
+  USER: 'user',
+  ASSISTANT: 'assistant'
+};
+
+export const LAB_SSE_EVENTS = {
+  MESSAGE: 'message',
+  SESSION: 'session',
+  PRODUCT: 'product',
+  ERROR: 'error',
+  DONE: 'done',
+  HEARTBEAT: 'heartbeat'
+};
+
+export const LAB_BOT = {
+  NAME: 'Nhà thông thái',
+  AVATAR: '🧙‍♂️',
+  GREETING: 'Chào bạn! Ta là Nhà thông thái, hãy kể cho ta nghe bạn muốn tạo sản phẩm gì nhé.'
+};
+
+export const LAB_QUICK_PROMPTS = [
+  { icon: '🏆', label: 'Ai là triệu phú', prompt: 'Làm cho tôi game Ai là triệu phú về kiến thức chung' },
+  { icon: '🎡', label: 'Vòng quay may mắn', prompt: 'Tạo vòng quay may mắn bốc thăm phần thưởng' },
+  { icon: '🗂', label: 'Flashcard', prompt: 'Tạo bộ thẻ flashcard ôn tập kiến thức' }
+];
+
+export const LAB_TEMPLATE_META = {
+  [LAB_TEMPLATES.LUCKY_WHEEL]: { name: 'Vòng quay may mắn', icon: '🎡' },
+  [LAB_TEMPLATES.FLASHCARD]: { name: 'Thẻ ghi nhớ', icon: '🗂' },
+  [LAB_TEMPLATES.MILLIONAIRE]: { name: 'Ai là triệu phú', icon: '🏆' }
+};
+
+export const LAB_WHEEL_DEFAULT_COLORS = [
+  '#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6', '#64748b'
+];
+
+export const LAB_MILLIONAIRE = {
+  ANSWER_KEYS: ['A', 'B', 'C', 'D'],
+  DEFAULT_TIMER_SECONDS: 30
+};
+
+export const LAB_TEXTS = {
+  GUEST_LOGIN_HINT: 'Đăng nhập thành viên chính thức để lưu sản phẩm và lịch sử trò chuyện.',
+  STREAM_ERROR: 'Đường truyền bị gián đoạn, bạn thử lại sau giây lát nhé.',
+  PRODUCT_NOT_FOUND: 'Sản phẩm không tồn tại hoặc đã hết hạn.',
+  INPUT_PLACEHOLDER: 'Nhập yêu cầu của bạn, ví dụ: tạo vòng quay chọn người trả bài...'
+};
+
