@@ -1,0 +1,7 @@
+# Cloudflare Pages Redirects & Rewrites
+
+# Chuyển hướng tài nguyên /uploads trực tiếp về backend (không qua serverless trung gian)
+/uploads/*  https://api.hoptacxavuive.com/uploads/:splat  301
+
+# SPA Routing: Đảm bảo Vue Router không bị lỗi 404 khi người dùng F5 / reload trang
+/*  /index.html  200
