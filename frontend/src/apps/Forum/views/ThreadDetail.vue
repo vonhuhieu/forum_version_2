@@ -91,6 +91,30 @@
               <div class="post-meta-top">
                 <span class="post-time-top">{{ formatDate(thread.createdAt) }}</span>
                 <div class="post-actions-top">
+                  <!-- Nút đọc âm thanh cho bài viết chính -->
+                  <button 
+                    type="button" 
+                    class="btn-tts-action" 
+                    :class="{ 'is-speaking': isTtsActive('main_thread_entry'), 'is-paused': isTtsPaused('main_thread_entry') }"
+                    @click.stop="toggleTts('main_thread_entry', getThreadSpeechText())"
+                    :title="getTtsTooltip('main_thread_entry')"
+                    aria-label="Phát âm thanh đọc bài viết"
+                  >
+                    <svg v-if="isTtsActive('main_thread_entry') && !isTtsPaused('main_thread_entry')" class="tts-icon tts-icon-active" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                    <svg v-else-if="isTtsPaused('main_thread_entry')" class="tts-icon tts-icon-paused" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <line x1="23" y1="9" x2="17" y2="15"></line>
+                      <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>
+                    <svg v-else class="tts-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                  </button>
+
                   <PostSharePopup 
                     :thread-id="thread.id" 
                     :post-id="item.id" 
@@ -204,6 +228,30 @@
               <div class="post-meta-top">
                 <span class="post-time-top">{{ formatDate(item.createdAt) }}</span>
                 <div class="post-actions-top">
+                  <!-- Nút đọc âm thanh cho bình luận -->
+                  <button 
+                    type="button" 
+                    class="btn-tts-action" 
+                    :class="{ 'is-speaking': isTtsActive(item.id), 'is-paused': isTtsPaused(item.id) }"
+                    @click.stop="toggleTts(item.id, getPostSpeechText(item))"
+                    :title="getTtsTooltip(item.id)"
+                    aria-label="Phát âm thanh đọc bài viết"
+                  >
+                    <svg v-if="isTtsActive(item.id) && !isTtsPaused(item.id)" class="tts-icon tts-icon-active" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                    <svg v-else-if="isTtsPaused(item.id)" class="tts-icon tts-icon-paused" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <line x1="23" y1="9" x2="17" y2="15"></line>
+                      <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>
+                    <svg v-else class="tts-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                  </button>
+
                   <PostSharePopup 
                     :thread-id="thread.id" 
                     :post-id="item.id" 
@@ -507,7 +555,11 @@ export default {
         postId: null,
         note: '',
         labels: []
-      }
+      },
+      // Text-To-Speech (Web Speech API)
+      ttsCurrentId: null,
+      ttsState: 'idle', // 'idle' | 'playing' | 'paused'
+      ttsUtterance: null
     }
   },
   computed: {
@@ -652,6 +704,7 @@ export default {
     this.initQuoteCollapsing()
   },
   beforeUnmount() {
+    this.stopTts();
     window.removeEventListener('notification-clicked', this.onNotificationClicked);
     window.removeEventListener('user-avatar-updated', this.handleAvatarUpdated);
     window.removeEventListener('hashchange', this.handleHashChange);
@@ -672,6 +725,7 @@ export default {
     },
     '$route.query.page': {
       async handler(newVal) {
+        this.stopTts();
         const page = Number(newVal) || 1;
         if (page !== this.currentPage) {
           this.currentPage = page;
@@ -1782,6 +1836,135 @@ export default {
         delete updated[activeKey];
         this.bookmarkedItems = updated;
       }
+    },
+    // --- Text-To-Speech (Web Speech API) ---
+    cleanHtmlForSpeech(html) {
+      if (!html) return '';
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // Xóa các khối quote/trích dẫn để tránh đọc lặp
+      const blockquotes = tempDiv.querySelectorAll('blockquote, .bbCodeBlock, .quote-container');
+      blockquotes.forEach(el => el.remove());
+      
+      // Xóa ảnh, video, iframe, svg
+      const mediaEls = tempDiv.querySelectorAll('img, video, iframe, svg');
+      mediaEls.forEach(el => el.remove());
+      
+      const text = tempDiv.innerText || tempDiv.textContent || '';
+      return text.replace(/\s+/g, ' ').trim();
+    },
+    getThreadSpeechText() {
+      const title = this.thread?.title || '';
+      const authorName = this.thread?.author ? (this.thread.author.displayName || this.thread.author.username) : 'Thành viên';
+      const bodyText = this.cleanHtmlForSpeech(this.thread?.content);
+      return `Bài viết: ${title}. Tác giả: ${authorName}. Nội dung: ${bodyText}`;
+    },
+    getPostSpeechText(item) {
+      const authorName = item?.author ? (item.author.displayName || item.author.username) : 'Thành viên';
+      const bodyText = this.cleanHtmlForSpeech(item?.content);
+      return `Bình luận của ${authorName}: ${bodyText}`;
+    },
+    isTtsActive(id) {
+      return String(this.ttsCurrentId) === String(id) && (this.ttsState === 'playing' || this.ttsState === 'paused');
+    },
+    isTtsPaused(id) {
+      return String(this.ttsCurrentId) === String(id) && this.ttsState === 'paused';
+    },
+    getTtsTooltip(id) {
+      if (!('speechSynthesis' in window)) {
+        return 'Trình duyệt không hỗ trợ đọc âm thanh';
+      }
+      if (this.isTtsActive(id)) {
+        if (this.isTtsPaused(id)) {
+          return 'Bấm để tiếp tục nghe';
+        }
+        return 'Bấm để tạm dừng đọc';
+      }
+      return 'Nghe đọc bài viết';
+    },
+    stopTts() {
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {
+          // ignore
+        }
+      }
+      this.ttsCurrentId = null;
+      this.ttsState = 'idle';
+      this.ttsUtterance = null;
+    },
+    toggleTts(id, text) {
+      if (!('speechSynthesis' in window)) {
+        toastError('Trình duyệt của bạn không hỗ trợ tính năng phát âm thanh (Web Speech API).');
+        return;
+      }
+
+      // Nếu đang thao tác trên cùng một item
+      if (String(this.ttsCurrentId) === String(id)) {
+        if (this.ttsState === 'playing') {
+          window.speechSynthesis.pause();
+          this.ttsState = 'paused';
+          return;
+        } else if (this.ttsState === 'paused') {
+          window.speechSynthesis.resume();
+          this.ttsState = 'playing';
+          return;
+        }
+      }
+
+      // Dừng bài đang đọc nếu bấm vào bài khác hoặc bắt đầu mới
+      this.stopTts();
+
+      if (!text || !text.trim()) {
+        toastError('Không có nội dung văn bản để đọc.');
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(v => v.lang && (v.lang.toLowerCase().startsWith('vi') || v.lang.toUpperCase().includes('VIE')));
+        if (viVoice) {
+          utterance.voice = viVoice;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      utterance.onstart = () => {
+        this.ttsCurrentId = id;
+        this.ttsState = 'playing';
+      };
+
+      utterance.onend = () => {
+        if (String(this.ttsCurrentId) === String(id)) {
+          this.ttsCurrentId = null;
+          this.ttsState = 'idle';
+          this.ttsUtterance = null;
+        }
+      };
+
+      utterance.onerror = (e) => {
+        if (e.error !== 'canceled' && e.error !== 'interrupted') {
+          console.warn('SpeechSynthesis error:', e);
+        }
+        if (String(this.ttsCurrentId) === String(id)) {
+          this.ttsCurrentId = null;
+          this.ttsState = 'idle';
+          this.ttsUtterance = null;
+        }
+      };
+
+      this.ttsUtterance = utterance;
+      this.ttsCurrentId = id;
+      this.ttsState = 'playing';
+      window.speechSynthesis.speak(utterance);
     }
   }
 }
@@ -1945,6 +2128,57 @@ export default {
 
 .action-icon-top:hover {
   color: #1a507a;
+}
+
+.btn-tts-action {
+  background: transparent;
+  border: none;
+  padding: 3px 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #718096;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.btn-tts-action:hover {
+  color: #1a507a;
+  background-color: #edf2f7;
+}
+
+.btn-tts-action.is-speaking {
+  color: #2b6cb0;
+  background-color: #ebf8ff;
+  animation: pulse-tts 1.5s infinite;
+}
+
+.btn-tts-action.is-paused {
+  color: #d69e2e;
+  background-color: #fefcbf;
+}
+
+.tts-icon {
+  display: block;
+  transition: transform 0.2s;
+}
+
+.btn-tts-action:hover .tts-icon {
+  transform: scale(1.12);
+}
+
+@keyframes pulse-tts {
+  0% {
+    box-shadow: 0 0 0 0 rgba(43, 108, 176, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(43, 108, 176, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(43, 108, 176, 0);
+  }
 }
 
 .bookmark-icon {
