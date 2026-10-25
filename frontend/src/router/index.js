@@ -54,35 +54,35 @@ const routes = [
         name: 'MembersView',
         component: MembersView,
         alias: 'members',
-        meta: { title: 'Thành viên | HỢP TÁC XÃ VUI VẺ' }
+        meta: { title: 'Thành viên - Hợp Tác Xã Vui Vẻ' }
       },
       {
         path: 'latest',
         name: 'LatestThreads',
         component: LatestThreadsView,
         alias: 'latests',
-        meta: { title: 'Chủ đề mới | HỢP TÁC XÃ VUI VẺ' }
+        meta: { title: 'Chủ đề mới - Hợp Tác Xã Vui Vẻ' }
       },
       {
         path: 'pinned',
         name: 'PinnedThreads',
         component: () => import('@/apps/Forum/views/PinnedThreadsView.vue'),
         alias: ['chu-y'],
-        meta: { title: 'Bài viết chú ý | HỢP TÁC XÃ VUI VẺ' }
+        meta: { title: 'Bài viết chú ý - Hợp Tác Xã Vui Vẻ' }
       },
       {
         path: 'diem-tin',
         name: 'NewsFeed',
         component: () => import('@/apps/Forum/views/NewsFeedView.vue'),
         alias: ['tin-tuc', 'leu-bao'],
-        meta: { title: 'Điểm Tin Thời Sự & Đàm Đạo | HỢP TÁC XÃ VUI VẺ' }
+        meta: { title: 'Điểm Tin Thời Sự & Đàm Đạo - Hợp Tác Xã Vui Vẻ' }
       },
       {
         path: 'phong-thi-nghiem',
         name: 'LabChat',
         component: () => import('@/apps/Lab/views/LabChatView.vue'),
         alias: ['lab'],
-        meta: { title: 'Phòng Thí Nghiệm AI | HỢP TÁC XÃ VUI VẺ' }
+        meta: { title: 'Phòng Thí Nghiệm AI - Hợp Tác Xã Vui Vẻ' }
       },
       {
         path: 'lab/san-pham',
