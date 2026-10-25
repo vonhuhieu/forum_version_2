@@ -126,7 +126,7 @@
                 <div class="card-header section-header">Nhiều bài nhất</div>
                 <div class="card-body padding-0">
                   <div v-for="item in topPosters" :key="item.id || item.username" class="stat-user-row">
-                    <UserProfilePopup :user="item" style="display: flex; align-items: center;">
+                    <UserProfilePopup :user="item" class="stat-user-popup">
                       <div class="user-left-col">
                         <div 
                           class="stat-avatar-circle" 
@@ -135,8 +135,9 @@
                           <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
-                        <span class="user-name-link">
-                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
+                        <span class="user-name-link" :title="item.displayName || item.username">
+                          <span class="user-name-text">{{ item.displayName || item.username }}</span>
+                          <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
@@ -157,7 +158,7 @@
                 <div class="card-header section-header">Nhiều điểm tương tác nhất</div>
                 <div class="card-body padding-0">
                   <div v-for="item in topInteractions" :key="item.id || item.username" class="stat-user-row">
-                    <UserProfilePopup :user="item" style="display: flex; align-items: center;">
+                    <UserProfilePopup :user="item" class="stat-user-popup">
                       <div class="user-left-col">
                         <div 
                           class="stat-avatar-circle" 
@@ -166,8 +167,9 @@
                           <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
-                        <span class="user-name-link">
-                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
+                        <span class="user-name-link" :title="item.displayName || item.username">
+                          <span class="user-name-text">{{ item.displayName || item.username }}</span>
+                          <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
@@ -188,7 +190,7 @@
                 <div class="card-header section-header">Nhiều điểm nhất</div>
                 <div class="card-body padding-0">
                   <div v-for="item in topTrophyPoints" :key="item.id || item.username" class="stat-user-row">
-                    <UserProfilePopup :user="item" style="display: flex; align-items: center;">
+                    <UserProfilePopup :user="item" class="stat-user-popup">
                       <div class="user-left-col">
                         <div 
                           class="stat-avatar-circle" 
@@ -197,8 +199,9 @@
                           <img v-if="isAvatarUrl(item.avatar)" :src="formatAvatarUrl(item.avatar)" alt="avatar" />
                           <span v-else>{{ (item.displayName || item.username || '?').charAt(0).toUpperCase() }}</span>
                         </div>
-                        <span class="user-name-link">
-                          {{ item.displayName || item.username }} <VerifiedBadge :user="item" size="14px" />
+                        <span class="user-name-link" :title="item.displayName || item.username">
+                          <span class="user-name-text">{{ item.displayName || item.username }}</span>
+                          <VerifiedBadge :user="item" size="14px" />
                         </span>
                       </div>
                     </UserProfilePopup>
@@ -246,8 +249,9 @@
                       <!-- Hàng 1: DisplayName -->
                       <div class="member-name-row">
                         <UserProfilePopup :user="userItem">
-                          <span class="member-display-name">
-                            {{ userItem.displayName || userItem.username }} <VerifiedBadge :user="userItem" size="15px" />
+                          <span class="member-display-name" :title="userItem.displayName || userItem.username">
+                            <span class="member-name-text">{{ userItem.displayName || userItem.username }}</span>
+                            <VerifiedBadge :user="userItem" size="15px" />
                           </span>
                         </UserProfilePopup>
                       </div>
@@ -628,6 +632,8 @@ export default {
   padding: 12px 16px;
   border-bottom: 1px solid #edf0f5;
   transition: background-color 0.15s;
+  min-width: 0;
+  gap: 10px;
 }
 
 .stat-user-row:hover {
@@ -638,10 +644,21 @@ export default {
   border-bottom: none;
 }
 
+.stat-user-popup {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .user-left-col {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .stat-avatar-circle {
@@ -673,6 +690,20 @@ export default {
   cursor: pointer;
   text-decoration: none;
   transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.user-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  display: inline-block;
 }
 
 .user-name-link:hover {
@@ -685,6 +716,10 @@ export default {
   font-weight: bold;
   color: #495057;
   font-size: 0.95rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+  text-align: right;
 }
 
 .block-footer {
@@ -790,6 +825,7 @@ export default {
 .member-name-row {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .member-display-name {
@@ -799,6 +835,19 @@ export default {
   cursor: pointer;
   text-decoration: none;
   transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.member-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  display: inline-block;
 }
 
 .member-display-name:hover {
