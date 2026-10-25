@@ -21,4 +21,16 @@ public class ShareController {
             HttpServletRequest request) {
         return ResponseEntity.ok(shareService.generateShareHtml(id, postId, request));
     }
+
+    @GetMapping(value = "/tts", produces = "audio/mpeg")
+    public ResponseEntity<byte[]> getTtsAudio(@RequestParam("q") String q) {
+        byte[] audioBytes = shareService.fetchGoogleTts(q);
+        if (audioBytes.length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(audioBytes);
+    }
 }

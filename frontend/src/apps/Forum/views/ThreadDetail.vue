@@ -1929,28 +1929,49 @@ export default {
       }
 
       const chunk = this.ttsAudioChunks[this.ttsCurrentChunkIndex];
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+      const encoded = encodeURIComponent(chunk);
+
+      // Ưu tiên 1: Cloudflare Pages Function proxy (/api/tts)
+      const primaryUrl = `/api/tts?q=${encoded}`;
+      // Dự phòng 2: Backend Spring Boot proxy (/api/share/tts)
+      const backendBase = (typeof getBackendBaseUrl === 'function' ? getBackendBaseUrl() : '') || '';
+      const fallbackUrl = `${backendBase}/api/share/tts?q=${encoded}`;
 
       if (!this.ttsAudio) {
         this.ttsAudio = new Audio();
       }
 
-      this.ttsAudio.src = url;
+      this.ttsAudio.src = primaryUrl;
+
       this.ttsAudio.onended = () => {
         this.ttsCurrentChunkIndex++;
         this.playNextAudioChunk();
       };
 
       this.ttsAudio.onerror = (e) => {
-        console.warn('Google TTS audio load error, fallback to Web Speech:', e);
+        console.warn('Primary TTS proxy failed, checking fallback...', e);
+        // Nếu primaryUrl (/api/tts) lỗi và chưa thử fallbackUrl
+        if (this.ttsAudio && this.ttsAudio.src !== fallbackUrl && fallbackUrl !== primaryUrl && backendBase) {
+          this.ttsAudio.src = fallbackUrl;
+          this.ttsAudio.play().catch(err => {
+            console.warn('Backend TTS proxy also failed:', err);
+            this.fallbackWebSpeechTts();
+          });
+          return;
+        }
         this.fallbackWebSpeechTts();
       };
 
       this.ttsAudio.play().then(() => {
         this.ttsState = 'playing';
       }).catch((err) => {
-        console.warn('Audio play prevented or failed:', err);
-        this.fallbackWebSpeechTts();
+        console.warn('Audio play prevented or failed on primary, trying fallback:', err);
+        if (this.ttsAudio && this.ttsAudio.src !== fallbackUrl && fallbackUrl !== primaryUrl && backendBase) {
+          this.ttsAudio.src = fallbackUrl;
+          this.ttsAudio.play().catch(() => this.fallbackWebSpeechTts());
+        } else {
+          this.fallbackWebSpeechTts();
+        }
       });
     },
     fallbackWebSpeechTts() {
