@@ -142,4 +142,40 @@ public class ShareService {
 
         return html.toString();
     }
+
+    /**
+     * Tải dữ liệu âm thanh đọc tiếng Việt (mp3) từ Google Translate TTS phục vụ proxy client
+     */
+    public byte[] fetchGoogleTts(String text) {
+        try {
+            if (text == null || text.trim().isEmpty()) {
+                return new byte[0];
+            }
+            String encoded = java.net.URLEncoder.encode(text.trim(), java.nio.charset.StandardCharsets.UTF_8);
+            String urlStr = "https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=" + encoded;
+            java.net.URL url = new java.net.URI(urlStr).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(10000);
+
+            if (conn.getResponseCode() == 200) {
+                try (java.io.InputStream in = conn.getInputStream();
+                     java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                    return out.toByteArray();
+                }
+            } else {
+                log.warn("Google TTS returned HTTP {}", conn.getResponseCode());
+            }
+        } catch (Exception e) {
+            log.error("Error fetching Google TTS audio: {}", e.getMessage());
+        }
+        return new byte[0];
+    }
 }
